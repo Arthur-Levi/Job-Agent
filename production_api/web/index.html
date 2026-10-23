@@ -1,1 +1,71 @@
-<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Job Agent | Sua evolução profissional</title><link rel="stylesheet" href="/assets/style.css"></head><body><header><div class="brand">◈ JOB AGENT <span>CAREER OS</span></div><nav><button data-tab="dashboard">Visão geral</button><button data-tab="import">Importar currículo</button><button data-tab="master">Perfil mestre</button><button data-tab="ledger">Fatos</button><button data-tab="diagnostic">Diagnóstico</button><button data-tab="evidence">Evidências</button><button data-tab="jobs">Vagas</button><button data-tab="applications">Candidaturas</button><button data-tab="tasks">Plano</button><button data-tab="graph">Mapa de evidências</button><button data-tab="loop">Evolução</button><button data-tab="premium">Premium</button><button data-tab="account">Conta</button></nav><button id="logout" hidden>Sair</button></header><main><section id="auth" class="panel narrow"><p class="eyebrow">CARREIRA COM EVIDÊNCIAS</p><h1>Seu próximo passo profissional começa com clareza.</h1><p>Diagnóstico gratuito e acompanhamento baseado no que você realmente construiu. Sem promessas de contratação.</p><form id="authForm"><label>E-mail<input id="email" type="email" required autocomplete="email"></label><label>Senha (mínimo 12 caracteres)<input id="password" type="password" minlength="12" required autocomplete="current-password"></label><div class="actions"><button type="submit">Entrar</button><button type="button" id="register">Criar conta</button></div></form></section><section id="workspace" hidden><div class="hero"><div><p class="eyebrow">SEU ESPAÇO PROFISSIONAL</p><h1 id="pageTitle">Visão geral</h1><p id="subtitle">Cada conquista precisa de uma evidência.</p></div><div id="planBadge" class="pill">Plano gratuito</div></div><div id="content" class="panel"></div></section><p id="message" role="status" aria-live="polite"></p></main><footer>Job Agent • Dados declarados não equivalem a competências verificadas • Sem garantia de contratação</footer><script src="/assets/app.js" defer></script></body></html>
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#111318">
+<meta name="description" content="Job Agent: inteligência de carreira baseada em evidências reais.">
+<title>Job Agent — Executive Career OS</title>
+<link rel="stylesheet" href="/assets/style.css">
+</head>
+<body>
+<div class="app-shell">
+  <aside class="sidebar" aria-label="Navegação principal">
+    <div class="brand"><span class="brand-mark" aria-hidden="true">◈</span><span>JOB AGENT<small>EXECUTIVE CAREER OS</small></span></div>
+    <div class="sidebar-label">WORKSPACE</div>
+    <nav aria-label="Módulos">
+      <button data-tab="dashboard">Visão geral</button>
+      <button data-tab="import">Importar currículo</button>
+      <button data-tab="master">Perfil profissional</button>
+      <button data-tab="diagnostic">Diagnóstico</button>
+      <div class="nav-divider"></div>
+      <div class="sidebar-label">SUA EVOLUÇÃO</div>
+      <button data-tab="evidence">Evidências</button>
+      <button data-tab="jobs">Vagas</button>
+      <button data-tab="applications">Candidaturas</button>
+      <button data-tab="tasks">Plano de ação</button>
+      <details class="nav-more"><summary>Ferramentas avançadas</summary>
+        <button data-tab="ledger">Registro de fatos</button>
+        <button data-tab="graph">Mapa de evidências</button>
+        <button data-tab="loop">Evolução profissional</button>
+      </details>
+      <div class="nav-divider"></div>
+      <button data-tab="premium">Career Professional</button>
+      <button data-tab="account">Minha conta</button>
+    </nav>
+    <div class="sidebar-bottom"><span class="status-dot"></span> Ambiente profissional <small>Informações declaradas não são verificadas automaticamente.</small></div>
+  </aside>
+  <div class="app-main">
+    <header class="topbar"><span class="topbar-kicker">JOB AGENT <span class="topbar-separator">/</span> CAREER WORKSPACE</span><button id="logout" class="secondary" hidden>Sair da conta</button></header>
+    <main>
+      <section id="auth" class="auth-layout">
+        <div class="auth-story">
+          <p class="eyebrow">A SUA PRÓXIMA FASE COMEÇA AQUI</p>
+          <h1>Carreiras não avançam por acaso.<em> Avançam com direção.</em></h1>
+          <p>Transforme sua trajetória em evidências, identifique oportunidades e construa seu próximo movimento com clareza.</p>
+          <div class="auth-proof"><span>01 / ENTENDA SEU PERFIL</span><span>02 / IDENTIFIQUE LACUNAS</span><span>03 / EXECUTE SEU PLANO</span></div>
+        </div>
+        <div class="panel auth-card">
+          <p class="eyebrow">ACESSO AO WORKSPACE</p>
+          <h2>Bem-vindo ao seu próximo capítulo.</h2>
+          <p>Entre na sua conta ou crie um acesso para começar.</p>
+          <form id="authForm">
+            <label>E-mail<input id="email" type="email" required autocomplete="email" placeholder="seu@email.com"></label>
+            <label>Senha<input id="password" type="password" minlength="12" required autocomplete="current-password" placeholder="Mínimo de 12 caracteres"></label>
+            <div class="actions"><button type="submit">Entrar no workspace <span aria-hidden="true">↗</span></button><button type="button" id="register" class="secondary">Criar conta</button></div>
+          </form>
+          <p class="auth-note">Seus dados profissionais permanecem vinculados à sua conta. Não garantimos contratação.</p>
+        </div>
+      </section>
+      <section id="workspace" hidden>
+        <div class="hero"><div><p class="eyebrow">EXECUTIVE CAREER WORKSPACE</p><h1 id="pageTitle">Visão geral</h1><p id="subtitle">Seu próximo movimento começa com clareza.</p></div><div id="planBadge" class="pill">Plano gratuito</div></div>
+        <div class="quick-start"><div><span class="eyebrow">COMECE PELO ESSENCIAL</span><strong>Construa um perfil que sustente suas próximas decisões.</strong><p>Importe seu currículo, organize experiências e avance para um diagnóstico rastreável.</p></div><div class="quick-start-steps"><span>01 · Perfil</span><span>02 · Evidências</span><span>03 · Diagnóstico</span></div></div>
+        <div id="content" class="panel"></div>
+      </section>
+      <p id="message" role="status" aria-live="polite"></p>
+    </main>
+    <footer>JOB AGENT © 2026 <span>Dados declarados não equivalem a competências verificadas · Sem garantia de contratação</span></footer>
+  </div>
+</div>
+<script src="/assets/app.js" defer></script>
+</body></html>
