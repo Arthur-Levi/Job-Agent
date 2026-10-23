@@ -24,7 +24,50 @@ async function diagnostic(){
  add(root,'h3','Oportunidades por indícios documentais');const ranked=await api('/career/opportunity-priorities');ranked.opportunities.forEach(j=>{const e=add(root,'div',undefined,'entry');add(e,'strong',j.title+' · '+j.company);add(e,'p',j.possible_documentary_matches+'/'+j.requirements_total+' requisitos com indícios declarados. Não é uma chance de contratação.')});add(root,'h3','Comparação por oportunidade');d.opportunities.forEach(j=>{const e=add(root,'div',undefined,'entry');add(e,'strong',j.title+' · '+j.company);add(e,'p',j.documented_candidates+' requisitos com indícios; '+j.not_documented+' sem evidência textual.');j.requirements.forEach(r=>add(e,'small',r.requirement+' — '+(r.state==='NOT_DOCUMENTED'?'não documentado':'possível evidência declarada')))});
  add(root,'h3','Limitações e transparência');d.uncertainties.forEach(x=>add(root,'p','• '+x));d.quality.data_quality_notes.forEach(x=>add(root,'p','• '+x));
 }
-async function evidence(){const items=await api('/evidence');const root=panel('Portfólio de evidências');add(root,'p','Registre apenas fatos. Links são referências declaradas, não verificação automática.');const f=add(root,'form');const kind=formField(f,'Tipo: skill, project, experience, education, certificate ou language','kind','project');formField(f,'Título','title','', 'text',true);formField(f,'Descrição e resultados','description','','textarea',true);formField(f,'URL opcional','url','','url');f.append(action('Adicionar evidência',async()=>{const v=Object.fromEntries(new FormData(f));await api('/evidence','POST',v);await show()}));items.forEach(x=>{const e=add(root,'div',undefined,'entry');add(e,'h3',x.title);add(e,'small',x.kind+' · '+x.status);add(e,'p',x.description);if(x.url)add(e,'small','Fonte declarada: '+x.url);e.append(action('Editar evidência',async()=>{const edit=add(e,'form');formField(edit,'Tipo','kind',x.kind,'text',true);formField(edit,'Título','title',x.title,'text',true);formField(edit,'Descrição','description',x.description,'textarea',true);formField(edit,'URL','url',x.url||'','url');edit.append(action('Salvar alterações',async()=>{await api('/evidence/'+x.id,'PUT',Object.fromEntries(new FormData(edit)));await show('evidence')}))},true));e.append(action('Avaliar documentação',async()=>{await evidenceAssessment(x.id,e)},true));e.append(action('Analisar artefatos técnicos',async()=>{await artifactReviewView(x.id,e)},true));e.append(action('Revisão estática e contribuições',async()=>{await technicalReviewView(x.id,e)},true));e.append(action('Excluir',async()=>{if(confirm('Excluir esta evidência?')){await api('/evidence/'+x.id,'DELETE');await show()}},true))})}
+const EVIDENCE_KINDS=[['skill','Competência'],['project','Projeto'],['experience','Experiência profissional'],['education','Formação'],['certificate','Certificação'],['language','Idioma']];
+function evidenceKindField(form,value='project'){
+ const label=add(form,'label','Categoria da evidência');const select=add(label,'select');select.name='kind';select.required=true;
+ for(const [key,name] of EVIDENCE_KINDS){const option=add(select,'option',name);option.value=key}
+ select.value=EVIDENCE_KINDS.some(([key])=>key===value)?value:'project';return select;
+}
+function evidenceUrlField(form,value=''){
+ const field=formField(form,'Link público da evidência (opcional)','url',value,'url');field.maxLength=1000;
+ const hint=add(form,'small','Use um link público e estável, sem tokens de acesso ou links privados. Máximo: 1.000 caracteres.');hint.className='field-hint';return field;
+}
+function validatedEvidence(form){
+ const data=Object.fromEntries(new FormData(form));data.kind=String(data.kind||'').toLowerCase();
+ if(!EVIDENCE_KINDS.some(([key])=>key===data.kind))throw Error('Selecione uma categoria válida.');
+ const url=String(data.url||'').trim();if(url.length>1000)throw Error('O link excede 1.000 caracteres. Use uma URL pública mais curta.');
+ if(url){let parsed;try{parsed=new URL(url)}catch{throw Error('Informe um link válido começando com https://')}
+ if(!['https:','http:'].includes(parsed.protocol))throw Error('Use um link HTTP ou HTTPS.');
+ if([...parsed.searchParams.keys()].some(k=>/token|access_token|auth|signature|key|secret|jwt/i.test(k)))throw Error('Este link contém um possível token de acesso. Use a URL pública sem parâmetros de autenticação.');
+ }
+ return {...data,url};
+}
+async function evidence(){
+ const items=await api('/evidence');const root=panel('Portfólio de evidências');
+ add(root,'p','Registre fatos verificáveis e utilize links públicos. Evidências declaradas não são verificadas automaticamente.');
+ const f=add(root,'form');evidenceKindField(f);
+ formField(f,'Título','title','','text',true);
+ formField(f,'Descrição e resultados','description','','textarea',true);
+ evidenceUrlField(f);
+ f.append(action('Adicionar evidência',async()=>{await api('/evidence','POST',validatedEvidence(f));await show('evidence')}));
+ items.forEach(x=>{
+  const e=add(root,'div',undefined,'entry');add(e,'h3',x.title);add(e,'small',x.kind+' · '+x.status);add(e,'p',x.description);
+  if(x.url)add(e,'small','Fonte declarada: '+x.url);
+  e.append(action('Editar evidência',async()=>{
+   const edit=add(e,'form');evidenceKindField(edit,x.kind);
+   formField(edit,'Título','title',x.title,'text',true);
+   formField(edit,'Descrição','description',x.description,'textarea',true);
+   evidenceUrlField(edit,x.url||'');
+   edit.append(action('Salvar alterações',async()=>{await api('/evidence/'+x.id,'PUT',validatedEvidence(edit));await show('evidence')}));
+  },true));
+  e.append(action('Avaliar documentação',async()=>{await evidenceAssessment(x.id,e)},true));
+  e.append(action('Analisar artefatos técnicos',async()=>{await artifactReviewView(x.id,e)},true));
+  e.append(action('Revisão estática e contribuições',async()=>{await technicalReviewView(x.id,e)},true));
+  e.append(action('Excluir',async()=>{if(confirm('Excluir esta evidência?')){await api('/evidence/'+x.id,'DELETE');await show('evidence')}},true));
+ });
+}
 async function jobs(){const items=await api('/jobs');const root=panel('Vagas reais e seus requisitos');const f=add(root,'form');formField(f,'Cargo','title','','text',true);formField(f,'Empresa','company','','text',true);formField(f,'Descrição','description','','textarea',true);formField(f,'Requisitos (separe por vírgulas)','requirements','','textarea');formField(f,'Link da vaga','source_url','','url');f.append(action('Salvar vaga',async()=>{const v=Object.fromEntries(new FormData(f));v.requirements=v.requirements.split(',').map(x=>x.trim()).filter(Boolean);await api('/jobs','POST',v);await show()}));items.forEach(x=>{const e=add(root,'div',undefined,'entry');add(e,'h3',x.title+' · '+x.company);add(e,'p',x.requirements.join(' · ')||'Requisitos não informados');e.append(action('Registrar candidatura',async()=>{await api('/applications','POST',{job_id:x.id,status:'saved',notes:''});await show('applications')},true));e.append(action('Comparar Premium',async()=>{const m=await api('/jobs/'+x.id+'/match');note('Correspondências potenciais: '+m.potential_matches.length+' | Não documentados: '+m.unresolved_requirements.length)},true));e.append(action('Preparar entrevista Premium',async()=>{const r=await api('/jobs/'+x.id+'/interview');const section=add(e,'div');add(section,'h3','Perguntas de preparação');r.questions.forEach(q=>add(section,'p',q))},true));e.append(action('Excluir',async()=>{if(confirm('Excluir a vaga e suas candidaturas?')){await api('/jobs/'+x.id,'DELETE');await show()}},true))})}
 async function applications(){const [items,jobs]=await Promise.all([api('/applications'),api('/jobs')]);const root=panel('Pipeline de candidaturas');if(!items.length)add(root,'p','Salve uma vaga e registre a candidatura para começar.');items.forEach(x=>{const e=add(root,'div',undefined,'entry');const job=jobs.find(j=>j.id===x.job_id);add(e,'h3',job?job.title+' · '+job.company:'Vaga removida');const s=add(e,'select');for(const status of ['saved','prepared','applied','interview','offer','rejected','withdrawn']){const opt=el('option',status);opt.value=status;opt.selected=status===x.status;s.append(opt)}e.append(action('Atualizar etapa',async()=>{await api('/applications/'+x.id,'PUT',{job_id:x.job_id,status:s.value,notes:x.notes});await show()}))})}
 async function tasks(){const items=await api('/tasks');const root=panel('Execução semanal');const f=add(root,'form');formField(f,'Próxima ação concreta','title','','text',true);f.append(action('Adicionar tarefa',async()=>{await api('/tasks','POST',Object.fromEntries(new FormData(f)));await show()}));items.forEach(x=>{const e=add(root,'div',undefined,'entry');const b=el('input');b.type='checkbox';b.checked=x.done;b.onchange=async()=>{try{await api('/tasks/'+x.id,'PATCH',{done:b.checked});await show()}catch(err){note(err.message)}};e.append(b);add(e,'span',' '+x.title);e.append(action('Remover',async()=>{await api('/tasks/'+x.id,'DELETE');await show('tasks')},true))})}
