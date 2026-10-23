@@ -1,0 +1,40 @@
+# env / secrets
+.env
+.env.*
+!.env.example
+
+# python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+build/
+dist/
+
+# node
+node_modules/
+frontend/dist/
+
+# os / editor
+.DS_Store
+.idea/
+.vscode/
+
+# sensitive user data / local artifacts
+*.sqlite
+*.sqlite3
+*.db
+*.dump
+*.backup
+*.pem
+*.key
+*.p12
+*.pfx
+coverage.xml
+htmlcov/
+playwright-report/
+test-results/
