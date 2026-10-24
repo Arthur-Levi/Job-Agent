@@ -26,9 +26,11 @@ chmod 600 "$TARGET.sha256"
 echo "BACKUP PASS: $TARGET"
 if [ -n "${JOBAGENT_BACKUP_REMOTE:-}" ]; then
   command -v rclone >/dev/null || { echo "rclone nao instalado; backup local salvo, copia remota falhou" >&2; exit 1; }
+  rclone config show "${JOBAGENT_BACKUP_REMOTE%%:*}" | grep -Eq "^[[:space:]]*type[[:space:]]*=[[:space:]]*crypt[[:space:]]*$" || { echo "Destino nao e crypt; envio cancelado" >&2; exit 1; }
   rclone copyto "$TARGET" "${JOBAGENT_BACKUP_REMOTE%/}/$(basename "$TARGET")"
   rclone copyto "$TARGET.sha256" "${JOBAGENT_BACKUP_REMOTE%/}/$(basename "$TARGET.sha256")"
-  echo "COPIA REMOTA PASS"
+  bash "$ROOT/scripts/verify-remote-backup.sh" "$(basename "$TARGET")"
+  echo "COPIA REMOTA E RESTAURACAO PASS"
 else
   echo "AVISO: sem JOBAGENT_BACKUP_REMOTE, backup somente local; nao protege contra exclusao do Codespaces."
 fi
