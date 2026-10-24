@@ -11,6 +11,25 @@ function formField(form,label,key,value='',type='text',required=false){const l=a
 function action(label,fn,secondary=false){const b=el('button',label);b.type='button';if(secondary)b.className='secondary';b.onclick=async()=>{b.disabled=true;try{await fn();note('Operação concluída.')}catch(e){note('Erro: '+e.message)}finally{b.disabled=false}};return b}
 function panel(title){const root=$('content');clear(root);add(root,'h2',title);return root}
 async function show(next=tab){tab=next;const logged=!!token;$('auth').hidden=logged;$('workspace').hidden=!logged;$('logout').hidden=!logged;if(!logged)return;document.querySelectorAll('[data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));$('pageTitle').textContent=({dashboard:'Visão geral',import:'Importar currículo',master:'Perfil profissional estruturado',ledger:'Registro de fatos',diagnostic:'Diagnóstico profissional',evidence:'Minhas evidências',jobs:'Vagas e requisitos',applications:'Minhas candidaturas',tasks:'Plano de ação',graph:'Mapa de evidências',loop:'Evolução profissional',premium:'Career Professional',account:'Minha conta'})[tab]||tab;try{const billing=await api('/billing/status');$('planBadge').textContent=billing.premium_enabled?'Career Professional ativo':'Plano gratuito';if(tab==='dashboard')await dashboard();if(tab==='import')await importResume();if(tab==='master')await masterView();if(tab==='ledger')await ledgerView();if(tab==='diagnostic'){await diagnostic();await groundedPanel();}if(tab==='evidence')await evidence();if(tab==='jobs')await jobs();if(tab==='applications')await applications();if(tab==='tasks')await tasks();if(tab==='graph')await graphView();if(tab==='loop')await loopView();if(tab==='premium')await premium(billing);if(tab==='account')await account()}catch(e){note('Erro: '+e.message);if(e.message.includes('Sessão inválida')||e.message.includes('Autenticação necessária')){token='';sessionStorage.removeItem('jobagent_token');show()}}}
+async function openDashboardProfileEditor(){
+ const root=$('content');
+ const me=await api('/profile');
+ const section=add(root,'section',undefined,'dashboard-section');
+ section.id='onboarding-profile-editor';
+ add(section,'h3','Complete seu perfil profissional');
+ add(section,'p','Informe seu cargo-alvo e descreva sua experiência real para avançar no onboarding.');
+ const form=add(section,'form');
+ formField(form,'Nome','name',me.name||'','text');
+ const role=formField(form,'Cargo-alvo','target_role',me.target_role||'','text');role.maxLength=120;
+ formField(form,'Localização','location',me.location||'','text');
+ const summary=formField(form,'Resumo da experiência profissional','summary',me.summary||'','textarea');summary.rows=5;
+ form.append(action('Salvar e continuar',async()=>{
+  const updated={...me};for(const input of form.querySelectorAll('[name]'))updated[input.name]=input.value;
+  await api('/profile','PUT',updated);await show('dashboard');
+ }));
+ section.scrollIntoView({behavior:'smooth',block:'start'});
+ role.focus();
+}
 async function dashboard(){
  const root=panel('Seu centro de carreira');root.classList.add('dashboard-panel');
  const intro=add(root,'div',undefined,'dashboard-intro');
@@ -53,7 +72,7 @@ async function dashboard(){
    add(item,'span',step.done?'✓':String(index+1).padStart(2,'0'),'step-index');
    const copy=add(item,'div',undefined,'step-copy');add(copy,'strong',step.label);
    add(copy,'small',step.done?'Concluído':'Pendente');
-   if(!step.done&&step.next_tab)item.append(action('Continuar →',async()=>show(step.next_tab),true));
+   if(!step.done){const destination=({target:'profile',summary:'profile',evidence:'evidence',job:'jobs'})[step.key]||step.next_tab;if(destination)item.append(action('Continuar →',async()=>{if(destination==='profile'){await show('dashboard');await openDashboardProfileEditor()}else await show(destination)},true));}
   }
  }else{
   add(progress,'p','Comece importando seu currículo ou preenchendo o perfil para iniciar sua jornada.');
