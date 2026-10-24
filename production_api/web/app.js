@@ -241,11 +241,15 @@ async function technicalReviewView(id,container){
 async function importResume(){
  const root=panel('Importação assistida de currículo');
  add(root,'p','Envie PDF, DOCX ou TXT (até 2 MB), ou cole o texto. Revise todas as sugestões antes de salvar. Não envie CPF ou dados sensíveis.');
+ const status=add(root,'p','Etapa 1 de 3 · Envie seu currículo','import-stage');
  const fileLabel=add(root,'label','Selecionar currículo');const file=add(fileLabel,'input');file.type='file';file.accept='.pdf,.docx,.txt';
  const f=add(root,'form');const input=formField(f,'Ou cole o texto','resume','','textarea',false);input.maxLength=25000;input.rows=8;
- const preview=add(root,'div');
+ const preview=add(root,'div');preview.className='import-preview';preview.setAttribute('aria-live','polite');
+ file.addEventListener('change',()=>{if(file.files.length){input.disabled=true;status.textContent='Arquivo selecionado: '+file.files[0].name+' · Clique em Analisar sem salvar.'}else{input.disabled=false;status.textContent='Etapa 1 de 3 · Envie seu currículo'}});
+ input.addEventListener('input',()=>{if(input.value.trim()&&file.files.length){file.value='';input.disabled=false} });
  async function renderPreview(r){
-  clear(preview);add(preview,'h3','Revise os dados antes de confirmar');
+  clear(preview);status.textContent='Etapa 2 de 3 · Revise e confirme as informações';add(preview,'h3','Revise os dados antes de confirmar');
+  add(preview,'p','Nada foi salvo ainda. Desmarque qualquer informação incorreta e ajuste os textos antes de confirmar.','import-guidance');
   const roleLabel=add(preview,'label','Cargo-alvo (opcional)');const role=add(roleLabel,'input');role.maxLength=120;role.value=r.target_role_draft||'';
   const drafts=[];
   for(const draft of (r.evidence_drafts||[])){
@@ -269,15 +273,21 @@ async function importResume(){
      if(!confirm('Foram encontradas evidências parecidas com registros existentes. Confira antes de prosseguir. '+conflict+'\nDeseja incluir mesmo assim?'))return;
      await api('/import/resume/confirm','POST',{...payload,allow_possible_duplicates:true});
    }
+   status.textContent='Etapa 3 de 3 · Informações confirmadas. Abrindo diagnóstico...';
    await show('diagnostic');
   }));
  }
  f.append(action('Analisar sem salvar',async()=>{
+  clear(preview);
+  if(!file.files.length&&!input.value.trim())throw Error('Selecione um arquivo ou cole o texto do currículo.');
+  status.textContent='Analisando currículo, sem salvar dados...';
+  try{
   if(file.files.length){const selectedFile=file.files[0];if(selectedFile.size>2000000)throw Error('Limite de 2 MB');
    const body=new FormData();body.append('file',selectedFile);
    const response=await fetch('/api/import/resume/file-preview',{method:'POST',headers:{Authorization:'Bearer '+token},body});
    const result=await response.json();if(!response.ok)throw Error(result.detail||'Erro de importação');await renderPreview(result);
   }else{await renderPreview(await api('/import/resume/preview','POST',{text:input.value}))}
+  }catch(e){status.textContent='Não foi possível analisar. Corrija o problema e tente novamente.';throw e}
  }));
 }
 
