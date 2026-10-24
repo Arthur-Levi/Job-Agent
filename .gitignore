@@ -38,3 +38,7 @@ coverage.xml
 htmlcov/
 playwright-report/
 test-results/
+
+# generated PostgreSQL backup artifacts
+db-recovery/automatic/
+db-recovery/backup.log
