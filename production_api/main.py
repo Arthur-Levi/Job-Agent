@@ -400,8 +400,8 @@ def onboarding(uid:int=Depends(current_user),s:DBSession=Depends(getdb)):
     evidence_count=s.scalar(select(func.count()).select_from(Evidence).where(Evidence.user_id==uid))
     jobs_with_requirements=sum(bool(json.loads(j.requirements_json or '[]')) for j in s.scalars(select(Job).where(Job.user_id==uid)))
     checks=[
-        {'key':'target','label':'Definir cargo-alvo','done':bool(p.target_role.strip()),'next_tab':'dashboard'},
-        {'key':'summary','label':'Descrever experiência real','done':bool(p.summary.strip()),'next_tab':'dashboard'},
+        {'key':'target','label':'Definir cargo-alvo','done':bool(p.target_role.strip()),'next_tab':'dashboard','focus':'profile'},
+        {'key':'summary','label':'Descrever experiência real','done':bool(p.summary.strip()),'next_tab':'dashboard','focus':'profile'},
         {'key':'evidence','label':'Cadastrar ao menos uma evidência','done':bool(evidence_count),'next_tab':'evidence'},
         {'key':'job','label':'Adicionar uma vaga com requisitos','done':bool(jobs_with_requirements),'next_tab':'jobs'},
     ]
