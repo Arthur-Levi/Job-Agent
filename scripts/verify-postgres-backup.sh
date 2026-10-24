@@ -18,6 +18,9 @@ for i in $(seq 1 60); do
 done
 [ "$ready" = 1 ] || { docker logs "$NAME" >&2; exit 1; }
 docker cp "$FILE" "$NAME:/tmp/backup.dump" >/dev/null
+# docker cp preserves restrictive source permissions; grant read only to postgres inside isolated container.
+docker exec -u root "$NAME" chown postgres:postgres /tmp/backup.dump
+docker exec -u root "$NAME" chmod 600 /tmp/backup.dump
 docker exec -u postgres "$NAME" pg_restore --exit-on-error --no-owner --no-acl \
   -U postgres -d jobagent_test /tmp/backup.dump
 TABLES="$(docker exec -u postgres "$NAME" psql -U postgres -d jobagent_test -Atqc \
