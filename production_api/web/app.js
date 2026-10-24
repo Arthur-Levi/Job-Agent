@@ -24,6 +24,16 @@ async function dashboard(){
  const results=await Promise.allSettled([api('/dashboard'),api('/progress'),api('/onboarding'),api('/journey/first-result'),api('/career/weekly-brief')]);
  status.remove();
  const [d,p,onboard,journey,brief]=results.map(x=>x.status==='fulfilled'?x.value:null);
+ const finished=!!(onboard&&Number(onboard.total)>0&&Number(onboard.completed)>=Number(onboard.total));
+ if(finished){
+  intro.classList.add('dashboard-intro-complete');
+  lead.querySelector('h2').textContent='Sua carreira, em movimento.';
+  lead.querySelector('p:not(.eyebrow)').textContent='Seu perfil inicial está organizado. Continue acompanhando oportunidades e suas próximas ações.';
+  lead.querySelector('.eyebrow').textContent='WORKSPACE ATIVO';
+  start.replaceChildren();
+  start.append(action('Ver diagnóstico',async()=>show('diagnostic')));
+  start.append(action('Plano de ação',async()=>show('tasks'),true));
+ }
  if(results.some(x=>x.status==='rejected')){
   const warning=add(root,'div',undefined,'dashboard-notice');
   add(warning,'strong','Algumas informações estão temporariamente indisponíveis.');
