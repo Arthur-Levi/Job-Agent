@@ -11,7 +11,73 @@ function formField(form,label,key,value='',type='text',required=false){const l=a
 function action(label,fn,secondary=false){const b=el('button',label);b.type='button';if(secondary)b.className='secondary';b.onclick=async()=>{b.disabled=true;try{await fn();note('Operação concluída.')}catch(e){note('Erro: '+e.message)}finally{b.disabled=false}};return b}
 function panel(title){const root=$('content');clear(root);add(root,'h2',title);return root}
 async function show(next=tab){tab=next;const logged=!!token;$('auth').hidden=logged;$('workspace').hidden=!logged;$('logout').hidden=!logged;if(!logged)return;document.querySelectorAll('[data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));$('pageTitle').textContent=({dashboard:'Visão geral',import:'Importar currículo',master:'Perfil profissional estruturado',ledger:'Registro de fatos',diagnostic:'Diagnóstico profissional',evidence:'Minhas evidências',jobs:'Vagas e requisitos',applications:'Minhas candidaturas',tasks:'Plano de ação',graph:'Mapa de evidências',loop:'Evolução profissional',premium:'Career Professional',account:'Minha conta'})[tab]||tab;try{const billing=await api('/billing/status');$('planBadge').textContent=billing.premium_enabled?'Career Professional ativo':'Plano gratuito';if(tab==='dashboard')await dashboard();if(tab==='import')await importResume();if(tab==='master')await masterView();if(tab==='ledger')await ledgerView();if(tab==='diagnostic'){await diagnostic();await groundedPanel();}if(tab==='evidence')await evidence();if(tab==='jobs')await jobs();if(tab==='applications')await applications();if(tab==='tasks')await tasks();if(tab==='graph')await graphView();if(tab==='loop')await loopView();if(tab==='premium')await premium(billing);if(tab==='account')await account()}catch(e){note('Erro: '+e.message);if(e.message.includes('Sessão inválida')||e.message.includes('Autenticação necessária')){token='';sessionStorage.removeItem('jobagent_token');show()}}}
-async function dashboard(){const [d,p,onboard,brief]=await Promise.all([api('/dashboard'),api('/progress'),api('/onboarding'),api('/career/weekly-brief')]);const root=panel('Seu progresso em números');add(root,'h3','Comece por aqui · '+onboard.completed+'/'+onboard.total+' etapas');onboard.steps.forEach(step=>{const line=add(root,'div',undefined,'entry');add(line,'strong',(step.done?'✓ ':'○ ')+step.label);if(!step.done)line.append(action('Completar etapa',async()=>show(step.next_tab),true))});const journey=await api('/journey/first-result');add(root,'h3','Seu próximo passo profissional');add(root,'p',journey.first_result);journey.next_actions.forEach(x=>{const item=add(root,'div',undefined,'entry');add(item,'strong',x.title);add(item,'p',x.why);item.append(action('Fazer agora',async()=>show(x.next_tab),true))});add(root,'h3','Seu resumo da semana');add(root,'p','Tarefas: '+brief.tasks.completed+'/'+brief.tasks.total+' concluídas · Horas disponíveis: '+brief.hours_available);brief.next_actions.forEach(x=>{const e=add(root,'div',undefined,'entry');add(e,'strong',x.action);add(e,'small',x.why)});const g=add(root,'div',undefined,'grid');for(const [label,v] of [['Evidências',d.evidence],['Vagas salvas',d.jobs],['Candidaturas',d.applications],['Tarefas concluídas',p.tasks_done+' / '+p.tasks_total]]){const c=add(g,'div',undefined,'tile');add(c,'div',v,'number');add(c,'p',label)}add(root,'p','Registre ações reais. Não calculamos probabilidade de contratação.');const me=await api('/profile');const f=add(root,'form');add(f,'h3','Meu perfil');for(const [k,l] of [['name','Nome'],['target_role','Cargo-alvo'],['location','Localização'],['summary','Resumo profissional']])formField(f,l,k,me[k]||'',k==='summary'?'textarea':'text');formField(f,'Horas disponíveis por semana','hours_per_week',me.hours_per_week||5,'number');f.append(action('Salvar perfil',async()=>{const x={...me};for(const input of f.querySelectorAll('[name]'))x[input.name]=input.name==='hours_per_week'?Number(input.value):input.value;await api('/profile','PUT',x);await show('dashboard')}))}
+async function dashboard(){
+ const root=panel('Seu centro de carreira');root.classList.add('dashboard-panel');
+ const intro=add(root,'div',undefined,'dashboard-intro');
+ const lead=add(intro,'div');add(lead,'p','SEU PRÓXIMO MOVIMENTO','eyebrow');
+ add(lead,'h2','Uma carreira melhor começa com clareza.');
+ add(lead,'p','Construa seu perfil, documente experiências e transforme informações em próximas ações.');
+ const start=add(intro,'div',undefined,'dashboard-intro-actions');
+ start.append(action('Importar currículo',async()=>show('import')));
+ start.append(action('Preencher meu perfil',async()=>show('master'),true));
+ const status=add(root,'div',undefined,'dashboard-loading');status.setAttribute('role','status');status.textContent='Carregando seu progresso...';
+ const results=await Promise.allSettled([api('/dashboard'),api('/progress'),api('/onboarding'),api('/journey/first-result'),api('/career/weekly-brief')]);
+ status.remove();
+ const [d,p,onboard,journey,brief]=results.map(x=>x.status==='fulfilled'?x.value:null);
+ if(results.some(x=>x.status==='rejected')){
+  const warning=add(root,'div',undefined,'dashboard-notice');
+  add(warning,'strong','Algumas informações estão temporariamente indisponíveis.');
+  add(warning,'p','Você ainda pode importar seu currículo, preencher seu perfil e acessar os módulos pelo menu.');
+ }
+ const progress=add(root,'section',undefined,'dashboard-section');
+ const ph=add(progress,'div',undefined,'dashboard-section-heading');
+ add(ph,'h3','Seu caminho até o primeiro diagnóstico');
+ if(onboard&&Number(onboard.total)>0){
+  const completed=Math.max(0,Math.min(Number(onboard.completed)||0,Number(onboard.total)));
+  add(ph,'span',completed+' de '+onboard.total+' etapas','progress-count');
+  const track=add(progress,'div',undefined,'progress-track');track.setAttribute('role','progressbar');track.setAttribute('aria-valuemin','0');track.setAttribute('aria-valuemax',String(onboard.total));track.setAttribute('aria-valuenow',String(completed));
+  const fill=add(track,'div',undefined,'progress-fill');fill.style.width=(completed/onboard.total*100)+'%';
+  const steps=add(progress,'div',undefined,'onboarding-steps');
+  for(const [index,step] of (onboard.steps||[]).entries()){
+   const item=add(steps,'div',undefined,'onboarding-step'+(step.done?' is-done':''));
+   add(item,'span',step.done?'✓':String(index+1).padStart(2,'0'),'step-index');
+   const copy=add(item,'div',undefined,'step-copy');add(copy,'strong',step.label);
+   add(copy,'small',step.done?'Concluído':'Pendente');
+   if(!step.done&&step.next_tab)item.append(action('Continuar →',async()=>show(step.next_tab),true));
+  }
+ }else{
+  add(progress,'p','Comece importando seu currículo ou preenchendo o perfil para iniciar sua jornada.');
+ }
+ if(journey){
+  const next=add(root,'section',undefined,'dashboard-next');
+  add(next,'p','PRIORIDADE ATUAL','eyebrow');add(next,'h3','Seu próximo passo profissional');
+  add(next,'p',journey.first_result||'Complete seu perfil para receber orientações contextualizadas.');
+  const actions=add(next,'div',undefined,'dashboard-next-actions');
+  for(const x of (journey.next_actions||[]).slice(0,2)){
+   const item=add(actions,'div',undefined,'next-action');
+   const copy=add(item,'div');add(copy,'strong',x.title);add(copy,'p',x.why);
+   if(x.next_tab)item.append(action('Realizar →',async()=>show(x.next_tab),true));
+  }
+ }
+ const metrics=add(root,'section',undefined,'dashboard-section');
+ add(metrics,'h3','Seu workspace em números');
+ const grid=add(metrics,'div',undefined,'grid');
+ const cards=[['Evidências',d?.evidence],['Vagas salvas',d?.jobs],['Candidaturas',d?.applications],['Tarefas concluídas',p?p.tasks_done+' / '+p.tasks_total:null]];
+ for(const [label,value] of cards){
+  const tile=add(grid,'div',undefined,'tile');
+  add(tile,'div',value===null||value===undefined?'—':value,'number');
+  add(tile,'p',label);
+ }
+ if(brief){
+  const weekly=add(root,'section',undefined,'dashboard-section dashboard-weekly');
+  add(weekly,'h3','Resumo da semana');
+  add(weekly,'p','Tarefas concluídas: '+brief.tasks.completed+' de '+brief.tasks.total+' · Horas disponíveis: '+brief.hours_available);
+  for(const x of (brief.next_actions||[]).slice(0,3)){
+   const item=add(weekly,'div',undefined,'entry');add(item,'strong',x.action);add(item,'small',x.why);
+  }
+ }
+ add(root,'p','As informações são declaradas e não representam certificação de competências ou probabilidade de contratação.','dashboard-disclaimer');
+}
 async function diagnostic(){
  const [d,priority]=await Promise.all([api('/intelligence'),api('/diagnostic/priority-actions')]);const root=panel('Career Intelligence — diagnóstico rastreável');
  add(root,'h3','Suas próximas ações priorizadas');priority.actions.forEach(a=>{const item=add(root,'div',undefined,'entry');add(item,'strong',a.action);add(item,'p',a.why);add(item,'small','Origem: '+a.source);item.append(action('Agir agora',async()=>show(a.next_tab),true))});
