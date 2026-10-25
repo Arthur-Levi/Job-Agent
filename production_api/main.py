@@ -46,9 +46,12 @@ async def headers(req:Request, call_next):
         with rate_lock:
             q=rate[key]; t=time.monotonic()
             while q and q[0]<t-60:q.popleft()
-            if len(q)>=10:return JSONResponse({'detail':'Tente novamente mais tarde'},429,headers={'Retry-After':'60'})
-            q.append(t)
-    response=await call_next(req)
+            if len(q)>=10:
+                response=JSONResponse({'detail':'Tente novamente mais tarde'},429,headers={'Retry-After':'60'})
+            else:
+                q.append(t)
+    if 'response' not in locals():
+        response=await call_next(req)
     response.headers['X-Content-Type-Options']='nosniff'
     response.headers['Content-Security-Policy']="default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self' data:; frame-ancestors 'none'; base-uri 'none'; form-action 'self'"
     response.headers['Permissions-Policy']='camera=(), microphone=(), geolocation=()'
