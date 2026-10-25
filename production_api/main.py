@@ -588,7 +588,7 @@ def change_password(p:ChangePassword,uid:int=Depends(current_user),s:DBSession=D
     return {'ok':True,'message':'Todas as sessões foram encerradas'}
 
 @app.get('/api/diagnostic/deep')
-def deep_diagnostic(uid:int=Depends(current_user),s:DBSession=Depends(getdb)):
+def deep_diagnostic(uid:int=Depends(require_premium),s:DBSession=Depends(getdb)):
     p=s.get(Profile,uid)
     ev=list(s.scalars(select(Evidence).where(Evidence.user_id==uid)))
     jobs=list(s.scalars(select(Job).where(Job.user_id==uid)))
