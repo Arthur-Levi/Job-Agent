@@ -74,3 +74,10 @@ html,body{max-width:100%}
  .sidebar nav{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
  .import-preview .entry{padding:10px}
 }
+
+/* B2: editable-on-demand resume cards */
+.import-evidence-card>summary{cursor:pointer;font-weight:650;color:var(--ivory);padding:6px 0;overflow-wrap:anywhere}
+.import-evidence-card>summary:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+.import-evidence-card:not([open]){padding:13px 18px}
+.import-evidence-card[open]>summary{margin-bottom:16px;border-bottom:1px solid var(--line);padding-bottom:14px}
+@media(max-width:375px){.import-evidence-card:not([open]){padding:12px}}
