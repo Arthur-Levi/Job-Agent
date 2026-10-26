@@ -81,3 +81,11 @@ html,body{max-width:100%}
 .import-evidence-card:not([open]){padding:13px 18px}
 .import-evidence-card[open]>summary{margin-bottom:16px;border-bottom:1px solid var(--line);padding-bottom:14px}
 @media(max-width:375px){.import-evidence-card:not([open]){padding:12px}}
+
+/* B2 resume review, clear hierarchy and compact interactions */
+.resume-summary{border:1px solid #514b41;background:#272720;border-radius:12px;padding:13px 16px;margin:14px 0}
+.resume-summary p{margin:0;color:#e8d7b9;font-weight:650;font-size:13px}
+.resume-review-controls{display:flex;flex-wrap:wrap;gap:9px;margin:12px 0}
+.resume-review-controls button{font-size:12px;padding:9px 12px}
+.import-evidence-card label:has(> input[type="checkbox"]){display:flex;align-items:center;gap:8px}
+@media(max-width:375px){.resume-review-controls button{width:100%}}
