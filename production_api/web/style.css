@@ -89,3 +89,11 @@ html,body{max-width:100%}
 .resume-review-controls button{font-size:12px;padding:9px 12px}
 .import-evidence-card label:has(> input[type="checkbox"]){display:flex;align-items:center;gap:8px}
 @media(max-width:375px){.resume-review-controls button{width:100%}}
+
+/* B3: emphasize one next step; collapse secondary detail */
+.dashboard-priority-step{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;padding:18px;border:1px solid #63553e;border-radius:12px;background:#282721;margin:16px 0}
+.dashboard-priority-step strong{color:#f4f3ef;font-size:15px}
+.dashboard-optional{margin:16px 0;border:1px solid var(--line);border-radius:12px;padding:14px 18px;background:#1c2026}
+.dashboard-optional>summary{cursor:pointer;color:#e8d2aa;font-weight:650;font-size:13px;min-height:26px}
+.dashboard-optional>summary:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+@media(max-width:520px){.dashboard-priority-step{align-items:stretch}.dashboard-priority-step button{width:100%}.dashboard-optional{padding:12px}}
