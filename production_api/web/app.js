@@ -186,7 +186,7 @@ async function dashboard(){
 }
 async function diagnostic(){
  const [d,priority]=await Promise.all([api('/intelligence'),api('/diagnostic/priority-actions')]);const root=panel('Career Intelligence — diagnóstico rastreável');
- add(root,'h3','Suas próximas ações priorizadas');priority.actions.forEach(a=>{const item=add(root,'div',undefined,'entry');add(item,'strong',a.action);add(item,'p',a.why);add(item,'small','Origem: '+a.source);item.append(action('Agir agora',async()=>show(a.next_tab),true))});
+ add(root,'h3','Suas próximas ações priorizadas');priority.actions.forEach(a=>{const item=add(root,'div',undefined,'entry');add(item,'strong',a.action);add(item,'p',a.why);item.append(action('Agir agora',async()=>show(a.next_tab),true))});
  add(root,'p','Análise por requisitos de vagas reais e evidências declaradas. Não verificamos automaticamente competências nem calculamos chances de contratação.');
  const c=d.quality.coverage,g=add(root,'div',undefined,'grid');
  for(const [label,value] of [['Vagas com requisitos',c.jobs_with_requirements+' / '+c.total_jobs],['Requisitos distintos',c.total_requirements],['Requisitos com indícios',c.requirements_with_candidates],['Evidências com URL',c.evidence_with_sources+' / '+c.total_evidence]]){const tile=add(g,'div',undefined,'tile');add(tile,'div',value,'number');add(tile,'p',label)}
