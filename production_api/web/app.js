@@ -315,7 +315,7 @@ async function ledgerView(){
 
 // v12.4: grounded draft UI is mounted in the existing diagnostic tab.
 async function groundedPanel(){
- const root=panel('Currículo fundamentado no Fact Ledger');
+ const root=add($('content'),'section',undefined,'dashboard-section');add(root,'h2','Currículo fundamentado no Fact Ledger');
  add(root,'p','Somente declarações ativas, com identificação da fonte. Nenhuma competência é certificada.');
  const jobs=await api('/jobs');const label=add(root,'label','Vaga de referência (opcional)');const select=add(label,'select');
  const empty=add(select,'option','Sem vaga');empty.value='';
