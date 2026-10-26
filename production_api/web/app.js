@@ -240,7 +240,62 @@ async function evidence(){
   e.append(action('Excluir',async()=>{if(confirm('Excluir esta evidência?')){await api('/evidence/'+x.id,'DELETE');await show('evidence')}},true));
  });
 }
-async function jobs(){const items=await api('/jobs');const root=panel('Vagas reais e seus requisitos');const f=add(root,'form');formField(f,'Cargo','title','','text',true);formField(f,'Empresa','company','','text',true);formField(f,'Descrição','description','','textarea',true);formField(f,'Requisitos (separe por vírgulas)','requirements','','textarea');formField(f,'Link da vaga','source_url','','url');f.append(action('Salvar vaga',async()=>{const v=Object.fromEntries(new FormData(f));v.requirements=v.requirements.split(',').map(x=>x.trim()).filter(Boolean);await api('/jobs','POST',v);await show()}));items.forEach(x=>{const e=add(root,'div',undefined,'entry');add(e,'h3',x.title+' · '+x.company);add(e,'p',x.requirements.join(' · ')||'Requisitos não informados');e.append(action('Registrar candidatura',async()=>{await api('/applications','POST',{job_id:x.id,status:'saved',notes:''});await show('applications')},true));e.append(action('Comparar Premium',async()=>{const m=await api('/jobs/'+x.id+'/match');note('Correspondências potenciais: '+m.potential_matches.length+' | Não documentados: '+m.unresolved_requirements.length)},true));e.append(action('Preparar entrevista Premium',async()=>{const r=await api('/jobs/'+x.id+'/interview');const section=add(e,'div');add(section,'h3','Perguntas de preparação');r.questions.forEach(q=>add(section,'p',q))},true));e.append(action('Excluir',async()=>{if(confirm('Excluir a vaga e suas candidaturas?')){await api('/jobs/'+x.id,'DELETE');await show()}},true))})}
+async function jobs(){
+ const items=await api('/jobs');
+ const root=panel('Vagas reais e seus requisitos');
+ add(root,'p','Cole uma descrição fornecida por você. A análise sugere campos, mas nada será salvo sem sua confirmação.');
+ const inputLabel=add(root,'label','Descrição da oportunidade (texto fornecido por você)');
+ const raw=add(inputLabel,'textarea');raw.rows=7;raw.maxLength=12000;raw.placeholder='Ex.: Cargo: Desenvolvedor Backend\\nEmpresa: Exemplo\\nRequisitos:\\n- Python\\n- SQL';
+ const draftKey='jobagent_job_draft';
+ raw.value=sessionStorage.getItem(draftKey)||'';
+ raw.addEventListener('input',()=>sessionStorage.setItem(draftKey,raw.value));
+ const preview=add(root,'div',undefined,'import-preview');preview.setAttribute('aria-live','polite');
+ const controls=add(root,'div',undefined,'resume-review-controls');
+ controls.append(action('Analisar vaga sem salvar',async()=>{
+  if(raw.value.trim().length<40)throw Error('Cole uma vaga com ao menos 40 caracteres.');
+  const r=await api('/jobs/text-preview','POST',{text:raw.value});
+  clear(preview);
+  add(preview,'h3','Revise a vaga antes de salvar');
+  add(preview,'p','Prévia gerada a partir do texto informado. Nada foi salvo. Confirme somente requisitos que realmente aparecem na oportunidade.','import-guidance');
+  const form=add(preview,'form');
+  const title=formField(form,'Cargo','title',r.title_draft||'','text',true);title.maxLength=160;
+  const company=formField(form,'Empresa','company',r.company_draft||'','text',true);company.maxLength=160;
+  const description=formField(form,'Descrição','description',r.description_draft||'','textarea',true);description.maxLength=10000;
+  const source=formField(form,'URL da vaga (opcional)','source_url','','url');source.maxLength=1000;
+  add(form,'h4','Requisitos sugeridos — revise cada um');
+  const requirementFields=[];
+  const holder=add(form,'div');
+  const pushRequirement=(value='')=>{
+   if(requirementFields.length>=40)return;
+   const row=add(holder,'div',undefined,'job-requirement-row');
+   const field=add(row,'input');field.type='text';field.maxLength=160;field.value=value;field.setAttribute('aria-label','Requisito da vaga');
+   const remove=action('Remover',()=>{row.remove();requirementFields.splice(requirementFields.indexOf(field),1)},true);
+   row.append(remove);requirementFields.push(field);
+  };
+  (r.requirements_draft||[]).forEach(x=>pushRequirement(x));
+  form.append(action('Adicionar requisito',()=>pushRequirement(''),true));
+  add(form,'p','Menções automáticas são apenas sugestões; revise antes de confirmar.','import-guidance');
+  form.append(action('Confirmar e salvar vaga',async()=>{
+   const requirements=[...new Set(requirementFields.map(x=>x.value.trim()).filter(Boolean))];
+   const payload={title:title.value.trim(),company:company.value.trim(),description:description.value.trim(),requirements,source_url:source.value.trim()};
+   if(payload.title.length<2||payload.company.length<2||payload.description.length<10)throw Error('Informe cargo, empresa e descrição da vaga.');
+   await api('/jobs','POST',payload);
+   sessionStorage.removeItem(draftKey);
+   await show('jobs');
+  }));
+ }));
+ add(root,'h3','Vagas cadastradas');
+ if(!items.length)add(root,'p','Ainda não há vagas cadastradas. Cole uma oportunidade acima para começar.');
+ items.forEach(x=>{
+  const e=add(root,'div',undefined,'entry');
+  add(e,'h3',x.title+' · '+x.company);
+  add(e,'p',x.requirements.join(' · ')||'Requisitos não informados');
+  e.append(action('Registrar candidatura',async()=>{await api('/applications','POST',{job_id:x.id,status:'saved',notes:''});await show('applications')},true));
+  e.append(action('Comparar Premium',async()=>{const m=await api('/jobs/'+x.id+'/match');note('Correspondências potenciais: '+m.potential_matches.length+' | Não documentados: '+m.unresolved_requirements.length)},true));
+  e.append(action('Preparar entrevista Premium',async()=>{const r=await api('/jobs/'+x.id+'/interview');const section=add(e,'div');add(section,'h3','Perguntas de preparação');r.questions.forEach(q=>add(section,'p',q))},true));
+  e.append(action('Excluir',async()=>{if(confirm('Excluir a vaga e suas candidaturas?')){await api('/jobs/'+x.id,'DELETE');await show('jobs')}},true));
+ });
+}
 async function applications(){const [items,jobs]=await Promise.all([api('/applications'),api('/jobs')]);const root=panel('Pipeline de candidaturas');if(!items.length)add(root,'p','Salve uma vaga e registre a candidatura para começar.');items.forEach(x=>{const e=add(root,'div',undefined,'entry');const job=jobs.find(j=>j.id===x.job_id);add(e,'h3',job?job.title+' · '+job.company:'Vaga removida');const s=add(e,'select');for(const status of ['saved','prepared','applied','interview','offer','rejected','withdrawn']){const opt=el('option',status);opt.value=status;opt.selected=status===x.status;s.append(opt)}e.append(action('Atualizar etapa',async()=>{await api('/applications/'+x.id,'PUT',{job_id:x.job_id,status:s.value,notes:x.notes});await show()}))})}
 async function tasks(){const items=await api('/tasks');const root=panel('Execução semanal');const f=add(root,'form');formField(f,'Próxima ação concreta','title','','text',true);f.append(action('Adicionar tarefa',async()=>{await api('/tasks','POST',Object.fromEntries(new FormData(f)));await show()}));items.forEach(x=>{const e=add(root,'div',undefined,'entry');const b=el('input');b.type='checkbox';b.checked=x.done;b.onchange=async()=>{try{await api('/tasks/'+x.id,'PATCH',{done:b.checked});await show()}catch(err){note(err.message)}};e.append(b);add(e,'span',' '+x.title);e.append(action('Remover',async()=>{await api('/tasks/'+x.id,'DELETE');await show('tasks')},true))})}
 
