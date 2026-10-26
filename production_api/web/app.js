@@ -43,7 +43,7 @@ function show(next=tab){
  $('auth').hidden=logged;$('workspace').hidden=!logged;$('logout').hidden=!logged;
  note('');
  if(!logged){clear($('content'));return Promise.resolve()}
- document.querySelectorAll('[data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===destination));
+ document.querySelectorAll('[data-tab]').forEach(b=>{const active=b.dataset.tab===destination;b.classList.toggle('active',active);if(active)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current')});
  $('pageTitle').textContent=({dashboard:'Visão geral',import:'Importar currículo',master:'Perfil profissional estruturado',ledger:'Registro de fatos',diagnostic:'Diagnóstico profissional',evidence:'Minhas evidências',jobs:'Vagas e requisitos',applications:'Minhas candidaturas',tasks:'Plano de ação',graph:'Mapa de evidências',loop:'Evolução profissional',premium:'Career Professional',account:'Minha conta'})[destination]||destination;
  // Serialize navigation so a slow previous request cannot paint over a newer tab.
  // Pending destinations are discarded; the latest requested destination wins.
