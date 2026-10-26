@@ -5,7 +5,8 @@ const safe=(x)=>String(x??'');
 function el(tag,text,cls){const n=document.createElement(tag);if(text!==undefined)n.textContent=safe(text);if(cls)n.className=cls;return n}
 function add(parent,tag,text,cls){const n=el(tag,text,cls);parent.append(n);return n}
 function clear(node){node.replaceChildren()}
-function note(message){$('message').textContent=message}\nfunction friendlyError(e){const m=String(e&&e.message||'').trim();if(!m||m==='Resposta inválida')return 'O servidor não enviou uma resposta válida. Tente novamente.';if(m[0]==='['||m[0]==='{')return 'Confira os campos preenchidos e tente novamente.';return m.length>220?'Não foi possível concluir. Confira os dados e tente novamente.':m.replace(/^Erro:\\s*/i,'')}
+function note(message){$('message').textContent=message} 
+function friendlyError(e){const m=String(e&&e.message||'').trim();if(!m||m==='Resposta inválida')return 'O servidor não enviou uma resposta válida. Tente novamente.';if(m[0]==='['||m[0]==='{')return 'Confira os campos preenchidos e tente novamente.';return m.length>220?'Não foi possível concluir. Confira os dados e tente novamente.':m.replace(/^Erro:\s*/i,'')}
 async function api(path,method='GET',data){const headers={'Accept':'application/json'};if(token)headers.Authorization='Bearer '+token;if(data!==undefined)headers['Content-Type']='application/json';const r=await fetch('/api'+path,{method,headers,body:data===undefined?undefined:JSON.stringify(data)});let value;try{value=await r.json()}catch{throw Error(r.ok?'O servidor enviou dados inesperados.':'O servidor não enviou uma resposta válida. Tente novamente.')}if(!r.ok){const detail=value.detail;const msg=typeof detail==='string'?detail:(Array.isArray(detail)?detail.map(x=>String(x.msg||'Campo inválido')).slice(0,3).join(' · '):'Confira os campos e tente novamente.');throw Error(msg)}return value}
 function formField(form,label,key,value='',type='text',required=false){const l=add(form,'label',label);const i=el(type==='textarea'?'textarea':'input');i.name=key;i.value=safe(value);if(type!=='textarea')i.type=type;i.required=required;l.append(i);return i}
 function action(label,fn,secondary=false){
@@ -26,7 +27,6 @@ function action(label,fn,secondary=false){
   }catch(e){
    const msg=friendlyError(e);
    if(b.isConnected)feedback.textContent=msg;
-   note(msg);
   }finally{
    b.disabled=false;b.removeAttribute('aria-busy');b.textContent=original;
   }
@@ -315,7 +315,8 @@ async function importResume(){
  add(root,'p','Envie PDF, DOCX ou TXT (até 2 MB), ou cole o texto. Revise todas as sugestões antes de salvar. Não envie CPF ou dados sensíveis.');
  const status=add(root,'p','Etapa 1 de 3 · Envie seu currículo','import-stage');
  const fileLabel=add(root,'label','Selecionar currículo');const file=add(fileLabel,'input');file.type='file';file.accept='.pdf,.docx,.txt';
- const f=add(root,'form');const input=formField(f,'Ou cole o texto','resume',sessionStorage.getItem('jobagent_resume_draft')||'','textarea',false);input.maxLength=25000;input.rows=8;\n input.addEventListener('input',()=>{sessionStorage.setItem('jobagent_resume_draft',input.value);});
+ const f=add(root,'form');const input=formField(f,'Ou cole o texto','resume',sessionStorage.getItem('jobagent_resume_draft')||'','textarea',false);input.maxLength=25000;input.rows=8;
+ input.addEventListener('input',()=>{sessionStorage.setItem('jobagent_resume_draft',input.value);});
  const preview=add(root,'div');preview.className='import-preview';preview.setAttribute('aria-live','polite');
  file.addEventListener('change',()=>{if(file.files.length){input.disabled=true;status.textContent='Arquivo selecionado: '+file.files[0].name+' · Clique em Analisar sem salvar.'}else{input.disabled=false;status.textContent='Etapa 1 de 3 · Envie seu currículo'}});
  input.addEventListener('input',()=>{if(input.value.trim()&&file.files.length){file.value='';input.disabled=false} });
@@ -346,7 +347,8 @@ async function importResume(){
      await api('/import/resume/confirm','POST',{...payload,allow_possible_duplicates:true});
    }
    status.textContent='Etapa 3 de 3 · Informações confirmadas. Abrindo diagnóstico...';
-   sessionStorage.removeItem('jobagent_resume_draft');\n   await show('diagnostic');
+   sessionStorage.removeItem('jobagent_resume_draft');
+   await show('diagnostic');
   }));
  }
  f.append(action('Analisar sem salvar',async()=>{
