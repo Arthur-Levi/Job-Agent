@@ -41,3 +41,9 @@ input[type="checkbox"],input[type="radio"]{display:inline-block;width:auto;min-w
  .nav-more button{width:100%;text-align:left}
  .is-public .auth-layout{min-height:auto}
 }
+
+/* D2.6.9-B / v15 — Feedback contextual para ações */
+.action-feedback{display:inline-block;max-width:100%;margin:8px 10px 8px 0;font-size:12px;line-height:1.5;color:#d8c7aa;overflow-wrap:anywhere}
+.action-feedback:empty{display:none}
+button[aria-busy="true"]{cursor:progress}
+@media(max-width:520px){.action-feedback{display:block;margin:6px 0 10px}}
