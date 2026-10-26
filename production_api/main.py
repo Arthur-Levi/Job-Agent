@@ -315,6 +315,15 @@ def edit_evidence(item_id:int,p:EvidenceIn,uid:int=Depends(current_user),s:DBSes
 @app.delete('/api/evidence/{item_id}')
 def remove_evidence(item_id:int,uid:int=Depends(current_user),s:DBSession=Depends(getdb)):
     s.delete(owned(s,Evidence,uid,item_id));audit(s,uid,'evidence.delete');s.commit();return {'ok':True}
+class JobTextPreviewIn(BaseModel):
+    text:str=Field(min_length=40,max_length=12000)
+
+@app.post('/api/jobs/text-preview')
+def job_text_preview(p:JobTextPreviewIn,uid:int=Depends(current_user)):
+    from job_ingestion import extract_job_preview
+    try:return extract_job_preview(p.text)
+    except ValueError as exc:raise HTTPException(422,str(exc))
+
 @app.get('/api/jobs')
 def jobs(uid:int=Depends(current_user),s:DBSession=Depends(getdb)):
     return [{**serialize(o,['id','title','company','description','source_url']),'requirements':json.loads(o.requirements_json)} for o in s.scalars(select(Job).where(Job.user_id==uid).order_by(Job.id.desc()))]
