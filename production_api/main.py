@@ -637,6 +637,19 @@ def career_intelligence(uid:int=Depends(current_user),s:DBSession=Depends(getdb)
     tasks=[{'done':t.done} for t in s.scalars(select(Task).where(Task.user_id==uid))]
     return analyze({'target_role':p.target_role},evidence,jobs,apps,tasks)
 
+@app.get('/api/jobs/{item_id}/guidance')
+def job_guidance(item_id:int,uid:int=Depends(current_user),s:DBSession=Depends(getdb)):
+    from application_guidance import summarize
+    from career_intelligence import analyze
+    j=owned(s,Job,uid,item_id)
+    p=s.get(Profile,uid)
+    evidence=[{'id':e.id,'kind':e.kind,'title':e.title,'description':e.description,
+               'url':e.url,'status':e.status} for e in s.scalars(select(Evidence).where(Evidence.user_id==uid))]
+    job={'id':j.id,'title':j.title,'company':j.company,'source_url':j.source_url,
+         'requirements':json.loads(j.requirements_json or '[]')}
+    result=analyze({'target_role':p.target_role},evidence,[job])
+    return summarize(result['opportunities'][0])
+
 @app.get('/api/progress')
 def progress(uid:int=Depends(current_user),s:DBSession=Depends(getdb)):
     apps=list(s.scalars(select(Application).where(Application.user_id==uid)))
