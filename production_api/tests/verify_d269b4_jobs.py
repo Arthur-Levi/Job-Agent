@@ -2,6 +2,7 @@
 import sys,uuid
 from pathlib import Path
 sys.path.insert(0,str(Path(__file__).resolve().parent))
+sys.path.insert(0,str(Path(__file__).resolve().parent.parent))
 from verify_d269b2_files import verify_isolation,request
 from job_ingestion import extract_job_preview
 
