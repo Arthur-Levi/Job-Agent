@@ -5,8 +5,8 @@ const safe=(x)=>String(x??'');
 function el(tag,text,cls){const n=document.createElement(tag);if(text!==undefined)n.textContent=safe(text);if(cls)n.className=cls;return n}
 function add(parent,tag,text,cls){const n=el(tag,text,cls);parent.append(n);return n}
 function clear(node){node.replaceChildren()}
-function note(message){$('message').textContent=message}
-async function api(path,method='GET',data){const headers={'Accept':'application/json'};if(token)headers.Authorization='Bearer '+token;if(data!==undefined)headers['Content-Type']='application/json';const r=await fetch('/api'+path,{method,headers,body:data===undefined?undefined:JSON.stringify(data)});let value;try{value=await r.json()}catch{value={detail:'Resposta inválida'}}if(!r.ok)throw Error(typeof value.detail==='string'?value.detail:JSON.stringify(value.detail||'Erro'));return value}
+function note(message){$('message').textContent=message}\nfunction friendlyError(e){const m=String(e&&e.message||'').trim();if(!m||m==='Resposta inválida')return 'O servidor não enviou uma resposta válida. Tente novamente.';if(m[0]==='['||m[0]==='{')return 'Confira os campos preenchidos e tente novamente.';return m.length>220?'Não foi possível concluir. Confira os dados e tente novamente.':m.replace(/^Erro:\\s*/i,'')}
+async function api(path,method='GET',data){const headers={'Accept':'application/json'};if(token)headers.Authorization='Bearer '+token;if(data!==undefined)headers['Content-Type']='application/json';const r=await fetch('/api'+path,{method,headers,body:data===undefined?undefined:JSON.stringify(data)});let value;try{value=await r.json()}catch{throw Error(r.ok?'O servidor enviou dados inesperados.':'O servidor não enviou uma resposta válida. Tente novamente.')}if(!r.ok){const detail=value.detail;const msg=typeof detail==='string'?detail:(Array.isArray(detail)?detail.map(x=>String(x.msg||'Campo inválido')).slice(0,3).join(' · '):'Confira os campos e tente novamente.');throw Error(msg)}return value}
 function formField(form,label,key,value='',type='text',required=false){const l=add(form,'label',label);const i=el(type==='textarea'?'textarea':'input');i.name=key;i.value=safe(value);if(type!=='textarea')i.type=type;i.required=required;l.append(i);return i}
 function action(label,fn,secondary=false){
  const b=el('button',label);b.type='button';if(secondary)b.className='secondary';
@@ -24,7 +24,7 @@ function action(label,fn,secondary=false){
    await fn();
    if(b.isConnected)feedback.textContent='Concluído.';
   }catch(e){
-   const msg='Erro: '+(e&&e.message?e.message:'Não foi possível concluir.');
+   const msg=friendlyError(e);
    if(b.isConnected)feedback.textContent=msg;
    note(msg);
   }finally{
@@ -34,7 +34,55 @@ function action(label,fn,secondary=false){
  return b;
 }
 function panel(title){const root=$('content');clear(root);add(root,'h2',title);return root}
-async function show(next=tab){tab=next;const logged=!!token;document.body.classList.toggle('is-public',!logged);$('auth').hidden=logged;$('workspace').hidden=!logged;$('logout').hidden=!logged;if(!logged)return;document.querySelectorAll('[data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));$('pageTitle').textContent=({dashboard:'Visão geral',import:'Importar currículo',master:'Perfil profissional estruturado',ledger:'Registro de fatos',diagnostic:'Diagnóstico profissional',evidence:'Minhas evidências',jobs:'Vagas e requisitos',applications:'Minhas candidaturas',tasks:'Plano de ação',graph:'Mapa de evidências',loop:'Evolução profissional',premium:'Career Professional',account:'Minha conta'})[tab]||tab;try{let billing;try{billing=await api('/billing/status')}catch(err){billing={premium_enabled:false,status:'temporariamente indisponível',billing_unavailable:true};note('Não foi possível consultar a assinatura. As demais funções continuam disponíveis.')}$('planBadge').textContent=billing.billing_unavailable?'Plano indisponível':(billing.premium_enabled?'Career Professional ativo':'Plano gratuito');if(tab==='dashboard')await dashboard();if(tab==='import')await importResume();if(tab==='master')await masterView();if(tab==='ledger')await ledgerView();if(tab==='diagnostic'){await diagnostic();await groundedPanel();}if(tab==='evidence')await evidence();if(tab==='jobs')await jobs();if(tab==='applications')await applications();if(tab==='tasks')await tasks();if(tab==='graph')await graphView();if(tab==='loop')await loopView();if(tab==='premium')await premium(billing);if(tab==='account')await account()}catch(e){note('Erro: '+e.message);if(e.message.includes('Sessão inválida')||e.message.includes('Autenticação necessária')){token='';sessionStorage.removeItem('jobagent_token');show()}}}
+let navVersion=0;
+let navQueue=Promise.resolve();
+function show(next=tab){
+ const destination=next;tab=destination;const revision=++navVersion;
+ const logged=!!token;
+ document.body.classList.toggle('is-public',!logged);
+ $('auth').hidden=logged;$('workspace').hidden=!logged;$('logout').hidden=!logged;
+ note('');
+ if(!logged){clear($('content'));return Promise.resolve()}
+ document.querySelectorAll('[data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===destination));
+ $('pageTitle').textContent=({dashboard:'Visão geral',import:'Importar currículo',master:'Perfil profissional estruturado',ledger:'Registro de fatos',diagnostic:'Diagnóstico profissional',evidence:'Minhas evidências',jobs:'Vagas e requisitos',applications:'Minhas candidaturas',tasks:'Plano de ação',graph:'Mapa de evidências',loop:'Evolução profissional',premium:'Career Professional',account:'Minha conta'})[destination]||destination;
+ // Serialize navigation so a slow previous request cannot paint over a newer tab.
+ // Pending destinations are discarded; the latest requested destination wins.
+ clear($('content'));add($('content'),'p','Carregando página...','dashboard-loading');
+ navQueue=navQueue.catch(()=>{}).then(async()=>{
+  if(revision!==navVersion)return;
+  try{
+   let billing;
+   try{billing=await api('/billing/status')}
+   catch{billing={premium_enabled:false,status:'temporariamente indisponível',billing_unavailable:true}}
+   if(revision!==navVersion)return;
+   $('planBadge').textContent=billing.billing_unavailable?'Plano indisponível':(billing.premium_enabled?'Career Professional ativo':'Plano gratuito');
+   clear($('content'));
+   if(destination==='dashboard')await dashboard();
+   else if(destination==='import')await importResume();
+   else if(destination==='master')await masterView();
+   else if(destination==='ledger')await ledgerView();
+   else if(destination==='diagnostic'){await diagnostic();if(revision===navVersion)await groundedPanel()}
+   else if(destination==='evidence')await evidence();
+   else if(destination==='jobs')await jobs();
+   else if(destination==='applications')await applications();
+   else if(destination==='tasks')await tasks();
+   else if(destination==='graph')await graphView();
+   else if(destination==='loop')await loopView();
+   else if(destination==='premium')await premium(billing);
+   else if(destination==='account')await account();
+  }catch(e){
+   if(revision!==navVersion)return;
+   const msg=friendlyError(e);
+   clear($('content'));add($('content'),'h2','Não foi possível carregar esta página');
+   add($('content'),'p',msg,'action-feedback');
+   $('content').append(action('Tentar novamente',()=>show(destination)));
+   if(e.message.includes('Sessão inválida')||e.message.includes('Autenticação necessária')){
+    token='';sessionStorage.removeItem('jobagent_token');return show();
+   }
+  }
+ });
+ return navQueue;
+}
 async function openDashboardProfileEditor(){
  const root=$('content');
  const me=await api('/profile');
@@ -267,7 +315,7 @@ async function importResume(){
  add(root,'p','Envie PDF, DOCX ou TXT (até 2 MB), ou cole o texto. Revise todas as sugestões antes de salvar. Não envie CPF ou dados sensíveis.');
  const status=add(root,'p','Etapa 1 de 3 · Envie seu currículo','import-stage');
  const fileLabel=add(root,'label','Selecionar currículo');const file=add(fileLabel,'input');file.type='file';file.accept='.pdf,.docx,.txt';
- const f=add(root,'form');const input=formField(f,'Ou cole o texto','resume','','textarea',false);input.maxLength=25000;input.rows=8;
+ const f=add(root,'form');const input=formField(f,'Ou cole o texto','resume',sessionStorage.getItem('jobagent_resume_draft')||'','textarea',false);input.maxLength=25000;input.rows=8;\n input.addEventListener('input',()=>{sessionStorage.setItem('jobagent_resume_draft',input.value);});
  const preview=add(root,'div');preview.className='import-preview';preview.setAttribute('aria-live','polite');
  file.addEventListener('change',()=>{if(file.files.length){input.disabled=true;status.textContent='Arquivo selecionado: '+file.files[0].name+' · Clique em Analisar sem salvar.'}else{input.disabled=false;status.textContent='Etapa 1 de 3 · Envie seu currículo'}});
  input.addEventListener('input',()=>{if(input.value.trim()&&file.files.length){file.value='';input.disabled=false} });
@@ -298,7 +346,7 @@ async function importResume(){
      await api('/import/resume/confirm','POST',{...payload,allow_possible_duplicates:true});
    }
    status.textContent='Etapa 3 de 3 · Informações confirmadas. Abrindo diagnóstico...';
-   await show('diagnostic');
+   sessionStorage.removeItem('jobagent_resume_draft');\n   await show('diagnostic');
   }));
  }
  f.append(action('Analisar sem salvar',async()=>{
@@ -309,7 +357,7 @@ async function importResume(){
   if(file.files.length){const selectedFile=file.files[0];if(selectedFile.size>2000000)throw Error('Limite de 2 MB');
    const body=new FormData();body.append('file',selectedFile);
    const response=await fetch('/api/import/resume/file-preview',{method:'POST',headers:{Authorization:'Bearer '+token},body});
-   const result=await response.json();if(!response.ok)throw Error(result.detail||'Erro de importação');await renderPreview(result);
+   let result;try{result=await response.json()}catch{throw Error('O servidor não enviou uma resposta válida. Tente novamente.')}if(!response.ok)throw Error(typeof result.detail==='string'?result.detail:'Não foi possível analisar o arquivo. Confira o formato e tente novamente.');await renderPreview(result);
   }else{await renderPreview(await api('/import/resume/preview','POST',{text:input.value}))}
   }catch(e){status.textContent='Não foi possível analisar. Corrija o problema e tente novamente.';throw e}
  }));
