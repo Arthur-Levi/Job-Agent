@@ -139,7 +139,11 @@ async function dashboard(){
   const track=add(progress,'div',undefined,'progress-track');track.setAttribute('role','progressbar');track.setAttribute('aria-valuemin','0');track.setAttribute('aria-valuemax',String(onboard.total));track.setAttribute('aria-valuenow',String(completed));
   const fill=add(track,'div',undefined,'progress-fill');fill.style.width=(completed/onboard.total*100)+'%';
 
-  const pendingSteps=(onboard.steps||[]).filter(step=>!step.done);\n  const stepsDetails=add(progress,'details',undefined,'dashboard-optional');add(stepsDetails,'summary','Ver todas as etapas ('+pendingSteps.length+' pendentes)');\n  const stepsList=add(stepsDetails,'div',undefined,'onboarding-steps');\n  if(pendingSteps.length){const next=pendingSteps[0];const lead=add(progress,'div',undefined,'dashboard-priority-step');add(lead,'strong',next.label);const to=({target:'master',summary:'master',evidence:'evidence',job:'jobs'})[next.key]||next.next_tab||'import';lead.append(action('Continuar etapa',()=>show(to)));}\n  for(const [index,step] of (onboard.steps||[]).entries()){
+  const pendingSteps=(onboard.steps||[]).filter(step=>!step.done);
+  const stepsDetails=add(progress,'details',undefined,'dashboard-optional');add(stepsDetails,'summary','Ver todas as etapas ('+pendingSteps.length+' pendentes)');
+  const stepsList=add(stepsDetails,'div',undefined,'onboarding-steps');
+  if(pendingSteps.length){const next=pendingSteps[0];const lead=add(progress,'div',undefined,'dashboard-priority-step');add(lead,'strong',next.label);const to=({target:'master',summary:'master',evidence:'evidence',job:'jobs'})[next.key]||next.next_tab||'import';lead.append(action('Continuar etapa',()=>show(to)));}
+  for(const [index,step] of (onboard.steps||[]).entries()){
    const item=add(stepsList,'div',undefined,'onboarding-step'+(step.done?' is-done':''));
    add(item,'span',step.done?'✓':String(index+1).padStart(2,'0'),'step-index');
    const copy=add(item,'div',undefined,'step-copy');add(copy,'strong',step.label);
@@ -160,7 +164,8 @@ async function dashboard(){
    if(x.next_tab)item.append(action('Realizar →',async()=>show(x.next_tab),true));
   }
  }
- const detail=add(root,'details',undefined,'dashboard-optional');add(detail,'summary','Ver números e resumo da semana');\n const metrics=add(detail,'section',undefined,'dashboard-section');
+ const detail=add(root,'details',undefined,'dashboard-optional');add(detail,'summary','Ver números e resumo da semana');
+ const metrics=add(detail,'section',undefined,'dashboard-section');
  add(metrics,'h3','Seu workspace em números');
  const grid=add(metrics,'div',undefined,'grid');
  const cards=[['Evidências',d?.evidence],['Vagas salvas',d?.jobs],['Candidaturas',d?.applications],['Tarefas concluídas',p?p.tasks_done+' / '+p.tasks_total:null]];
