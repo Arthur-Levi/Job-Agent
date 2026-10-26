@@ -325,12 +325,18 @@ async function importResume(){
   add(preview,'p','Nada foi salvo ainda. Desmarque qualquer informação incorreta e ajuste os textos antes de confirmar.','import-guidance');
   const roleLabel=add(preview,'label','Cargo-alvo (opcional)');const role=add(roleLabel,'input');role.maxLength=120;role.value=r.target_role_draft||'';
   const drafts=[];
-  for(const draft of (r.evidence_drafts||[])){
-   const section=add(preview,'div',undefined,'entry');const label=add(section,'label');const checkbox=add(label,'input');checkbox.type='checkbox';checkbox.checked=true;add(label,'span',' Incluir '+draft.kind);
+  const evidenceDrafts=r.evidence_drafts||[];
+  add(preview,'p',evidenceDrafts.length+' informação(ões) extraída(s) para revisão. Abra apenas os cartões que precisar corrigir.','import-guidance');
+  for(const draft of evidenceDrafts){
+   const section=add(preview,'details',undefined,'entry import-evidence-card');
+   const heading=add(section,'summary',(draft.title||'Informação do currículo')+' · '+draft.kind);
+   heading.title='Abrir para revisar esta informação';
+   const label=add(section,'label');const checkbox=add(label,'input');checkbox.type='checkbox';checkbox.checked=true;add(label,'span',' Incluir no meu perfil');
    const title=formField(section,'Título — corrija se necessário','title',draft.title,'text',true);title.maxLength=160;
    const description=formField(section,'Descrição extraída — confirme os fatos','description',draft.description,'textarea',true);description.maxLength=4000;
    drafts.push({checkbox,title,description,kind:draft.kind});
   }
+  if(!evidenceDrafts.length)add(preview,'p','Não identificamos experiências estruturadas automaticamente. Confira as competências mencionadas e informe um cargo-alvo, se desejar.');
   add(preview,'h4','Menções de competências (não comprovadas)');
   const selected=[];
   (r.skill_mentions||[]).forEach(skill=>{const label=add(preview,'label');const cb=add(label,'input');cb.type='checkbox';cb.checked=false;cb.value=skill;add(label,'span',' '+skill);selected.push(cb)});
