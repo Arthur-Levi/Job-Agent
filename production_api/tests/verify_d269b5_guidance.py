@@ -22,7 +22,8 @@ def main():
  jobid=job.get('id');check('Create job',code==201 and bool(jobid))
  code,preview=request('/api/jobs/'+str(jobid)+'/guidance',token=t1)
  check('Guidance for owner',code==200 and preview.get('counts',{}).get('total')==2)
- check('No hiring probability',preview.get('hiring_probability') is None)
+ if code!=200: print('DIAGNOSTICO | Guidance owner HTTP '+str(code)+' | '+str(preview.get('detail',preview.get('error','resposta inesperada')))[:160],flush=True)
+ check('No hiring probability',code==200 and 'hiring_probability' in preview and preview['hiring_probability'] is None)
  check('Initially undocumented',preview.get('counts',{}).get('not_documented')==2)
  code,_=request('/api/jobs/'+str(jobid)+'/guidance',token=t2)
  check('Other account cannot access',code==404)
@@ -31,9 +32,14 @@ def main():
  code,after=request('/api/jobs/'+str(jobid)+'/guidance',token=t1)
  check('Matching declaration is unverified',code==200 and after.get('counts',{}).get('mentioned_unverified')==1 and after.get('hiring_probability') is None)
  req=(after.get('requirements') or [{}])[0]
- check('Readable next action',bool(req.get('next_action')) and bool(req.get('action_title')))
- code,task=request('/api/tasks','POST',{'title':req['action_title']},t1)
- check('Action saved in weekly plan',code==201)
+ valid_action=code==200 and bool(req.get('next_action')) and bool(req.get('action_title'))
+ check('Readable next action',valid_action)
+ if valid_action:
+  code,task=request('/api/tasks','POST',{'title':req['action_title']},t1)
+  check('Action saved in weekly plan',code==201)
+ else:
+  print('DIAGNOSTICO | Guidance após evidência HTTP '+str(code)+' | '+str(after.get('detail',after.get('error','resposta inesperada')))[:160],flush=True)
+  check('Action saved in weekly plan',False)
  print('RESULTADO: '+str(sum(results))+'/'+str(len(results)))
  print('STATUS: '+('PASS' if all(results) else 'FAIL'))
  return 0 if all(results) else 1
