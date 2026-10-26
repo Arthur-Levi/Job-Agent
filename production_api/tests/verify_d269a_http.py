@@ -41,9 +41,9 @@ def main():
     # in the Codespaces terminal with the actual API PID checked separately.
     try:
         listeners=subprocess.check_output(["ss","-ltnp","sport = :8001"],text=True)
-        pids=re.findall(r"pid=(\\d+)",listeners)
+        pids=re.findall(r"pid=(\d+)",listeners)
         if len(set(pids))!=1:raise RuntimeError("PID da API nao identificado")
-        environ=open("/proc/"+pids[0]+"/environ","rb").read().split(b"\\0")
+        environ=open("/proc/"+pids[0]+"/environ","rb").read().split(b"\0")
         env=dict(item.decode("utf-8","replace").split("=",1) for item in environ if b"=" in item)
         db=urlsplit(env.get("DATABASE_URL",""))
         assert db.hostname in ("127.0.0.1","localhost") and db.port==55433 and db.path=="/jobagent_ux", "API nao usa DB descartavel 55433/jobagent_ux"
