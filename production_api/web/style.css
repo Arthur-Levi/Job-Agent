@@ -47,3 +47,30 @@ input[type="checkbox"],input[type="radio"]{display:inline-block;width:auto;min-w
 .action-feedback:empty{display:none}
 button[aria-busy="true"]{cursor:progress}
 @media(max-width:520px){.action-feedback{display:block;margin:6px 0 10px}}
+
+/* v15 B1 hardening: small phones, tablets, focus and long content */
+html,body{max-width:100%}
+.app-main,#workspace,#content,.panel,.entry,.import-preview{min-width:0}
+#content{overflow-wrap:anywhere}
+#content pre{max-width:100%;overflow-x:auto}
+#content button{max-width:100%;white-space:normal;overflow-wrap:anywhere}
+.action-feedback{vertical-align:middle}
+.sidebar nav button[aria-current="page"]{background:#30302e;color:#e8d2aa;box-shadow:inset 2px 0 0 var(--accent)}
+@media(max-width:720px){
+ .sidebar nav{max-height:38vh;overflow-y:auto;overscroll-behavior:contain}
+ .sidebar .brand{white-space:normal;overflow-wrap:anywhere}
+ .sidebar nav .nav-more button{min-height:44px}
+ .topbar{gap:12px}
+ .topbar-kicker{overflow-wrap:anywhere;letter-spacing:.08em}
+ .quick-start-steps{min-width:0}
+}
+@media(max-width:375px){
+ main{padding:20px 12px 30px}
+ .panel{padding:16px}
+ .auth-story h1{font-size:clamp(29px,9vw,36px);overflow-wrap:anywhere}
+ .auth-card{padding:17px}
+ .auth-card .actions button{white-space:normal}
+ .hero h1{font-size:29px}
+ .sidebar nav{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+ .import-preview .entry{padding:10px}
+}
