@@ -106,16 +106,16 @@ async function dashboard(){
  const root=panel('Seu centro de carreira');root.classList.add('dashboard-panel');
  const intro=add(root,'div',undefined,'dashboard-intro');
  const lead=add(intro,'div');add(lead,'p','SEU PRÓXIMO MOVIMENTO','eyebrow');
- add(lead,'h2','Uma carreira melhor começa com clareza.');
- add(lead,'p','Construa seu perfil, documente experiências e transforme informações em próximas ações.');
+ add(lead,'h2','Seu próximo passo, sem complicação.');
+ add(lead,'p','Comece pelo currículo ou informe seu objetivo. Depois, consulte seu diagnóstico.');
  const start=add(intro,'div',undefined,'dashboard-intro-actions');
- start.append(action('Importar currículo',async()=>show('import')));
+ start.append(action('Analisar meu currículo',async()=>show('import')));
  start.append(action('Preencher meu perfil',async()=>show('master'),true));
  const status=add(root,'div',undefined,'dashboard-loading');status.setAttribute('role','status');status.textContent='Carregando seu progresso...';
  const results=await Promise.allSettled([api('/dashboard'),api('/progress'),api('/onboarding'),api('/journey/first-result'),api('/career/weekly-brief')]);
  status.remove();
  const [d,p,onboard,journey,brief]=results.map(x=>x.status==='fulfilled'?x.value:null);
- const finished=!!(onboard&&Number(onboard.total)>0&&Number(onboard.completed)>=Number(onboard.total));const quickStart=document.querySelector('.quick-start');if(quickStart)quickStart.hidden=finished;
+ const finished=!!(onboard&&Number(onboard.total)>0&&Number(onboard.completed)>=Number(onboard.total));const quickStart=document.querySelector('.quick-start');if(quickStart)quickStart.hidden=true;
  if(finished){
   intro.classList.add('dashboard-intro-complete');
   lead.querySelector('h2').textContent='Sua carreira, em movimento.';
@@ -132,15 +132,15 @@ async function dashboard(){
  }
  const progress=add(root,'section',undefined,'dashboard-section');
  const ph=add(progress,'div',undefined,'dashboard-section-heading');
- add(ph,'h3','Seu caminho até o primeiro diagnóstico');
+ add(ph,'h3',finished?'Seu perfil está preparado':'Prepare seu primeiro diagnóstico');
  if(onboard&&Number(onboard.total)>0){
   const completed=Math.max(0,Math.min(Number(onboard.completed)||0,Number(onboard.total)));
   add(ph,'span',completed+' de '+onboard.total+' etapas','progress-count');
   const track=add(progress,'div',undefined,'progress-track');track.setAttribute('role','progressbar');track.setAttribute('aria-valuemin','0');track.setAttribute('aria-valuemax',String(onboard.total));track.setAttribute('aria-valuenow',String(completed));
   const fill=add(track,'div',undefined,'progress-fill');fill.style.width=(completed/onboard.total*100)+'%';
-  const steps=add(progress,'div',undefined,'onboarding-steps');
-  for(const [index,step] of (onboard.steps||[]).entries()){
-   const item=add(steps,'div',undefined,'onboarding-step'+(step.done?' is-done':''));
+
+  const pendingSteps=(onboard.steps||[]).filter(step=>!step.done);\n  const stepsDetails=add(progress,'details',undefined,'dashboard-optional');add(stepsDetails,'summary','Ver todas as etapas ('+pendingSteps.length+' pendentes)');\n  const stepsList=add(stepsDetails,'div',undefined,'onboarding-steps');\n  if(pendingSteps.length){const next=pendingSteps[0];const lead=add(progress,'div',undefined,'dashboard-priority-step');add(lead,'strong',next.label);const to=({target:'master',summary:'master',evidence:'evidence',job:'jobs'})[next.key]||next.next_tab||'import';lead.append(action('Continuar etapa',()=>show(to)));}\n  for(const [index,step] of (onboard.steps||[]).entries()){
+   const item=add(stepsList,'div',undefined,'onboarding-step'+(step.done?' is-done':''));
    add(item,'span',step.done?'✓':String(index+1).padStart(2,'0'),'step-index');
    const copy=add(item,'div',undefined,'step-copy');add(copy,'strong',step.label);
    add(copy,'small',step.done?'Concluído':'Pendente');
@@ -160,7 +160,7 @@ async function dashboard(){
    if(x.next_tab)item.append(action('Realizar →',async()=>show(x.next_tab),true));
   }
  }
- const metrics=add(root,'section',undefined,'dashboard-section');
+ const detail=add(root,'details',undefined,'dashboard-optional');add(detail,'summary','Ver números e resumo da semana');\n const metrics=add(detail,'section',undefined,'dashboard-section');
  add(metrics,'h3','Seu workspace em números');
  const grid=add(metrics,'div',undefined,'grid');
  const cards=[['Evidências',d?.evidence],['Vagas salvas',d?.jobs],['Candidaturas',d?.applications],['Tarefas concluídas',p?p.tasks_done+' / '+p.tasks_total:null]];
@@ -170,7 +170,7 @@ async function dashboard(){
   add(tile,'p',label);
  }
  if(brief){
-  const weekly=add(root,'section',undefined,'dashboard-section dashboard-weekly');
+  const weekly=add(detail,'section',undefined,'dashboard-section dashboard-weekly');
   add(weekly,'h3','Resumo da semana');
   add(weekly,'p','Tarefas concluídas: '+brief.tasks.completed+' de '+brief.tasks.total+' · Horas disponíveis: '+brief.hours_available);
   for(const x of (brief.next_actions||[]).slice(0,3)){
