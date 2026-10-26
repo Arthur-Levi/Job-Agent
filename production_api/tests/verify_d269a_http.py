@@ -2,7 +2,10 @@
 """D2.6.9-A HTTP regression. ONLY run against isolated jobagent_ux database."""
 import json
 import os
+import re
+import subprocess
 import sys
+from urllib.parse import urlsplit
 import uuid
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
@@ -36,9 +39,17 @@ def send(path, method="GET", payload=None, token=None):
 def main():
     # The API may be running in a different shell environment: this check must run
     # in the Codespaces terminal with the actual API PID checked separately.
-    expected=os.environ.get("JOBAGENT_UX_DB_GUARD","")
-    if expected!="jobagent_ux@55433":
-        print("FAIL | Proteção: defina JOBAGENT_UX_DB_GUARD=jobagent_ux@55433 somente após verificar o PID da API.")
+    try:
+        listeners=subprocess.check_output(["ss","-ltnp","sport = :8001"],text=True)
+        pids=re.findall(r"pid=(\\d+)",listeners)
+        if len(set(pids))!=1:raise RuntimeError("PID da API nao identificado")
+        environ=open("/proc/"+pids[0]+"/environ","rb").read().split(b"\\0")
+        env=dict(item.decode("utf-8","replace").split("=",1) for item in environ if b"=" in item)
+        db=urlsplit(env.get("DATABASE_URL",""))
+        assert db.hostname in ("127.0.0.1","localhost") and db.port==55433 and db.path=="/jobagent_ux", "API nao usa DB descartavel 55433/jobagent_ux"
+        print("PASS | Segurança: processo da porta 8001 aponta para o banco isolado")
+    except Exception as exc:
+        print("FAIL | Segurança: nao comprovado banco isolado no PID da porta 8001:",str(exc))
         return 2
     for path in ["/health/live","/health/ready","/","/assets/style.css","/assets/app.js"]:
         status,_=send(path)
