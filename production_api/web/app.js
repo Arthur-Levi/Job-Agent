@@ -321,38 +321,60 @@ async function importResume(){
  file.addEventListener('change',()=>{if(file.files.length){input.disabled=true;status.textContent='Arquivo selecionado: '+file.files[0].name+' · Clique em Analisar sem salvar.'}else{input.disabled=false;status.textContent='Etapa 1 de 3 · Envie seu currículo'}});
  input.addEventListener('input',()=>{if(input.value.trim()&&file.files.length){file.value='';input.disabled=false} });
  async function renderPreview(r){
-  clear(preview);status.textContent='Etapa 2 de 3 · Revise e confirme as informações';add(preview,'h3','Revise os dados antes de confirmar');
-  add(preview,'p','Nada foi salvo ainda. Desmarque qualquer informação incorreta e ajuste os textos antes de confirmar.','import-guidance');
-  const roleLabel=add(preview,'label','Cargo-alvo (opcional)');const role=add(roleLabel,'input');role.maxLength=120;role.value=r.target_role_draft||'';
+  clear(preview);
+  status.textContent='Etapa 2 de 2 · Revise antes de confirmar';
+  add(preview,'h3','Seu currículo, em resumo');
+  add(preview,'p','Esta é uma prévia. Nada foi salvo no seu perfil. Revise e confirme somente informações verdadeiras.','import-guidance');
+  const evidenceDrafts=Array.isArray(r.evidence_drafts)?r.evidence_drafts:[];
+  const skills=Array.isArray(r.skill_mentions)?r.skill_mentions:[];
+  const summary=add(preview,'div',undefined,'resume-summary');
+  const counts=add(summary,'p',evidenceDrafts.length+' informação(ões) sugerida(s) · '+skills.length+' competência(s) mencionada(s)');
+  counts.setAttribute('aria-live','polite');
+  const roleLabel=add(preview,'label','Cargo-alvo (opcional)');
+  const role=add(roleLabel,'input');role.maxLength=120;role.value=r.target_role_draft||'';
+  add(preview,'h4','Informações encontradas');
+  const controls=add(preview,'div',undefined,'resume-review-controls');
+  const openAll=action('Revisar todos os detalhes',()=>{for(const x of drafts)x.section.open=true},true);
+  controls.append(openAll);
   const drafts=[];
-  const evidenceDrafts=r.evidence_drafts||[];
-  add(preview,'p',evidenceDrafts.length+' informação(ões) extraída(s) para revisão. Abra apenas os cartões que precisar corrigir.','import-guidance');
   for(const draft of evidenceDrafts){
    const section=add(preview,'details',undefined,'entry import-evidence-card');
    const heading=add(section,'summary',(draft.title||'Informação do currículo')+' · '+draft.kind);
    heading.title='Abrir para revisar esta informação';
-   const label=add(section,'label');const checkbox=add(label,'input');checkbox.type='checkbox';checkbox.checked=true;add(label,'span',' Incluir no meu perfil');
+   const label=add(section,'label');const checkbox=add(label,'input');checkbox.type='checkbox';checkbox.checked=true;
+   add(label,'span',' Incluir no meu perfil');
    const title=formField(section,'Título — corrija se necessário','title',draft.title,'text',true);title.maxLength=160;
    const description=formField(section,'Descrição extraída — confirme os fatos','description',draft.description,'textarea',true);description.maxLength=4000;
-   drafts.push({checkbox,title,description,kind:draft.kind});
+   drafts.push({section,checkbox,title,description,kind:draft.kind});
   }
-  if(!evidenceDrafts.length)add(preview,'p','Não identificamos experiências estruturadas automaticamente. Confira as competências mencionadas e informe um cargo-alvo, se desejar.');
-  add(preview,'h4','Menções de competências (não comprovadas)');
+  if(!drafts.length)add(preview,'p','Nenhuma experiência estruturada foi identificada. Você pode informar seu cargo-alvo ou revisar as menções abaixo.');
+  const skillBox=add(preview,'details',undefined,'entry import-evidence-card');
+  add(skillBox,'summary','Competências mencionadas ('+skills.length+') — não comprovadas');
+  add(skillBox,'p','Essas palavras aparecem no currículo, mas não significam que sua proficiência foi verificada. Selecione apenas as que deseja declarar.');
   const selected=[];
-  (r.skill_mentions||[]).forEach(skill=>{const label=add(preview,'label');const cb=add(label,'input');cb.type='checkbox';cb.checked=false;cb.value=skill;add(label,'span',' '+skill);selected.push(cb)});
-  add(preview,'p',(r.limitations||[]).concat(r.caveats||[]).join(' '));
-  preview.append(action('Confirmar informações e ver próximas ações',async()=>{
-   const evidence=drafts.filter(x=>x.checkbox.checked).map(x=>({kind:x.kind,title:x.title.value.trim(),description:x.description.value.trim(),url:''}));
+  for(const skill of skills){const label=add(skillBox,'label');const cb=add(label,'input');cb.type='checkbox';cb.checked=false;cb.value=skill;add(label,'span',' '+skill);selected.push(cb)}
+  const warnings=[...(r.limitations||[]),...(r.caveats||[])].filter(x=>typeof x==='string'&&x.trim());
+  if(warnings.length){const details=add(preview,'details',undefined,'entry');add(details,'summary','Limitações da análise');add(details,'p',warnings.join(' '))}
+  preview.append(action('Confirmar e abrir diagnóstico',async()=>{
+   const chosen=drafts.filter(x=>x.checkbox.checked);
+   // A collapsed item can be accepted as extracted. Only user-edited items need expanded review.
+   for(const x of chosen){
+    if(!x.title.value.trim()||!x.description.value.trim()){
+     x.section.open=true;
+     x.title.focus();
+     throw Error('Revise os campos obrigatórios do cartão aberto.');
+    }
+   }
+   const evidence=chosen.map(x=>({kind:x.kind,title:x.title.value.trim(),description:x.description.value.trim(),url:''}));
    evidence.push(...selected.filter(x=>x.checked).map(x=>({kind:'skill',title:x.value,description:'Menção declarada no currículo; proficiência não verificada.',url:''})));
-   if(!evidence.length&&!role.value.trim())throw Error('Confirme ao menos uma informação ou defina um cargo-alvo');
+   if(!evidence.length&&!role.value.trim())throw Error('Selecione uma informação ou informe um cargo-alvo.');
    const payload={evidence,target_role:role.value.trim()||null};
    try{await api('/import/resume/confirm','POST',payload)}catch(err){
-     if(!err.message.includes('possible_duplicate')&&!err.message.includes('Possíveis duplicidades'))throw err;
-     const conflict=err.message;
-     if(!confirm('Foram encontradas evidências parecidas com registros existentes. Confira antes de prosseguir. '+conflict+'\nDeseja incluir mesmo assim?'))return;
-     await api('/import/resume/confirm','POST',{...payload,allow_possible_duplicates:true});
+    if(!err.message.includes('possible_duplicate')&&!err.message.includes('Possíveis duplicidades'))throw err;
+    if(!confirm('Existem informações semelhantes já cadastradas. Deseja confirmar mesmo assim?'))return;
+    await api('/import/resume/confirm','POST',{...payload,allow_possible_duplicates:true});
    }
-   status.textContent='Etapa 3 de 3 · Informações confirmadas. Abrindo diagnóstico...';
+   status.textContent='Informações confirmadas. Abrindo diagnóstico...';
    sessionStorage.removeItem('jobagent_resume_draft');
    await show('diagnostic');
   }));
