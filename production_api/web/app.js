@@ -8,7 +8,31 @@ function clear(node){node.replaceChildren()}
 function note(message){$('message').textContent=message}
 async function api(path,method='GET',data){const headers={'Accept':'application/json'};if(token)headers.Authorization='Bearer '+token;if(data!==undefined)headers['Content-Type']='application/json';const r=await fetch('/api'+path,{method,headers,body:data===undefined?undefined:JSON.stringify(data)});let value;try{value=await r.json()}catch{value={detail:'Resposta inválida'}}if(!r.ok)throw Error(typeof value.detail==='string'?value.detail:JSON.stringify(value.detail||'Erro'));return value}
 function formField(form,label,key,value='',type='text',required=false){const l=add(form,'label',label);const i=el(type==='textarea'?'textarea':'input');i.name=key;i.value=safe(value);if(type!=='textarea')i.type=type;i.required=required;l.append(i);return i}
-function action(label,fn,secondary=false){const b=el('button',label);b.type='button';if(secondary)b.className='secondary';b.onclick=async()=>{b.disabled=true;try{await fn();note('Operação concluída.')}catch(e){note('Erro: '+e.message)}finally{b.disabled=false}};return b}
+function action(label,fn,secondary=false){
+ const b=el('button',label);b.type='button';if(secondary)b.className='secondary';
+ b.onclick=async()=>{
+  if(b.disabled)return;
+  b.disabled=true;b.setAttribute('aria-busy','true');
+  const original=b.textContent;b.textContent='Processando...';
+  let feedback=b.nextElementSibling;
+  if(!feedback||!feedback.classList.contains('action-feedback')){
+   feedback=el('span',undefined,'action-feedback');feedback.setAttribute('role','status');feedback.setAttribute('aria-live','polite');
+   b.insertAdjacentElement('afterend',feedback);
+  }
+  feedback.textContent='';
+  try{
+   await fn();
+   if(b.isConnected)feedback.textContent='Concluído.';
+  }catch(e){
+   const msg='Erro: '+(e&&e.message?e.message:'Não foi possível concluir.');
+   if(b.isConnected)feedback.textContent=msg;
+   note(msg);
+  }finally{
+   b.disabled=false;b.removeAttribute('aria-busy');b.textContent=original;
+  }
+ };
+ return b;
+}
 function panel(title){const root=$('content');clear(root);add(root,'h2',title);return root}
 async function show(next=tab){tab=next;const logged=!!token;document.body.classList.toggle('is-public',!logged);$('auth').hidden=logged;$('workspace').hidden=!logged;$('logout').hidden=!logged;if(!logged)return;document.querySelectorAll('[data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));$('pageTitle').textContent=({dashboard:'Visão geral',import:'Importar currículo',master:'Perfil profissional estruturado',ledger:'Registro de fatos',diagnostic:'Diagnóstico profissional',evidence:'Minhas evidências',jobs:'Vagas e requisitos',applications:'Minhas candidaturas',tasks:'Plano de ação',graph:'Mapa de evidências',loop:'Evolução profissional',premium:'Career Professional',account:'Minha conta'})[tab]||tab;try{let billing;try{billing=await api('/billing/status')}catch(err){billing={premium_enabled:false,status:'temporariamente indisponível',billing_unavailable:true};note('Não foi possível consultar a assinatura. As demais funções continuam disponíveis.')}$('planBadge').textContent=billing.billing_unavailable?'Plano indisponível':(billing.premium_enabled?'Career Professional ativo':'Plano gratuito');if(tab==='dashboard')await dashboard();if(tab==='import')await importResume();if(tab==='master')await masterView();if(tab==='ledger')await ledgerView();if(tab==='diagnostic'){await diagnostic();await groundedPanel();}if(tab==='evidence')await evidence();if(tab==='jobs')await jobs();if(tab==='applications')await applications();if(tab==='tasks')await tasks();if(tab==='graph')await graphView();if(tab==='loop')await loopView();if(tab==='premium')await premium(billing);if(tab==='account')await account()}catch(e){note('Erro: '+e.message);if(e.message.includes('Sessão inválida')||e.message.includes('Autenticação necessária')){token='';sessionStorage.removeItem('jobagent_token');show()}}}
 async function openDashboardProfileEditor(){
