@@ -290,6 +290,26 @@ async function jobs(){
   const e=add(root,'div',undefined,'entry');
   add(e,'h3',x.title+' · '+x.company);
   add(e,'p',x.requirements.join(' · ')||'Requisitos não informados');
+  e.append(action('Analisar requisitos',async()=>{
+   const result=await api('/jobs/'+x.id+'/guidance');
+   let previous=e.querySelector('.job-guidance');if(previous)previous.remove();
+   const area=add(e,'div',undefined,'job-guidance');
+   add(area,'h4','Análise desta oportunidade');
+   add(area,'p',result.counts.mentioned_unverified+' requisito(s) com menções declaradas · '+result.counts.not_documented+' sem documentação textual.');
+   add(area,'p','Não é pontuação de adequação nem previsão de contratação.','import-guidance');
+   for(const r of result.requirements){
+    const details=add(area,'details',undefined,'entry import-evidence-card');
+    add(details,'summary',r.requirement+' — '+r.label);
+    add(details,'p',r.explanation);
+    for(const ev of r.evidence)add(details,'p','Evidência declarada: '+ev.title);
+    add(details,'p',r.next_action);
+    details.append(action('Adicionar ação ao meu plano',async()=>{
+     await api('/tasks','POST',{title:r.action_title.slice(0,300)});
+     await show('tasks');
+    },true));
+   }
+   if(!result.requirements.length)add(area,'p','Cadastre requisitos reais nesta vaga para obter uma comparação.');
+  }));
   e.append(action('Registrar candidatura',async()=>{await api('/applications','POST',{job_id:x.id,status:'saved',notes:''});await show('applications')},true));
   e.append(action('Comparar Premium',async()=>{const m=await api('/jobs/'+x.id+'/match');note('Correspondências potenciais: '+m.potential_matches.length+' | Não documentados: '+m.unresolved_requirements.length)},true));
   e.append(action('Preparar entrevista Premium',async()=>{const r=await api('/jobs/'+x.id+'/interview');const section=add(e,'div');add(section,'h3','Perguntas de preparação');r.questions.forEach(q=>add(section,'p',q))},true));
