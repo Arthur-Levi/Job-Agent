@@ -123,3 +123,13 @@ html,body{max-width:100%}
 .account-delete-form .danger-action{align-self:flex-start;background:#813e3e;border-color:#b86969;color:#fff}
 .account-delete-form .danger-action:hover:not(:disabled){background:#a84e4e;border-color:#dc9191}
 @media(max-width:520px){.account-delete-disclosure{padding:14px}.account-delete-form .danger-action{width:100%}}
+
+/* Q2.2 — shared async, error, and empty states */
+.ui-state{margin:15px 0 20px;padding:20px 22px;background:var(--surface2);border:1px solid var(--line);border-radius:12px;max-width:100%}
+.ui-state h3{margin:0 0 7px;font-size:17px;color:var(--ivory)}
+.ui-state p{margin:0;color:var(--muted);line-height:1.6;overflow-wrap:anywhere}
+.ui-state button{margin-top:15px}
+.ui-state-loading{border-left:3px solid var(--accent)}
+.ui-state-error{border-left:3px solid #d58c82}
+.ui-state-empty{border-style:dashed}
+@media(max-width:520px){.ui-state{padding:16px}.ui-state button{width:100%}}
