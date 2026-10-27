@@ -110,3 +110,16 @@ html,body{max-width:100%}
 .diagnostic-tab-panel>.dashboard-section{margin:0}
 .diagnostic-tab-panel pre{white-space:pre-wrap;overflow-wrap:anywhere;max-width:100%}
 @media(max-width:650px){.diagnostic-tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px;padding:5px}.diagnostic-tab{min-width:0;white-space:normal;padding:12px 7px}.diagnostic-tab-panel{min-width:0}}
+
+/* Q2: explicit, accessible account-deletion confirmation */
+.account-delete-disclosure{border:1px solid #775553;border-radius:12px;background:var(--surface2);padding:15px 18px;margin-top:15px}
+.account-delete-disclosure>summary{cursor:pointer;color:#f0c4bc;font-weight:700;line-height:1.5}
+.account-delete-disclosure>summary:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+.account-delete-disclosure p{margin:15px 0;color:var(--ivory)}
+.account-delete-form{display:flex;flex-direction:column;gap:13px}
+.account-delete-form label{display:block;max-width:540px}
+.account-delete-form .account-delete-check{display:flex;align-items:flex-start;gap:9px;line-height:1.5}
+.account-delete-check input{width:19px;height:19px;margin:2px 0 0;flex-shrink:0;accent-color:#c58b82}
+.account-delete-form .danger-action{align-self:flex-start;background:#813e3e;border-color:#b86969;color:#fff}
+.account-delete-form .danger-action:hover:not(:disabled){background:#a84e4e;border-color:#dc9191}
+@media(max-width:520px){.account-delete-disclosure{padding:14px}.account-delete-form .danger-action{width:100%}}
