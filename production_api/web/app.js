@@ -36,8 +36,15 @@ function action(label,fn,secondary=false){
 function panel(title){const root=$('content');clear(root);add(root,'h2',title);return root}
 let navVersion=0;
 let navQueue=Promise.resolve();
+let diagnosticView='overview';
+let diagnosticDraft={jobId:'',text:'',sources:''};
+let navigationController=null;
+function navigationSignal(){return navigationController?.signal}
+function isCurrent(revision){return revision===navVersion}
 function show(next=tab){
  const destination=next;tab=destination;const revision=++navVersion;
+ if(navigationController)navigationController.abort();
+ navigationController=new AbortController();
  const logged=!!token;
  document.body.classList.toggle('is-public',!logged);
  $('auth').hidden=logged;$('workspace').hidden=!logged;$('logout').hidden=!logged;
@@ -48,27 +55,25 @@ function show(next=tab){
  // Serialize navigation so a slow previous request cannot paint over a newer tab.
  // Pending destinations are discarded; the latest requested destination wins.
  clear($('content'));add($('content'),'p','Carregando página...','dashboard-loading');
- navQueue=navQueue.catch(()=>{}).then(async()=>{
+ const render=async()=>{
   if(revision!==navVersion)return;
   try{
-   let billing;
-   try{billing=await api('/billing/status')}
-   catch{billing={premium_enabled:false,status:'temporariamente indisponível',billing_unavailable:true}}
-   if(revision!==navVersion)return;
-   $('planBadge').textContent=billing.billing_unavailable?'Plano indisponível':(billing.premium_enabled?'Career Professional ativo':'Plano gratuito');
+   // Navigation must not depend on the billing service.
+   const billingPromise=api('/billing/status').catch(()=>({premium_enabled:false,status:'temporariamente indisponível',billing_unavailable:true}));
    clear($('content'));
+   const billing=billingPromise.then(value=>{if(isCurrent(revision))$('planBadge').textContent=value.billing_unavailable?'Plano indisponível':(value.premium_enabled?'Career Professional ativo':'Plano gratuito');return value});
    if(destination==='dashboard')await dashboard();
    else if(destination==='import')await importResume();
    else if(destination==='master')await masterView();
    else if(destination==='ledger')await ledgerView();
-   else if(destination==='diagnostic'){await diagnostic();if(revision===navVersion){await groundedPanel();if(revision===navVersion)organizeDiagnosticTabs()}}
+   else if(destination==='diagnostic')await diagnostic();
    else if(destination==='evidence')await evidence();
    else if(destination==='jobs')await jobs();
    else if(destination==='applications')await applications();
    else if(destination==='tasks')await tasks();
    else if(destination==='graph')await graphView();
    else if(destination==='loop')await loopView();
-   else if(destination==='premium')await premium(billing);
+   else if(destination==='premium')await premium(await billing);
    else if(destination==='account')await account();
   }catch(e){
    if(revision!==navVersion)return;
@@ -80,8 +85,9 @@ function show(next=tab){
     token='';sessionStorage.removeItem('jobagent_token');sessionStorage.removeItem('jobagent_resume_draft');return show();
    }
   }
- });
- return navQueue;
+ };
+ // Rendering does not wait for obsolete navigation requests.
+ return render();
 }
 async function openDashboardProfileEditor(){
  const root=$('content');
@@ -185,78 +191,62 @@ async function dashboard(){
  add(root,'p','As informações são declaradas e não representam certificação de competências ou probabilidade de contratação.','dashboard-disclaimer');
 }
 async function diagnostic(){
- const [d,priority]=await Promise.all([api('/intelligence'),api('/diagnostic/priority-actions')]);const root=panel('Career Intelligence — diagnóstico rastreável');
- add(root,'h3','Suas próximas ações priorizadas');priority.actions.forEach(a=>{const item=add(root,'div',undefined,'entry');add(item,'strong',a.action);add(item,'p',a.why);item.append(action('Agir agora',async()=>show(a.next_tab),true))});
- add(root,'p','Análise por requisitos de vagas reais e evidências declaradas. Não verificamos automaticamente competências nem calculamos chances de contratação.');
- const c=d.quality.coverage,g=add(root,'div',undefined,'grid');
+ const revision=navVersion;
+ const [d,priority]=await Promise.all([api('/intelligence'),api('/diagnostic/priority-actions')]);
+ if(!isCurrent(revision))return;
+ const root=panel('Career Intelligence — diagnóstico rastreável');
+ const views=createDiagnosticViews(root);
+ const sections=views.sections;
+ const act=sections.actions,overview=sections.overview,requirements=sections.requirements;
+ add(act,'h3','Suas próximas ações priorizadas');priority.actions.forEach(a=>{const item=add(act,'div',undefined,'entry');add(item,'strong',a.action);add(item,'p',a.why);item.append(action('Agir agora',async()=>show(a.next_tab),true))});
+ add(overview,'p','Análise por requisitos de vagas reais e evidências declaradas. Não verificamos automaticamente competências nem calculamos chances de contratação.');
+ const c=d.quality.coverage,g=add(overview,'div',undefined,'grid');
  for(const [label,value] of [['Vagas com requisitos',c.jobs_with_requirements+' / '+c.total_jobs],['Requisitos distintos',c.total_requirements],['Requisitos com indícios',c.requirements_with_candidates],['Evidências com URL',c.evidence_with_sources+' / '+c.total_evidence]]){const tile=add(g,'div',undefined,'tile');add(tile,'div',value,'number');add(tile,'p',label)}
- add(root,'h3','As 3 próximas ações');d.top_actions.forEach((a,i)=>{const e=add(root,'div',undefined,'entry');add(e,'strong',(i+1)+'. '+a.action);add(e,'p','Motivo: '+a.why);if(a.linked_jobs.length)add(e,'small','Vagas relacionadas: '+a.linked_jobs.join(', '));e.append(action('Adicionar ao meu plano',async()=>{await api('/tasks','POST',{title:a.action.slice(0,300)});await show('tasks')},true))});
- add(root,'h3','Prioridades e lacunas');if(!d.requirement_priorities.length)add(root,'p','Cadastre vagas reais e seus requisitos para iniciar a comparação.');
- d.requirement_priorities.forEach(r=>{const e=add(root,'div',undefined,'entry');add(e,'strong',r.requirement+' · '+r.jobs_requiring+' vaga(s)');add(e,'p',r.state==='NOT_DOCUMENTED'?'Não documentado (não significa desconhecimento)':'Indícios textuais — não verificados');add(e,'small',r.rationale);r.evidence_refs.forEach(x=>add(e,'p','Evidência #'+x.evidence_id+': '+x.title+' ('+x.status+')'))});
- add(root,'h3','Oportunidades por indícios documentais');const ranked=await api('/career/opportunity-priorities');ranked.opportunities.forEach(j=>{const e=add(root,'div',undefined,'entry');add(e,'strong',j.title+' · '+j.company);add(e,'p',j.possible_documentary_matches+'/'+j.requirements_total+' requisitos com indícios declarados. Não é uma chance de contratação.')});add(root,'h3','Comparação por oportunidade');d.opportunities.forEach(j=>{const e=add(root,'div',undefined,'entry');add(e,'strong',j.title+' · '+j.company);add(e,'p',j.documented_candidates+' requisitos com indícios; '+j.not_documented+' sem evidência textual.');j.requirements.forEach(r=>add(e,'small',r.requirement+' — '+(r.state==='NOT_DOCUMENTED'?'não documentado':'possível evidência declarada')))});
- add(root,'h3','Limitações e transparência');d.uncertainties.forEach(x=>add(root,'p','• '+x));d.quality.data_quality_notes.forEach(x=>add(root,'p','• '+x));
+ add(act,'h3','As 3 próximas ações');d.top_actions.forEach((a,i)=>{const e=add(act,'div',undefined,'entry');add(e,'strong',(i+1)+'. '+a.action);add(e,'p','Motivo: '+a.why);if(a.linked_jobs.length)add(e,'small','Vagas relacionadas: '+a.linked_jobs.join(', '));e.append(action('Adicionar ao meu plano',async()=>{await api('/tasks','POST',{title:a.action.slice(0,300)});await show('tasks')},true))});
+ add(requirements,'h3','Prioridades e lacunas');if(!d.requirement_priorities.length)add(requirements,'p','Cadastre vagas reais e seus requisitos para iniciar a comparação.');
+ d.requirement_priorities.forEach(r=>{const e=add(requirements,'div',undefined,'entry');add(e,'strong',r.requirement+' · '+r.jobs_requiring+' vaga(s)');add(e,'p',r.state==='NOT_DOCUMENTED'?'Não documentado (não significa desconhecimento)':'Indícios textuais — não verificados');add(e,'small',r.rationale);r.evidence_refs.forEach(x=>add(e,'p','Evidência #'+x.evidence_id+': '+x.title+' ('+x.status+')'))});
+ add(requirements,'h3','Oportunidades por indícios documentais');let ranked;try{ranked=await api('/career/opportunity-priorities')}catch(e){if(isCurrent(revision))add(requirements,'p','O ranking de vagas está indisponível. As comparações restantes continuam acessíveis.','action-feedback')}
+ if(!isCurrent(revision))return;
+ (ranked?.opportunities||[]).forEach(j=>{const e=add(requirements,'div',undefined,'entry');add(e,'strong',j.title+' · '+j.company);add(e,'p',j.possible_documentary_matches+'/'+j.requirements_total+' requisitos com indícios declarados. Não é uma chance de contratação.')});add(requirements,'h3','Comparação por oportunidade');d.opportunities.forEach(j=>{const e=add(requirements,'div',undefined,'entry');add(e,'strong',j.title+' · '+j.company);add(e,'p',j.documented_candidates+' requisitos com indícios; '+j.not_documented+' sem evidência textual.');j.requirements.forEach(r=>add(e,'small',r.requirement+' — '+(r.state==='NOT_DOCUMENTED'?'não documentado':'possível evidência declarada')))});
+ add(overview,'h3','Limitações e transparência');d.uncertainties.forEach(x=>add(overview,'p','• '+x));d.quality.data_quality_notes.forEach(x=>add(overview,'p','• '+x));
+ await groundedPanel(sections.resume,revision);
 }
 
-// B5.2: Reorganize the already-rendered diagnostic without new requests or data writes.
-// Moving existing DOM nodes preserves button handlers, selection, draft text and provenance.
-function organizeDiagnosticTabs(){
- const content=$('content');
- const title=content.querySelector(':scope > h2');
- const grounded=content.querySelector(':scope > section.dashboard-section');
- if(!title||!grounded)return;
- const groups=[
-  {id:'overview',label:'Visão geral',nodes:[]},
-  {id:'requirements',label:'Requisitos',nodes:[]},
-  {id:'resume',label:'Currículo fundamentado',nodes:[]},
-  {id:'actions',label:'Próximas ações',nodes:[]}
- ];
- const byId=Object.fromEntries(groups.map(g=>[g.id,g]));
- let active='actions';
- for(const node of [...content.children]){
-  if(node===title||node===grounded)continue;
-  if(node.tagName==='H3'){
-   const heading=node.textContent.trim();
-   if(heading==='Suas próximas ações priorizadas'||heading==='As 3 próximas ações')active='actions';
-   else if(heading==='Prioridades e lacunas'||heading==='Oportunidades por indícios documentais'||heading==='Comparação por oportunidade')active='requirements';
-   else if(heading==='Limitações e transparência')active='overview';
-  }else if(node.classList.contains('grid'))active='overview';
-  byId[active].nodes.push(node);
+
+// Q1: Explicit panel ownership. No UI section is grouped by translated heading text.
+function createDiagnosticViews(root){
+ const names=[['overview','Visão geral'],['requirements','Requisitos'],['resume','Currículo fundamentado'],['actions','Próximas ações']];
+ const bar=add(root,'div',undefined,'diagnostic-tabs');
+ bar.setAttribute('role','tablist');bar.setAttribute('aria-label','Seções do diagnóstico');
+ const sections={};const buttons={};
+ for(const [id,label] of names){
+  const button=add(bar,'button',label,'diagnostic-tab');button.type='button';
+  button.id='diag-tab-'+id;button.setAttribute('role','tab');
+  button.setAttribute('aria-controls','diag-panel-'+id);
+  const section=add(root,'section',undefined,'diagnostic-tab-panel');
+  section.id='diag-panel-'+id;section.setAttribute('role','tabpanel');
+  section.setAttribute('aria-labelledby',button.id);section.tabIndex=0;
+  buttons[id]=button;sections[id]=section;
  }
- byId.resume.nodes.push(grounded);
- const tabs=el('div',undefined,'diagnostic-tabs');
- tabs.setAttribute('role','tablist');tabs.setAttribute('aria-label','Seções do diagnóstico');
- const panels=[];
- for(const group of groups){
-  const tabButton=add(tabs,'button',group.label,'diagnostic-tab');
-  tabButton.type='button';tabButton.id='diag-tab-'+group.id;tabButton.setAttribute('role','tab');
-  tabButton.setAttribute('aria-controls','diag-panel-'+group.id);
-  const panelNode=el('section',undefined,'diagnostic-tab-panel');
-  panelNode.id='diag-panel-'+group.id;panelNode.setAttribute('role','tabpanel');
-  panelNode.setAttribute('aria-labelledby',tabButton.id);panelNode.tabIndex=0;
-  for(const child of group.nodes)panelNode.append(child);
-  panels.push({id:group.id,button:tabButton,panel:panelNode});
- }
- const select=id=>{
-  for(const item of panels){
-   const chosen=item.id===id;
-   item.button.setAttribute('aria-selected',String(chosen));
-   item.button.tabIndex=chosen?0:-1;
-   item.panel.hidden=!chosen;
+ const activate=id=>{
+  if(!sections[id])return;
+  diagnosticView=id;
+  for(const [key] of names){const selected=key===id;
+   sections[key].hidden=!selected;buttons[key].tabIndex=selected?0:-1;
+   buttons[key].setAttribute('aria-selected',String(selected));
   }
  };
- for(let i=0;i<panels.length;i++){
-  const item=panels[i];
-  item.button.addEventListener('click',()=>select(item.id));
-  item.button.addEventListener('keydown',event=>{
-   if(!['ArrowRight','ArrowLeft','Home','End'].includes(event.key))return;
+ names.forEach(([id],i)=>{
+  buttons[id].addEventListener('click',()=>activate(id));
+  buttons[id].addEventListener('keydown',event=>{
+   if(!['ArrowLeft','ArrowRight','Home','End'].includes(event.key))return;
    event.preventDefault();
-   const next=event.key==='Home'?0:event.key==='End'?panels.length-1:
-    (i+(event.key==='ArrowRight'?1:-1)+panels.length)%panels.length;
-   select(panels[next].id);panels[next].button.focus();
+   const next=event.key==='Home'?0:event.key==='End'?names.length-1:(i+(event.key==='ArrowRight'?1:-1)+names.length)%names.length;
+   activate(names[next][0]);buttons[names[next][0]].focus();
   });
- }
- content.replaceChildren(title,tabs,...panels.map(x=>x.panel));
- select('overview');
+ });
+ activate(diagnosticView);
+ return {sections,activate};
 }
 
 const EVIDENCE_KINDS=[['skill','Competência'],['project','Projeto'],['experience','Experiência profissional'],['education','Formação'],['certificate','Certificação'],['language','Idioma']];
@@ -559,16 +549,28 @@ async function ledgerView(){
 }
 
 // v12.4: grounded draft UI is mounted in the existing diagnostic tab.
-async function groundedPanel(){
- const root=add($('content'),'section',undefined,'dashboard-section');add(root,'h2','Currículo fundamentado no Fact Ledger');
+async function groundedPanel(root,revision){
+ add(root,'h2','Currículo fundamentado no Fact Ledger');
  add(root,'p','Somente declarações ativas, com identificação da fonte. Nenhuma competência é certificada.');
- const jobs=await api('/jobs');const label=add(root,'label','Vaga de referência (opcional)');const select=add(label,'select');
+ const label=add(root,'label','Vaga de referência (opcional)');const select=add(label,'select');
  const empty=add(select,'option','Sem vaga');empty.value='';
- for(const job of jobs){const o=add(select,'option',job.title+' — '+job.company);o.value=job.id}
- const output=add(root,'pre');
+ const status=add(root,'p','Carregando vagas disponíveis...','action-feedback');
+ const output=add(root,'pre',diagnosticDraft.text);
+ const sources=add(root,'p',diagnosticDraft.sources);
+ select.value=diagnosticDraft.jobId;
  root.append(action('Gerar rascunho rastreável',async()=>{
+  diagnosticDraft.jobId=select.value;
   const result=await api('/resume/grounded-draft','POST',{job_id:select.value?Number(select.value):null});
-  output.textContent=result.text+'\n\n'+result.notice;
-  add(root,'p','Fontes: '+result.claims.map(x=>'Fato #'+x.fact_id+' ('+x.verification+')').join(', '));
+  diagnosticDraft.text=result.text+'\\n\\n'+result.notice;
+  diagnosticDraft.sources='Fontes: '+result.claims.map(x=>'Fato #'+x.fact_id+' ('+x.verification+')').join(', ');
+  output.textContent=diagnosticDraft.text;sources.textContent=diagnosticDraft.sources;
  }));
+ select.addEventListener('change',()=>{diagnosticDraft.jobId=select.value});
+ // Load job choices independently; failure must not take down the diagnostic.
+ api('/jobs').then(jobs=>{
+  if(!isCurrent(revision)||!root.isConnected)return;
+  for(const job of jobs){const o=add(select,'option',job.title+' — '+job.company);o.value=job.id}
+  select.value=diagnosticDraft.jobId;
+  status.textContent='';
+ }).catch(()=>{if(isCurrent(revision)&&root.isConnected)status.textContent='Não foi possível listar vagas. Gere sem vaga ou tente reabrir o diagnóstico.'});
 }
