@@ -7,7 +7,7 @@ function add(parent,tag,text,cls){const n=el(tag,text,cls);parent.append(n);retu
 function clear(node){node.replaceChildren()}
 function note(message){$('message').textContent=message} 
 function friendlyError(e){const m=String(e&&e.message||'').trim();if(!m||m==='Resposta inválida')return 'O servidor não enviou uma resposta válida. Tente novamente.';if(m[0]==='['||m[0]==='{')return 'Confira os campos preenchidos e tente novamente.';return m.length>220?'Não foi possível concluir. Confira os dados e tente novamente.':m.replace(/^Erro:\s*/i,'')}
-async function api(path,method='GET',data){const headers={'Accept':'application/json'};if(token)headers.Authorization='Bearer '+token;if(data!==undefined)headers['Content-Type']='application/json';const r=await fetch('/api'+path,{method,headers,body:data===undefined?undefined:JSON.stringify(data)});let value;try{value=await r.json()}catch{throw Error(r.ok?'O servidor enviou dados inesperados.':'O servidor não enviou uma resposta válida. Tente novamente.')}if(!r.ok){const detail=value.detail;const msg=typeof detail==='string'?detail:(Array.isArray(detail)?detail.map(x=>String(x.msg||'Campo inválido')).slice(0,3).join(' · '):'Confira os campos e tente novamente.');throw Error(msg)}return value}
+async function api(path,method='GET',data){const headers={'Accept':'application/json'};if(token)headers.Authorization='Bearer '+token;if(data!==undefined)headers['Content-Type']='application/json';const r=await fetch('/api'+path,{method,headers,body:data===undefined?undefined:JSON.stringify(data),signal:method==='GET'?navigationSignal():undefined});let value;try{value=await r.json()}catch{throw Error(r.ok?'O servidor enviou dados inesperados.':'O servidor não enviou uma resposta válida. Tente novamente.')}if(!r.ok){const detail=value.detail;const msg=typeof detail==='string'?detail:(Array.isArray(detail)?detail.map(x=>String(x.msg||'Campo inválido')).slice(0,3).join(' · '):'Confira os campos e tente novamente.');throw Error(msg)}return value}
 function formField(form,label,key,value='',type='text',required=false){const l=add(form,'label',label);const i=el(type==='textarea'?'textarea':'input');i.name=key;i.value=safe(value);if(type!=='textarea')i.type=type;i.required=required;l.append(i);return i}
 function action(label,fn,secondary=false){
  const b=el('button',label);b.type='button';if(secondary)b.className='secondary';
@@ -52,8 +52,8 @@ function show(next=tab){
  if(!logged){clear($('content'));return Promise.resolve()}
  document.querySelectorAll('[data-tab]').forEach(b=>{const active=b.dataset.tab===destination;b.classList.toggle('active',active);if(active)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current')});
  $('pageTitle').textContent=({dashboard:'Visão geral',import:'Importar currículo',master:'Perfil profissional estruturado',ledger:'Registro de fatos',diagnostic:'Diagnóstico profissional',evidence:'Minhas evidências',jobs:'Vagas e requisitos',applications:'Minhas candidaturas',tasks:'Plano de ação',graph:'Mapa de evidências',loop:'Evolução profissional',premium:'Career Professional',account:'Minha conta'})[destination]||destination;
- // Serialize navigation so a slow previous request cannot paint over a newer tab.
- // Pending destinations are discarded; the latest requested destination wins.
+ // Cancel obsolete GET requests and serialize rendering to prevent stale DOM writes.
+ // Billing is fetched independently, so it does not gate other page content.
  clear($('content'));add($('content'),'p','Carregando página...','dashboard-loading');
  const render=async()=>{
   if(revision!==navVersion)return;
@@ -86,8 +86,9 @@ function show(next=tab){
    }
   }
  };
- // Rendering does not wait for obsolete navigation requests.
- return render();
+ // Preserve one active DOM renderer while interrupted requests exit promptly.
+ navQueue=navQueue.catch(()=>{}).then(render);
+ return navQueue;
 }
 async function openDashboardProfileEditor(){
  const root=$('content');
@@ -561,7 +562,7 @@ async function groundedPanel(root,revision){
  root.append(action('Gerar rascunho rastreável',async()=>{
   diagnosticDraft.jobId=select.value;
   const result=await api('/resume/grounded-draft','POST',{job_id:select.value?Number(select.value):null});
-  diagnosticDraft.text=result.text+'\\n\\n'+result.notice;
+  diagnosticDraft.text=result.text+'\n\n'+result.notice;
   diagnosticDraft.sources='Fontes: '+result.claims.map(x=>'Fato #'+x.fact_id+' ('+x.verification+')').join(', ');
   output.textContent=diagnosticDraft.text;sources.textContent=diagnosticDraft.sources;
  }));
