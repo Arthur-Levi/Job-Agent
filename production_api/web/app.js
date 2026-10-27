@@ -5,6 +5,15 @@ const safe=(x)=>String(x??'');
 function el(tag,text,cls){const n=document.createElement(tag);if(text!==undefined)n.textContent=safe(text);if(cls)n.className=cls;return n}
 function add(parent,tag,text,cls){const n=el(tag,text,cls);parent.append(n);return n}
 function clear(node){node.replaceChildren()}
+function uiState(parent,kind,title,description,buttonLabel,onClick){
+ const root=add(parent,'section',undefined,'ui-state ui-state-'+kind);
+ root.setAttribute('role',kind==='error'?'alert':'status');
+ add(root,'h3',title);
+ add(root,'p',description);
+ if(buttonLabel&&onClick)root.append(action(buttonLabel,onClick,true));
+ return root;
+}
+
 function note(message){$('message').textContent=message} 
 function friendlyError(e){const m=String(e&&e.message||'').trim();if(!m||m==='Resposta inválida')return 'O servidor não enviou uma resposta válida. Tente novamente.';if(m[0]==='['||m[0]==='{')return 'Confira os campos preenchidos e tente novamente.';return m.length>220?'Não foi possível concluir. Confira os dados e tente novamente.':m.replace(/^Erro:\s*/i,'')}
 async function api(path,method='GET',data){const headers={'Accept':'application/json'};if(token)headers.Authorization='Bearer '+token;if(data!==undefined)headers['Content-Type']='application/json';const r=await fetch('/api'+path,{method,headers,body:data===undefined?undefined:JSON.stringify(data),signal:method==='GET'?navigationSignal():undefined});let value;try{value=await r.json()}catch{throw Error(r.ok?'O servidor enviou dados inesperados.':'O servidor não enviou uma resposta válida. Tente novamente.')}if(!r.ok){const detail=value.detail;const msg=typeof detail==='string'?detail:(Array.isArray(detail)?detail.map(x=>String(x.msg||'Campo inválido')).slice(0,3).join(' · '):'Confira os campos e tente novamente.');throw Error(msg)}return value}
@@ -55,7 +64,7 @@ function show(next=tab){
  $('pageTitle').textContent=({dashboard:'Visão geral',import:'Importar currículo',master:'Perfil profissional estruturado',ledger:'Registro de fatos',diagnostic:'Diagnóstico profissional',evidence:'Minhas evidências',jobs:'Vagas e requisitos',applications:'Minhas candidaturas',tasks:'Plano de ação',graph:'Mapa de evidências',loop:'Evolução profissional',premium:'Career Professional',account:'Minha conta'})[destination]||destination;
  // Cancel obsolete GET requests and serialize rendering to prevent stale DOM writes.
  // Billing is fetched independently, so it does not gate other page content.
- clear($('content'));add($('content'),'p','Carregando página...','dashboard-loading');
+ clear($('content'));uiState($('content'),'loading','Preparando sua área','Estamos buscando as informações deste módulo.');
  const render=async()=>{
   if(revision!==navVersion)return;
   try{
@@ -80,7 +89,7 @@ function show(next=tab){
    if(revision!==navVersion)return;
    const msg=friendlyError(e);
    clear($('content'));add($('content'),'h2','Não foi possível carregar esta página');
-   add($('content'),'p',msg,'action-feedback');
+   uiState($('content'),'error','Não foi possível concluir o carregamento',msg,'Tentar novamente',()=>show(destination));
    $('content').append(action('Tentar novamente',()=>show(destination)));
    if(e.message.includes('Sessão inválida')||e.message.includes('Autenticação necessária')){
     token='';clearDiagnosticPrivateState();sessionStorage.removeItem('jobagent_token');sessionStorage.removeItem('jobagent_resume_draft');return show();
@@ -279,6 +288,7 @@ async function evidence(){
  formField(f,'Descrição e resultados','description','','textarea',true);
  evidenceUrlField(f);
  f.append(action('Adicionar evidência',async()=>{await api('/evidence','POST',validatedEvidence(f));await show('evidence')}));
+ if(!items.length)uiState(root,'empty','Ainda não há evidências','Cadastre uma experiência, projeto ou resultado que possa sustentar seu perfil profissional.');
  items.forEach(x=>{
   const e=add(root,'div',undefined,'entry');add(e,'h3',x.title);add(e,'small',x.kind+' · '+x.status);add(e,'p',x.description);
   if(x.url)add(e,'small','Fonte declarada: '+x.url);
@@ -298,6 +308,7 @@ async function evidence(){
 async function jobs(){
  const items=await api('/jobs');
  const root=panel('Vagas reais e seus requisitos');
+ if(!items.length)uiState(root,'empty','Nenhuma vaga salva','Cole uma descrição de oportunidade abaixo e revise a prévia antes de salvar.');
  add(root,'p','Cole uma descrição fornecida por você. A análise sugere campos, mas nada será salvo sem sua confirmação.');
  const inputLabel=add(root,'label','Descrição da oportunidade (texto fornecido por você)');
  const raw=add(inputLabel,'textarea');raw.rows=7;raw.maxLength=12000;raw.placeholder='Ex.: Cargo: Desenvolvedor Backend\\nEmpresa: Exemplo\\nRequisitos:\\n- Python\\n- SQL';
@@ -371,8 +382,8 @@ async function jobs(){
   e.append(action('Excluir',async()=>{if(confirm('Excluir a vaga e suas candidaturas?')){await api('/jobs/'+x.id,'DELETE');await show('jobs')}},true));
  });
 }
-async function applications(){const [items,jobs]=await Promise.all([api('/applications'),api('/jobs')]);const root=panel('Pipeline de candidaturas');if(!items.length)add(root,'p','Salve uma vaga e registre a candidatura para começar.');items.forEach(x=>{const e=add(root,'div',undefined,'entry');const job=jobs.find(j=>j.id===x.job_id);add(e,'h3',job?job.title+' · '+job.company:'Vaga removida');const s=add(e,'select');for(const status of ['saved','prepared','applied','interview','offer','rejected','withdrawn']){const opt=el('option',status);opt.value=status;opt.selected=status===x.status;s.append(opt)}e.append(action('Atualizar etapa',async()=>{await api('/applications/'+x.id,'PUT',{job_id:x.job_id,status:s.value,notes:x.notes});await show()}))})}
-async function tasks(){const items=await api('/tasks');const root=panel('Execução semanal');const f=add(root,'form');formField(f,'Próxima ação concreta','title','','text',true);f.append(action('Adicionar tarefa',async()=>{await api('/tasks','POST',Object.fromEntries(new FormData(f)));await show()}));items.forEach(x=>{const e=add(root,'div',undefined,'entry');const b=el('input');b.type='checkbox';b.checked=x.done;b.onchange=async()=>{try{await api('/tasks/'+x.id,'PATCH',{done:b.checked});await show()}catch(err){note(err.message)}};e.append(b);add(e,'span',' '+x.title);e.append(action('Remover',async()=>{await api('/tasks/'+x.id,'DELETE');await show('tasks')},true))})}
+async function applications(){const [items,jobs]=await Promise.all([api('/applications'),api('/jobs')]);const root=panel('Pipeline de candidaturas');if(!items.length)uiState(root,'empty','Nenhuma candidatura registrada','Salve uma vaga para começar a acompanhar suas candidaturas.','Ver vagas',()=>show('jobs'));items.forEach(x=>{const e=add(root,'div',undefined,'entry');const job=jobs.find(j=>j.id===x.job_id);add(e,'h3',job?job.title+' · '+job.company:'Vaga removida');const s=add(e,'select');for(const status of ['saved','prepared','applied','interview','offer','rejected','withdrawn']){const opt=el('option',status);opt.value=status;opt.selected=status===x.status;s.append(opt)}e.append(action('Atualizar etapa',async()=>{await api('/applications/'+x.id,'PUT',{job_id:x.job_id,status:s.value,notes:x.notes});await show()}))})}
+async function tasks(){const items=await api('/tasks');const root=panel('Execução semanal');const f=add(root,'form');formField(f,'Próxima ação concreta','title','','text',true);f.append(action('Adicionar tarefa',async()=>{await api('/tasks','POST',Object.fromEntries(new FormData(f)));await show()}));if(!items.length)uiState(root,'empty','Seu plano semanal está vazio','Crie uma tarefa concreta para organizar seu próximo passo.');items.forEach(x=>{const e=add(root,'div',undefined,'entry');const b=el('input');b.type='checkbox';b.checked=x.done;b.onchange=async()=>{try{await api('/tasks/'+x.id,'PATCH',{done:b.checked});await show()}catch(err){note(err.message)}};e.append(b);add(e,'span',' '+x.title);e.append(action('Remover',async()=>{await api('/tasks/'+x.id,'DELETE');await show('tasks')},true))})}
 
 async function graphView(){
  const [graph,jobs]=await Promise.all([api('/career/graph'),api('/jobs')]);const root=panel('Career Evidence Graph');
