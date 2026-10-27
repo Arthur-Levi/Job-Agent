@@ -68,15 +68,14 @@ async function main(){
  assert.equal(posts,1);
  console.log('PASS 4 — ação adicionada e exibida no plano semanal');
  await navigate('diagnostic');
- const phone=await browser.newPage({viewport:{width:375,height:812},deviceScaleFactor:2,isMobile:true,hasTouch:true});
- await phone.route('**/api/**',route=>route.fulfill(json({detail:'Use desktop session mock'},404)));
- // Validate the real styled application at mobile dimensions independently of login state.
- await phone.goto(base,{waitUntil:'domcontentloaded'});
- await phone.screenshot({path:'b52-q1-mobile-375.png',fullPage:true});
- const sizes=await phone.evaluate(()=>({body:document.documentElement.scrollWidth,screen:window.innerWidth}));
+ await page.setViewportSize({width:375,height:812});
+ await page.locator('#diag-tab-resume').click();
+ await page.screenshot({path:'b52-q1-mobile-375.png',fullPage:true});
+ const sizes=await page.evaluate(()=>({body:document.documentElement.scrollWidth,screen:window.innerWidth}));
  assert.ok(sizes.body<=sizes.screen+1,'Horizontal overflow on mobile: '+JSON.stringify(sizes));
- console.log('PASS 5 — viewport 375px sem overflow horizontal; captura b52-q1-mobile-375.png');
- await phone.close();
+ assert.equal(await page.locator('#diag-tab-resume').getAttribute('aria-selected'),'true');
+ console.log('PASS 5 — diagnóstico autenticado em 375px sem overflow horizontal; captura b52-q1-mobile-375.png');
+ await page.setViewportSize({width:1440,height:900});
  await page.locator('#logout').click();
  await page.locator('#auth').waitFor({state:'visible'});
  await login('b@teste.local');
