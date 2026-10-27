@@ -90,7 +90,6 @@ function show(next=tab){
    const msg=friendlyError(e);
    clear($('content'));add($('content'),'h2','Não foi possível carregar esta página');
    uiState($('content'),'error','Não foi possível concluir o carregamento',msg,'Tentar novamente',()=>show(destination));
-   $('content').append(action('Tentar novamente',()=>show(destination)));
    if(e.message.includes('Sessão inválida')||e.message.includes('Autenticação necessária')){
     token='';clearDiagnosticPrivateState();sessionStorage.removeItem('jobagent_token');sessionStorage.removeItem('jobagent_resume_draft');return show();
    }
