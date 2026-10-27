@@ -52,7 +52,7 @@ async function main(){
  await tabs.nth(2).click();
  const resume=page.locator('#diag-panel-resume');
  const sel=resume.locator('select');
- await sel.locator('option[value="1"]').waitFor();
+ await sel.locator('option[value="1"]').waitFor({state:'attached'});
  await sel.selectOption('1');
  await resume.getByRole('button',{name:'Gerar rascunho rastreável'}).click();
  await resume.getByText('RASCUNHO PRIVADO A').waitFor();
