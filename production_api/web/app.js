@@ -61,7 +61,7 @@ function show(next=tab){
    else if(destination==='import')await importResume();
    else if(destination==='master')await masterView();
    else if(destination==='ledger')await ledgerView();
-   else if(destination==='diagnostic'){await diagnostic();if(revision===navVersion)await groundedPanel()}
+   else if(destination==='diagnostic'){await diagnostic();if(revision===navVersion){await groundedPanel();if(revision===navVersion)organizeDiagnosticTabs()}}
    else if(destination==='evidence')await evidence();
    else if(destination==='jobs')await jobs();
    else if(destination==='applications')await applications();
@@ -196,6 +196,69 @@ async function diagnostic(){
  add(root,'h3','Oportunidades por indícios documentais');const ranked=await api('/career/opportunity-priorities');ranked.opportunities.forEach(j=>{const e=add(root,'div',undefined,'entry');add(e,'strong',j.title+' · '+j.company);add(e,'p',j.possible_documentary_matches+'/'+j.requirements_total+' requisitos com indícios declarados. Não é uma chance de contratação.')});add(root,'h3','Comparação por oportunidade');d.opportunities.forEach(j=>{const e=add(root,'div',undefined,'entry');add(e,'strong',j.title+' · '+j.company);add(e,'p',j.documented_candidates+' requisitos com indícios; '+j.not_documented+' sem evidência textual.');j.requirements.forEach(r=>add(e,'small',r.requirement+' — '+(r.state==='NOT_DOCUMENTED'?'não documentado':'possível evidência declarada')))});
  add(root,'h3','Limitações e transparência');d.uncertainties.forEach(x=>add(root,'p','• '+x));d.quality.data_quality_notes.forEach(x=>add(root,'p','• '+x));
 }
+
+// B5.2: Reorganize the already-rendered diagnostic without new requests or data writes.
+// Moving existing DOM nodes preserves button handlers, selection, draft text and provenance.
+function organizeDiagnosticTabs(){
+ const content=$('content');
+ const title=content.querySelector(':scope > h2');
+ const grounded=content.querySelector(':scope > section.dashboard-section');
+ if(!title||!grounded)return;
+ const groups=[
+  {id:'overview',label:'Visão geral',nodes:[]},
+  {id:'requirements',label:'Requisitos',nodes:[]},
+  {id:'resume',label:'Currículo fundamentado',nodes:[]},
+  {id:'actions',label:'Próximas ações',nodes:[]}
+ ];
+ const byId=Object.fromEntries(groups.map(g=>[g.id,g]));
+ let active='actions';
+ for(const node of [...content.children]){
+  if(node===title||node===grounded)continue;
+  if(node.tagName==='H3'){
+   const heading=node.textContent.trim();
+   if(heading==='Suas próximas ações priorizadas'||heading==='As 3 próximas ações')active='actions';
+   else if(heading==='Prioridades e lacunas'||heading==='Oportunidades por indícios documentais'||heading==='Comparação por oportunidade')active='requirements';
+   else if(heading==='Limitações e transparência')active='overview';
+  }else if(node.classList.contains('grid'))active='overview';
+  byId[active].nodes.push(node);
+ }
+ byId.resume.nodes.push(grounded);
+ const tabs=el('div',undefined,'diagnostic-tabs');
+ tabs.setAttribute('role','tablist');tabs.setAttribute('aria-label','Seções do diagnóstico');
+ const panels=[];
+ for(const group of groups){
+  const tabButton=add(tabs,'button',group.label,'diagnostic-tab');
+  tabButton.type='button';tabButton.id='diag-tab-'+group.id;tabButton.setAttribute('role','tab');
+  tabButton.setAttribute('aria-controls','diag-panel-'+group.id);
+  const panelNode=el('section',undefined,'diagnostic-tab-panel');
+  panelNode.id='diag-panel-'+group.id;panelNode.setAttribute('role','tabpanel');
+  panelNode.setAttribute('aria-labelledby',tabButton.id);panelNode.tabIndex=0;
+  for(const child of group.nodes)panelNode.append(child);
+  panels.push({id:group.id,button:tabButton,panel:panelNode});
+ }
+ const select=id=>{
+  for(const item of panels){
+   const chosen=item.id===id;
+   item.button.setAttribute('aria-selected',String(chosen));
+   item.button.tabIndex=chosen?0:-1;
+   item.panel.hidden=!chosen;
+  }
+ };
+ for(let i=0;i<panels.length;i++){
+  const item=panels[i];
+  item.button.addEventListener('click',()=>select(item.id));
+  item.button.addEventListener('keydown',event=>{
+   if(!['ArrowRight','ArrowLeft','Home','End'].includes(event.key))return;
+   event.preventDefault();
+   const next=event.key==='Home'?0:event.key==='End'?panels.length-1:
+    (i+(event.key==='ArrowRight'?1:-1)+panels.length)%panels.length;
+   select(panels[next].id);panels[next].button.focus();
+  });
+ }
+ content.replaceChildren(title,tabs,...panels.map(x=>x.panel));
+ select('overview');
+}
+
 const EVIDENCE_KINDS=[['skill','Competência'],['project','Projeto'],['experience','Experiência profissional'],['education','Formação'],['certificate','Certificação'],['language','Idioma']];
 function evidenceKindField(form,value='project'){
  const label=add(form,'label','Categoria da evidência');const select=add(label,'select');select.name='kind';select.required=true;
