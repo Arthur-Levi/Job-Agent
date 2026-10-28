@@ -26,7 +26,11 @@ let browser;
  browser=await chromium.launch({headless:true});
  const page=await browser.newPage({viewport:{width:1280,height:800}});
  const uncaught=[];page.on('pageerror',e=>uncaught.push(e.message));
- let previewCalls=0, taskGETFailures=0, taskPosts=0, tasks=[], releaseThirdPreview=null;
+ let previewCalls=0, taskGETFailures=0, taskPosts=0, tasks=[];
+ let signalThirdStarted;
+ const thirdStarted=new Promise(resolve=>{signalThirdStarted=resolve});
+ let releaseThirdPreview;
+ const thirdRelease=new Promise(resolve=>{releaseThirdPreview=resolve});
  await page.route('**/api/**',async route=>{
   const req=route.request(),p=new URL(req.url()).pathname.slice(4),method=req.method();
   if(p==='/auth/login')return route.fulfill(json({access_token:'fake-q22-token',token_type:'bearer'}));
@@ -40,7 +44,7 @@ let browser;
    previewCalls++;
    await new Promise(r=>setTimeout(r,180));
    if(previewCalls===1)return route.fulfill(json({detail:'Prévia temporariamente indisponível'},503));
-   if(previewCalls===3)await new Promise(resolve=>{releaseThirdPreview=resolve});
+   if(previewCalls===3){signalThirdStarted();await thirdRelease}
    return route.fulfill(json({title_draft:'Analista de dados',company_draft:'Empresa fictícia',description_draft:'Oportunidade fictícia de testes',requirements_draft:['SQL']}));
   }
   if(p==='/tasks'&&method==='GET'){
@@ -67,7 +71,7 @@ let browser;
  assert.equal(previewCalls,2);
  console.log('PASS 2 — repetição após erro funciona');
  await preview.click({noWaitAfter:true});
- await page.waitForFunction(()=>document.querySelector('#content .action-feedback')!==null);
+ await Promise.race([thirdStarted,new Promise((_,reject)=>setTimeout(()=>reject(Error('Third preview request not observed within 5s')),5000))]);
  assert.equal(previewCalls,3,'Third request should have reached the mock');
  assert.equal(await page.locator('#content button[aria-busy="true"]').count(),1,'One in-flight action must be marked busy');
  assert.equal(await page.locator('#content button[aria-busy="true"]').first().isDisabled(),true,'Button must remain disabled while request is held');
