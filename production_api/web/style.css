@@ -133,3 +133,6 @@ html,body{max-width:100%}
 .ui-state-error{border-left:3px solid #d58c82}
 .ui-state-empty{border-style:dashed}
 @media(max-width:520px){.ui-state{padding:16px}.ui-state button{width:100%}}
+
+/* Q2.2: action-feedback error semantics; inherits existing status typography */
+.action-feedback-error{color:#f0b4aa;display:inline-block;line-height:1.5;overflow-wrap:anywhere}

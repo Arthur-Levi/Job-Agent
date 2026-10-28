@@ -18,6 +18,19 @@ function note(message){$('message').textContent=message}
 function friendlyError(e){const m=String(e&&e.message||'').trim();if(!m||m==='Resposta inválida')return 'O servidor não enviou uma resposta válida. Tente novamente.';if(m[0]==='['||m[0]==='{')return 'Confira os campos preenchidos e tente novamente.';return m.length>220?'Não foi possível concluir. Confira os dados e tente novamente.':m.replace(/^Erro:\s*/i,'')}
 async function api(path,method='GET',data){const headers={'Accept':'application/json'};if(token)headers.Authorization='Bearer '+token;if(data!==undefined)headers['Content-Type']='application/json';const r=await fetch('/api'+path,{method,headers,body:data===undefined?undefined:JSON.stringify(data),signal:method==='GET'?navigationSignal():undefined});let value;try{value=await r.json()}catch{throw Error(r.ok?'O servidor enviou dados inesperados.':'O servidor não enviou uma resposta válida. Tente novamente.')}if(!r.ok){const detail=value.detail;const msg=typeof detail==='string'?detail:(Array.isArray(detail)?detail.map(x=>String(x.msg||'Campo inválido')).slice(0,3).join(' · '):'Confira os campos e tente novamente.');throw Error(msg)}return value}
 function formField(form,label,key,value='',type='text',required=false){const l=add(form,'label',label);const i=el(type==='textarea'?'textarea':'input');i.name=key;i.value=safe(value);if(type!=='textarea')i.type=type;i.required=required;l.append(i);return i}
+function actionSuccessMessage(label){
+ const messages={
+  'Gerar rascunho rastreável':'Rascunho gerado com as fontes declaradas.',
+  'Adicionar evidência':'Evidência cadastrada.',
+  'Salvar alterações':'Alterações salvas.',
+  'Adicionar tarefa':'Tarefa adicionada ao seu plano.',
+  'Atualizar etapa':'Etapa da candidatura atualizada.',
+  'Vincular evidência':'Vínculo de evidência registrado.',
+  'Exportar meus dados':'Exportação preparada.',
+  'Analisar vaga sem salvar':'Prévia gerada. A vaga ainda não foi salva.'
+ };
+ return messages[label]||'Ação concluída.';
+}
 function action(label,fn,secondary=false){
  const b=el('button',label);b.type='button';if(secondary)b.className='secondary';
  b.onclick=async()=>{
@@ -31,11 +44,11 @@ function action(label,fn,secondary=false){
   }
   feedback.textContent='';
   try{
-   await fn();
-   if(b.isConnected)feedback.textContent='Concluído.';
+   const outcome=await fn();
+   if(b.isConnected&&outcome!==false){feedback.classList.remove('action-feedback-error');feedback.textContent=actionSuccessMessage(label);}
   }catch(e){
    const msg=friendlyError(e);
-   if(b.isConnected)feedback.textContent=msg;
+   if(b.isConnected){feedback.classList.add('action-feedback-error');feedback.textContent=msg;}
   }finally{
    b.disabled=false;b.removeAttribute('aria-busy');b.textContent=original;
   }
@@ -417,7 +430,7 @@ async function account(){const me=await api('/me');const root=panel('Conta e pri
  const confirmBox=add(confirmLabel,'input');confirmBox.type='checkbox';confirmBox.required=true;
  confirmLabel.append(document.createTextNode(' Compreendo que a exclusão dos dados da conta é definitiva.'));
  const deletionButton=action('Excluir minha conta definitivamente',async()=>{
-  if(!deleteForm.reportValidity())return;
+  if(!deleteForm.reportValidity())return false;
   await api('/account/delete','POST',{password:passwordField.value});
   passwordField.value='';token='';clearDiagnosticPrivateState();
   sessionStorage.removeItem('jobagent_token');sessionStorage.removeItem('jobagent_resume_draft');
