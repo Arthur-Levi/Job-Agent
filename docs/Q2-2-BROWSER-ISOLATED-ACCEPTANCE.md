@@ -28,3 +28,6 @@ O teste procura Playwright na própria worktree ou em `/workspaces/Job-Agent/nod
 Se preferir manter a worktree em detached HEAD, substitua `git switch -c` por `git checkout --detach origin/feature/q22-feedback-safe` **apenas se `git status --short` estiver vazio**; não descarte alterações não commitadas.
 
 **Aceite:** `RESULTADO: 7/7 | STATUS: PASS` e inspeção manual da captura. O teste é um browser E2E da UI com API mock, não prova persistência/autorização no backend.
+
+## Resultado informado pelo operador — 2026-10-27/28
+Na worktree separada `/workspaces/Job-Agent-Q22`, após atualizar até o commit `f48ba44`, a suíte `verify_q22_browser_isolated.cjs` retornou **7/7 PASS**: erro e preservação de texto; repetição; bloqueio de ações simultâneas; recuperação de erro via retry; tarefa refletida apenas no mock; viewport 375px sem overflow; sem exceções JS. Consolidado das verificações da fase: **38/38 contratos + 7/7 navegador = 45/45 PASS**. Registro baseado em saída fornecida pelo operador. A captura `q22-feedback-mobile-375.png` não foi inspecionada. **Sem merge; sem alterações ao banco ou sistema original.**
