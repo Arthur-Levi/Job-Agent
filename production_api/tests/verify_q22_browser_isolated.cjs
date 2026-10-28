@@ -26,7 +26,7 @@ let browser;
  browser=await chromium.launch({headless:true});
  const page=await browser.newPage({viewport:{width:1280,height:800}});
  const uncaught=[];page.on('pageerror',e=>uncaught.push(e.message));
- let previewCalls=0, taskGETFailures=0, taskPosts=0, tasks=[];
+ let previewCalls=0, taskGETFailures=0, taskPosts=0, tasks=[], releaseThirdPreview=null;
  await page.route('**/api/**',async route=>{
   const req=route.request(),p=new URL(req.url()).pathname.slice(4),method=req.method();
   if(p==='/auth/login')return route.fulfill(json({access_token:'fake-q22-token',token_type:'bearer'}));
@@ -40,6 +40,7 @@ let browser;
    previewCalls++;
    await new Promise(r=>setTimeout(r,180));
    if(previewCalls===1)return route.fulfill(json({detail:'Prévia temporariamente indisponível'},503));
+   if(previewCalls===3)await new Promise(resolve=>{releaseThirdPreview=resolve});
    return route.fulfill(json({title_draft:'Analista de dados',company_draft:'Empresa fictícia',description_draft:'Oportunidade fictícia de testes',requirements_draft:['SQL']}));
   }
   if(p==='/tasks'&&method==='GET'){
@@ -65,11 +66,15 @@ let browser;
  await preview.click();await page.getByText('Revise a vaga antes de salvar').waitFor();
  assert.equal(previewCalls,2);
  console.log('PASS 2 — repetição após erro funciona');
- await page.getByRole('button',{name:'Analisar vaga sem salvar'}).click({noWaitAfter:true});
- await page.waitForTimeout(25);
- assert.equal(await preview.isDisabled(),true);
- await page.waitForTimeout(260);
- assert.equal(previewCalls,3);
+ await preview.click({noWaitAfter:true});
+ await page.waitForFunction(()=>document.querySelector('#content .action-feedback')!==null);
+ assert.equal(previewCalls,3,'Third request should have reached the mock');
+ assert.equal(await preview.isDisabled(),true,'Button must remain disabled while request is held');
+ await preview.evaluate(button=>button.click()); // force second click to verify handler guard
+ assert.equal(previewCalls,3,'Concurrent click must not start another request');
+ releaseThirdPreview();
+ await preview.waitFor({state:'visible'});
+ await page.waitForFunction(()=>{const b=[...document.querySelectorAll('#content button')].find(b=>b.textContent==='Analisar vaga sem salvar');return b&&!b.disabled});
  console.log('PASS 3 — botão desabilitado durante requisição; nenhuma ação duplicada');
  await page.locator('[data-tab="tasks"]').click();
  await page.getByText('Serviço temporariamente indisponível').waitFor();
