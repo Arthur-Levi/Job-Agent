@@ -25,3 +25,11 @@ JOB_AGENT_URL=http://127.0.0.1:8001 node production_api/tests/verify_b52_q1_brow
 Inspeção visual: revisar estado vazio de vagas/evidências/tarefas/candidaturas em conta de teste, falha temporária de API e botão de repetição, viewport 375px. Evitar testes destrutivos.
 
 **Status: IMPLEMENTADO; homologação PENDENTE.**
+
+## Evidência de homologação informada — 2026-10-27 (noite SP)
+- `node --check production_api/web/app.js`: sem erro.
+- `verify_q22_feedback.cjs`: 12/12 PASS (estático).
+- `verify_b52_q1_navigation.cjs`: 15/15 PASS.
+- `verify_b52_q1_browser.cjs`: 7/7 PASS com API simulada, servidor ativo.
+- Total da rodada: **34/34 verificações PASS**. A requisição `GET /health` retornou 404 por inexistência da rota, não por indisponibilidade; caminhos reais no código: `/health/live` e `/health/ready`.
+- **Aceite parcial:** estados padronizados em primeiro lote; resta inspeção visual e expansão de feedback de sucesso/erros nas demais áreas. Nenhuma aprovação integral de Q2.2 ou de produção inferida.
