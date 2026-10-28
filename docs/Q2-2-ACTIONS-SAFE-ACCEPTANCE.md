@@ -24,3 +24,6 @@ node production_api/tests/verify_b52_q1_navigation.cjs
 Não iniciar servidor nem acessar banco para executar verificações estáticas. Para testes de navegador, usar uma instância de API de homologação isolada e apontar `JOB_AGENT_URL` explicitamente. Não fazer merge até os testes e a revisão visual serem aprovados.
 
 Status: implementação publicada na branch isolada; testes ainda pendentes de execução no Codespaces.
+
+## Execução do operador — 2026-10-27/28
+Na worktree isolada `/workspaces/Job-Agent-Q22`, checkout detached `35a67f3`, foram reportados: `verify_q22_action_feedback.cjs` **11/11 PASS**, `verify_q22_feedback.cjs` **12/12 PASS**, `verify_b52_q1_navigation.cjs` **15/15 PASS**, total **38/38**. Nenhum navegador real/integração backend foi validado nesta rodada. Aprovação de contratos, não da Q2.2 integral.
