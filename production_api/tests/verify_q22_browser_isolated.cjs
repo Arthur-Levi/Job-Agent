@@ -57,7 +57,7 @@ let browser;
  await page.locator('[data-tab="jobs"]').click();
  const raw=page.locator('#content textarea').first();
  await raw.fill('Cargo: Analista de Dados. Empresa: Fictícia. Requisitos: Excel, SQL e Power BI.');
- const preview=page.getByRole('button',{name:'Analisar vaga sem salvar'});
+ const preview=page.locator('#content button').filter({hasText:'Analisar vaga sem salvar'}).first();
  await preview.click();
  await page.getByText('Prévia temporariamente indisponível').waitFor();
  assert.match(await raw.inputValue(),/Analista de Dados/);
@@ -69,8 +69,9 @@ let browser;
  await preview.click({noWaitAfter:true});
  await page.waitForFunction(()=>document.querySelector('#content .action-feedback')!==null);
  assert.equal(previewCalls,3,'Third request should have reached the mock');
- assert.equal(await preview.isDisabled(),true,'Button must remain disabled while request is held');
- await preview.evaluate(button=>button.click()); // force second click to verify handler guard
+ assert.equal(await page.locator('#content button[aria-busy="true"]').count(),1,'One in-flight action must be marked busy');
+ assert.equal(await page.locator('#content button[aria-busy="true"]').first().isDisabled(),true,'Button must remain disabled while request is held');
+ await page.locator('#content button[aria-busy="true"]').first().evaluate(button=>button.click()); // force second click to verify handler guard
  assert.equal(previewCalls,3,'Concurrent click must not start another request');
  releaseThirdPreview();
  await preview.waitFor({state:'visible'});
