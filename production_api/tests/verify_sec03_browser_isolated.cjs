@@ -23,13 +23,14 @@ let browser;
  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
  browser=await chromium.launch({headless:true});
  const page=await browser.newPage({viewport:{width:375,height:812}});
- let current='',expired=false;
+ let current='',expired=false,holdTasks=false,releaseTasks=null;
  const json=(o,status=200)=>({status,contentType:'application/json',body:JSON.stringify(o)});
  await page.route('**/api/**',async route=>{
   const p=new URL(route.request().url()).pathname.slice(4);
   if(p==='/auth/login'){current=route.request().postDataJSON().email;expired=false;return route.fulfill(json({access_token:'fake-'+current,token_type:'bearer'}))}
   if(p==='/auth/logout')return route.fulfill(json({ok:true}));
   if(expired)return route.fulfill(json({detail:'Sessão inválida'},401));
+  if(p==='/tasks'&&holdTasks){await new Promise(resolve=>{releaseTasks=resolve});return route.fulfill(json([{id:42,title:'DADO-ATRASADO-SEC03',done:false}]))}
   if(p==='/billing/status')return route.fulfill(json({premium_enabled:false,status:'inactive'}));
   if(p==='/dashboard')return route.fulfill(json({}));
   if(p==='/progress')return route.fulfill(json({applications_by_status:{},tasks_done:0,tasks_total:0}));
@@ -63,5 +64,19 @@ let browser;
  await page.locator('#auth:not([hidden])').waitFor();
  assert.equal(await page.evaluate(()=>sessionStorage.getItem('jobagent_token')),null);
  console.log('PASS 3 — 401 de sessão inválida remove token e retorna ao login');
- console.log('RESULTADO: 3/3 PASS (navegador + API simulada; sem banco)');
+ // A response started under B must not display private data after logout.
+ await login('conta-c@example.invalid');
+ holdTasks=true;
+ await page.locator('[data-tab="tasks"]').click();
+ await page.waitForFunction(()=>true); // allow intercepted request to reach pending handler
+ await page.waitForFunction(()=>false,{timeout:200}).catch(()=>{}); // yield for route scheduling
+ await page.locator('#logout').click();
+ await page.locator('#auth:not([hidden])').waitFor();
+ if(releaseTasks)releaseTasks();
+ await page.waitForTimeout(250);
+ assert.equal(await page.evaluate(()=>sessionStorage.getItem('jobagent_token')),null);
+ assert.equal(await page.evaluate(()=>document.querySelector('#workspace').hidden),true);
+ assert.ok(!(await page.locator('#content').innerText()).includes('DADO-ATRASADO-SEC03'),'FAIL: delayed response reintroduced private data after logout');
+ console.log('PASS 4 — resposta atrasada não reaparece após logout');
+ console.log('RESULTADO: 4/4 PASS (navegador + API simulada; sem banco)');
 })().catch(e=>{console.error('FAIL SEC-03:',e.message);process.exitCode=1}).finally(async()=>{if(browser)await browser.close();await new Promise(resolve=>server.close(resolve))});
