@@ -64,6 +64,7 @@ let navigationController=null;
 function navigationSignal(){return navigationController?.signal}
 function isCurrent(revision){return revision===navVersion}
 function clearDiagnosticPrivateState(){diagnosticView='overview';diagnosticDraft={jobId:'',text:'',sources:''}}
+function clearPrivateBrowserDrafts(){sessionStorage.removeItem('jobagent_resume_draft');sessionStorage.removeItem('jobagent_job_draft')}
 function show(next=tab){
  const destination=next;tab=destination;const revision=++navVersion;
  if(navigationController)navigationController.abort();
@@ -104,7 +105,7 @@ function show(next=tab){
    clear($('content'));add($('content'),'h2','Não foi possível carregar esta página');
    uiState($('content'),'error','Não foi possível concluir o carregamento',msg,'Tentar novamente',()=>show(destination));
    if(e.message.includes('Sessão inválida')||e.message.includes('Autenticação necessária')){
-    token='';clearDiagnosticPrivateState();sessionStorage.removeItem('jobagent_token');sessionStorage.removeItem('jobagent_resume_draft');return show();
+    token='';clearDiagnosticPrivateState();sessionStorage.removeItem('jobagent_token');clearPrivateBrowserDrafts();return show();
    }
   }
  };
@@ -419,7 +420,7 @@ async function loopView(){
  add(root,'h3','Histórico de check-ins');if(!history.length)add(root,'p','Registre seu primeiro check-in para criar uma linha de base.');history.forEach(h=>{const e=add(root,'div',undefined,'entry');add(e,'strong',new Date(h.created_at).toLocaleString('pt-BR'));add(e,'p','Evidências: '+h.metrics.evidence+' · Ligações: '+h.metrics.links+' · Tarefas concluídas: '+h.metrics.tasks_completed)})
 }
 async function premium(b){const root=panel('Career Professional');add(root,'p','O plano pago desbloqueia comparação por vaga, currículo baseado nas evidências e preparação para entrevistas. Sem promessa de contratação.');add(root,'p','Status: '+b.status);if(!b.premium_enabled)root.append(action('Iniciar assinatura',async()=>{const r=await api('/billing/checkout','POST');if(!r.url.startsWith('https://'))throw Error('URL de pagamento inválida');location.assign(r.url)}));root.append(action('Gerenciar assinatura',async()=>{const r=await api('/billing/portal','POST');if(!r.url.startsWith('https://'))throw Error('URL do portal inválida');location.assign(r.url)},true));if(b.premium_enabled){root.append(action('Gerar currículo',async()=>{const r=await api('/resume');const pre=add(root,'pre',r.text);pre.style.whiteSpace='pre-wrap'},true))}}
-async function account(){const me=await api('/me');const root=panel('Conta e privacidade');add(root,'p','E-mail: '+me.email);root.append(action('Exportar meus dados',async()=>{const data=await api('/account/export');const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='job-agent-meus-dados.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)}));const f=add(root,'form');add(f,'h3','Alterar senha');formField(f,'Senha atual','current_password','','password',true);formField(f,'Nova senha','new_password','','password',true);f.append(action('Alterar senha e encerrar sessões',async()=>{await api('/auth/change-password','POST',Object.fromEntries(new FormData(f)));token='';sessionStorage.removeItem('jobagent_token');sessionStorage.removeItem('jobagent_resume_draft');await show()}));add(root,'h3','Excluir conta');
+async function account(){const me=await api('/me');const root=panel('Conta e privacidade');add(root,'p','E-mail: '+me.email);root.append(action('Exportar meus dados',async()=>{const data=await api('/account/export');const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='job-agent-meus-dados.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)}));const f=add(root,'form');add(f,'h3','Alterar senha');formField(f,'Senha atual','current_password','','password',true);formField(f,'Nova senha','new_password','','password',true);f.append(action('Alterar senha e encerrar sessões',async()=>{await api('/auth/change-password','POST',Object.fromEntries(new FormData(f)));token='';sessionStorage.removeItem('jobagent_token');clearPrivateBrowserDrafts();await show()}));add(root,'h3','Excluir conta');
  const disclosure=add(root,'details',undefined,'account-delete-disclosure');
  add(disclosure,'summary','Solicitar exclusão de conta');
  add(disclosure,'p','Esta ação exclui os dados vinculados à sua conta. Confira se exportou seus dados antes de prosseguir.');
@@ -433,16 +434,16 @@ async function account(){const me=await api('/me');const root=panel('Conta e pri
   if(!deleteForm.reportValidity())return false;
   await api('/account/delete','POST',{password:passwordField.value});
   passwordField.value='';token='';clearDiagnosticPrivateState();
-  sessionStorage.removeItem('jobagent_token');sessionStorage.removeItem('jobagent_resume_draft');
+  sessionStorage.removeItem('jobagent_token');clearPrivateBrowserDrafts();
   await show();
  },true);
  deletionButton.classList.add('danger-action');deleteForm.append(deletionButton);
  deleteForm.addEventListener('submit',event=>{event.preventDefault();if(deleteForm.reportValidity())deletionButton.click()});
 }
 
-$('authForm').onsubmit=async e=>{e.preventDefault();try{const r=await api('/auth/login','POST',{email:$('email').value,password:$('password').value});token=r.access_token;clearDiagnosticPrivateState();sessionStorage.removeItem('jobagent_resume_draft');sessionStorage.setItem('jobagent_token',token);note('Bem-vindo ao Job Agent');await show('dashboard')}catch(err){note(err.message)}};
+$('authForm').onsubmit=async e=>{e.preventDefault();try{const r=await api('/auth/login','POST',{email:$('email').value,password:$('password').value});token=r.access_token;clearDiagnosticPrivateState();clearPrivateBrowserDrafts();sessionStorage.setItem('jobagent_token',token);note('Bem-vindo ao Job Agent');await show('dashboard')}catch(err){note(err.message)}};
 $('register').onclick=async()=>{try{await api('/auth/register','POST',{email:$('email').value,password:$('password').value});note('Conta criada. Agora clique em Entrar.')}catch(err){note(err.message)}};
-$('logout').onclick=async()=>{try{await api('/auth/logout','POST')}catch{}token='';clearDiagnosticPrivateState();sessionStorage.removeItem('jobagent_token');sessionStorage.removeItem('jobagent_resume_draft');await show()};document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>show(b.dataset.tab));show();
+$('logout').onclick=async()=>{try{await api('/auth/logout','POST')}catch{}token='';clearDiagnosticPrivateState();sessionStorage.removeItem('jobagent_token');clearPrivateBrowserDrafts();await show()};document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>show(b.dataset.tab));show();
 
 
 async function evidenceAssessment(id,container){
@@ -553,7 +554,7 @@ async function importResume(){
     await api('/import/resume/confirm','POST',{...payload,allow_possible_duplicates:true});
    }
    status.textContent='Informações confirmadas. Abrindo diagnóstico...';
-   sessionStorage.removeItem('jobagent_resume_draft');
+   clearPrivateBrowserDrafts();
    await show('diagnostic');
   }));
  }
