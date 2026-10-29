@@ -554,7 +554,7 @@ async function importResume(){
     await api('/import/resume/confirm','POST',{...payload,allow_possible_duplicates:true});
    }
    status.textContent='Informações confirmadas. Abrindo diagnóstico...';
-   clearPrivateBrowserDrafts();
+   sessionStorage.removeItem('jobagent_resume_draft');
    await show('diagnostic');
   }));
  }
