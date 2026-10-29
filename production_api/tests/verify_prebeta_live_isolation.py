@@ -72,8 +72,7 @@ try:
     # B cannot register a new application for a job owned by A, or a fact referring to A's evidence.
     deny("POST","/applications",B,{"job_id":ja,"status":"saved","notes":"Teste"})
     deny("POST","/fact-ledger",B,{"subject":"Outro","predicate":"uses","value":"SQL","source_type":"evidence","source_reference":str(ea)})
-    deny("GET",f"/jobs/{ja}/match",B)
-    # Logout invalidates session.
+    # Premium endpoints are separately tested after enabling Stripe test-mode entitlement.\n    # A non-premium account may receive 402 before ownership is checked; treating that\n    # as proof of cross-account isolation would produce a false-positive.\n    # Logout invalidates session.
     expect("POST","/auth/logout",A)
     deny("GET","/me",A)
     # Password change invalidates all sessions for B.
