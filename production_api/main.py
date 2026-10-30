@@ -123,7 +123,11 @@ def ready(s:DBSession=Depends(getdb)):
 def register(p:Credentials,s:DBSession=Depends(getdb)):
     email=p.email.strip().lower()
     if not re.fullmatch(r'[^\s@]+@[^\s@]+\.[^\s@]+',email):raise HTTPException(422,'Email inválido')
-    if s.scalar(select(User.id).where(User.email==email)):raise HTTPException(409,'Email já cadastrado')
+    if s.scalar(select(User.id).where(User.email==email)):
+        # Same public status/body as a fresh registration, without disclosing existence.
+        # Balance the costly password hash path to reduce obvious timing differences.
+        ph.hash(p.password)
+        return {'ok':True}
     u=User(email=email,password_hash=ph.hash(p.password));s.add(u)
     try:
         s.flush();s.add(Profile(user_id=u.id));audit(s,u.id,'account.register');s.commit()
