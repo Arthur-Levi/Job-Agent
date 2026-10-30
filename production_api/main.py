@@ -1,8 +1,6 @@
 """Job Agent production API. Requires a migrated PostgreSQL database."""
 import hashlib, hmac, json, logging, os, re, secrets, time
-from collections import defaultdict, deque
 from datetime import datetime, timedelta, timezone
-from threading import Lock
 from typing import Annotated
 from fastapi import Depends, FastAPI, Header, HTTPException, Request, UploadFile, File
 from fastapi.responses import JSONResponse, FileResponse, RedirectResponse
@@ -11,6 +9,7 @@ from sqlalchemy.exc import IntegrityError
 from pydantic import BaseModel, Field
 from sqlalchemy import create_engine, select, func
 from sqlalchemy.orm import Session as DBSession, sessionmaker
+import redis
 from argon2 import PasswordHasher
 from argon2.exceptions import VerifyMismatchError, VerificationError
 from models import User, Session, Profile, Evidence, Job, Application, Task, Subscription, WebhookEvent, Audit, EvidenceLink, CareerSnapshot, CareerOutcome, EvidenceAssessment, ArtifactReview, MasterProfileItem, CareerFact
@@ -25,7 +24,17 @@ SessionLocal=sessionmaker(engine,expire_on_commit=False)
 ph=PasswordHasher(time_cost=3,memory_cost=65536,parallelism=2)
 DUMMY_PASSWORD_HASH=ph.hash('never-valid-password-123456')
 app=FastAPI(title='Job Agent Production API',version='3.0.0',docs_url=None if os.getenv('APP_ENV')=='production' else '/api/docs')
-rate=defaultdict(deque); rate_lock=Lock()
+RATE_REDIS_URL=os.getenv('RATE_LIMIT_REDIS_URL','').strip()
+if os.getenv('APP_ENV')=='production' and not RATE_REDIS_URL:
+    raise RuntimeError('RATE_LIMIT_REDIS_URL obrigatório em produção')
+rate_redis=redis.Redis.from_url(RATE_REDIS_URL,decode_responses=True,socket_connect_timeout=1,socket_timeout=1) if RATE_REDIS_URL else None
+# Redis single atomic command increments a shared fixed-window counter and installs its TTL.
+_RATE_LUA="""
+local count=redis.call('INCR',KEYS[1])
+if count==1 then redis.call('EXPIRE',KEYS[1],ARGV[1]) end
+return {count,redis.call('TTL',KEYS[1])}
+"""
+rate_script=rate_redis.register_script(_RATE_LUA) if rate_redis else None
 
 def getdb():
     with SessionLocal() as s:
@@ -41,15 +50,19 @@ def serialize(obj, keys): return {k:getattr(obj,k) for k in keys}
 async def headers(req:Request, call_next):
     start=time.monotonic()
     if req.url.path in ('/api/auth/login','/api/auth/register'):
-        # Local defense in depth; production must also use gateway-wide rate limits.
-        key=(req.client.host if req.client else 'unknown',req.url.path)
-        with rate_lock:
-            q=rate[key]; t=time.monotonic()
-            while q and q[0]<t-60:q.popleft()
-            if len(q)>=10:
-                response=JSONResponse({'detail':'Tente novamente mais tarde'},429,headers={'Retry-After':'60'})
-            else:
-                q.append(t)
+        # Shared across workers/hosts; do not trust client-supplied X-Forwarded-For.
+        if not rate_script:
+            response=JSONResponse({'detail':'Proteção de autenticação indisponível'},503)
+        else:
+            client_ip=req.client.host if req.client else 'unknown'
+            fingerprint=hashlib.sha256((req.url.path+'|'+client_ip).encode()).hexdigest()
+            try:
+                count,ttl=rate_script(keys=['jobagent:auth-rate:v1:'+fingerprint],args=[60])
+                if int(count)>10:
+                    response=JSONResponse({'detail':'Tente novamente mais tarde'},429,headers={'Retry-After':str(max(1,int(ttl)))})
+            except redis.RedisError:
+                log.error('rate limiter unavailable',exc_info=False)
+                response=JSONResponse({'detail':'Proteção de autenticação indisponível'},503)
     if 'response' not in locals():
         response=await call_next(req)
     response.headers['X-Content-Type-Options']='nosniff'
