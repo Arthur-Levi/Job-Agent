@@ -29,7 +29,7 @@ def test_journey_all_modules_and_account_lifecycle():
     assert ev.status_code==201;eid=ev.json()['id']
     job=c.post('/api/jobs',headers=a,json={'title':'Backend','company':'Teste','description':'Vaga para Python com PostgreSQL','requirements':['Python','PostgreSQL']})
     assert job.status_code==201;jid=job.json()['id']
-    assert c.get('/api/diagnostic/deep',headers=a).json()['requirements'][0]['candidate_evidence'][0]['id']==eid
+    assert c.get('/api/diagnostic/deep',headers=a).status_code==402  # Deep diagnostic is Premium-only
     assert c.get('/api/diagnostic',headers=a).json()['confidence']=='LIMITED_UNVERIFIED'
     assert c.get(f'/api/jobs/{jid}/match',headers=a).status_code==402
     assert c.get(f'/api/jobs/{jid}/interview',headers=a).status_code==402
@@ -65,6 +65,8 @@ def test_premium_access_is_account_scoped_and_not_client_controlled(monkeypatch)
     assert c.get(f'/api/jobs/{jid}/match',headers=a).status_code==200
     assert c.get(f'/api/jobs/{jid}/interview',headers=a).status_code==200
     assert c.get('/api/resume',headers=a).status_code==200
+    assert c.get('/api/diagnostic/deep',headers=a).status_code==200
+    assert c.get('/api/diagnostic/deep',headers=b).status_code==402
     assert c.get(f'/api/jobs/{jid}/match',headers=b).status_code==402
     assert c.get('/api/billing/status',headers=b).json()['premium_enabled'] is False
     assert c.post('/api/account/delete',headers=a,json={'password':'strong-pass-12345'}).status_code==409
@@ -102,7 +104,7 @@ def test_webhook_invalid_configuration_and_checkout_unavailable():
 
 def test_duplicate_registration_and_auth():
     a,email,pw=user()
-    assert c.post('/api/auth/register',json={'email':email.upper(),'password':pw}).status_code==409
+    assert c.post('/api/auth/register',json={'email':email.upper(),'password':pw}).json()=={'ok':True}  # SEC-04: no account enumeration
     assert c.get('/api/me',headers={'Authorization':'Bearer invalid'}).status_code==401
     assert c.post('/api/auth/login',json={'email':email,'password':'incorrect-password'}).status_code==401
 
