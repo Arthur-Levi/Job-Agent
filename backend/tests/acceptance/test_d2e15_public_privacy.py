@@ -1,4 +1,5 @@
 """D2-E1.5 privacy tests use the guarded disposable CI PostgreSQL fixtures only."""
+
 from uuid import uuid4
 
 from fastapi.testclient import TestClient
