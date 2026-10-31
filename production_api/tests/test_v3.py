@@ -28,12 +28,10 @@ def test_account_password_and_isolation():
     p['password']='new-secure-pass-123';a={'Authorization':'Bearer '+c.post('/api/auth/login',json=p).json()['access_token']}
     job=c.post('/api/jobs',headers=a,json={'title':'Dev Backend','company':'Empresa A','description':'Precisamos de Python e PostgreSQL','requirements':['Python','PostgreSQL']}).json()
     assert c.delete('/api/jobs/'+str(job['id']),headers=b).status_code==404
-    assert c.get('/api/diagnostic/deep',headers=b).json()['requirements']==[]
+    assert c.get('/api/diagnostic/deep',headers=b).status_code==402
     assert c.post('/api/evidence',headers=a,json={'kind':'project','title':'Python','description':'Criei uma API Python para estudar'}).status_code==201
-    d=c.get('/api/diagnostic/deep',headers=a).json()
-    assert d['requirements'][0]['classification']=='POSSIBLE_DECLARED_EVIDENCE'
-    assert d['requirements'][1]['classification']=='NOT_DOCUMENTED'
-    assert d['evidence_policy']=='DECLARED_ONLY'
+    assert c.get('/api/diagnostic/deep',headers=a).status_code==402
+    assert c.get('/api/diagnostic',headers=a).status_code==200
     assert c.get('/api/progress',headers=a).status_code==200
     assert c.get('/api/account/export',headers=b).json()['evidence']==[]
 def test_checkout_requires_config_and_blocks_existing_subscription(monkeypatch):
