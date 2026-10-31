@@ -14,6 +14,7 @@ def client_for(env: str) -> TestClient:
         database_url=URL,
         log_level="WARNING",
         auth_rate_limit_enabled=(env == "production"),
+        registration_privacy_enabled=(env == "production"),
         auth_rate_limit_secret="Synthetic-TestOnly-Security-Key-1234567890",
     )
     return TestClient(create_app(settings))
