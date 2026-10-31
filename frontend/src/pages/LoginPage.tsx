@@ -56,6 +56,8 @@ export function LoginPage() {
             {busy ? 'Entrando…' : 'Entrar'}
           </button>
         </form>
+        <p className="mt-4 text-sm"><Link to="/request-password-reset" className="text-sky-400 underline">Esqueci minha senha</Link></p>
+        <p className="mt-4 text-sm"><Link to="/request-verification" className="text-sky-400 underline">Reenviar confirmação de email</Link></p>
         <p className="mt-5 text-sm text-slate-400">Não tem conta? <Link to="/register" className="text-sky-400 underline">Cadastre-se</Link></p>
       </section>
     </main>
