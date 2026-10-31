@@ -55,12 +55,13 @@ def test_journey_all_modules_and_account_lifecycle():
     assert c.get('/api/me',headers=a).status_code==401
     assert c.get('/api/me',headers=b).status_code==200
 
-def test_premium_access_is_account_scoped_and_not_client_controlled():
+def test_premium_access_is_account_scoped_and_not_client_controlled(monkeypatch):
+    monkeypatch.setenv('STRIPE_PRICE_ID','price_jobagent_299')
     a,_,_=user();b,_,_=user()
     jid=c.post('/api/jobs',headers=a,json={'title':'Dev','company':'Empresa','description':'Projeto backend com Python','requirements':['Python']}).json()['id']
     with main.SessionLocal() as s:
         uid=c.get('/api/me',headers=a).json()['id']
-        s.add(Subscription(user_id=uid,status='active'));s.commit()
+        s.add(Subscription(user_id=uid,status='active',stripe_customer_id='cus_premium_'+str(uid),stripe_subscription_id='sub_premium_'+str(uid),stripe_price_id='price_jobagent_299'));s.commit()
     assert c.get(f'/api/jobs/{jid}/match',headers=a).status_code==200
     assert c.get(f'/api/jobs/{jid}/interview',headers=a).status_code==200
     assert c.get('/api/resume',headers=a).status_code==200
@@ -146,7 +147,7 @@ def test_subscription_webhook_authoritative_remote_state(monkeypatch):
             return {'id':'evt_'+uuid.uuid4().hex,'type':'customer.subscription.updated','data':{'object':{'customer':customer,'id':sid,'metadata':{'job_agent_user_id':str(uid)},'status':'canceled'}}}
     class SubscriptionAPI:
         @staticmethod
-        def retrieve(*args):return {'status':'active'}
+        def retrieve(*args):return {'id':sid,'customer':customer,'status':'active','items':{'data':[{'price':{'id':'price_test'}}]}}
     fake=SimpleNamespace(Webhook=Webhook,Subscription=SubscriptionAPI,Customer=SimpleNamespace(retrieve=lambda customer:{'metadata':{'job_agent_user_id':str(uid)}}),error=SimpleNamespace(SignatureVerificationError=ValueError))
     monkeypatch.setattr(main,'stripe_sdk',lambda:fake)
     monkeypatch.setenv('STRIPE_WEBHOOK_SECRET','whsec_test')
@@ -196,3 +197,66 @@ def test_sec05_wrong_price_cannot_unlock_premium(monkeypatch):
     assert status['premium_enabled'] is False, (
         'SEC05-FC01 FAIL: a foreign Stripe price unlocked Job Agent Premium'
     )
+
+
+def test_sec05_allowed_price_unlocks_premium(monkeypatch):
+    """SEC05-FC01 positive: matching price/customer/subscription unlocks the correct account."""
+    from types import SimpleNamespace
+    a,_,_=user()
+    b,_,_=user()
+    uid=c.get('/api/me',headers=a).json()['id']
+    customer='cus_sec05_allowed_'+str(uid)
+    sid='sub_sec05_allowed_'+str(uid)
+    class Webhook:
+        @staticmethod
+        def construct_event(payload,signature,secret):
+            return {'id':'evt_sec05_allowed_'+uuid.uuid4().hex,
+                    'type':'customer.subscription.updated',
+                    'data':{'object':{'customer':customer,'id':sid,
+                          'metadata':{'job_agent_user_id':str(uid)},'status':'active'}}}
+    class SubscriptionAPI:
+        @staticmethod
+        def retrieve(*args):
+            return {'id':sid,'customer':customer,'status':'active',
+                    'items':{'data':[{'price':{'id':'price_jobagent_299'}}]}}
+    fake=SimpleNamespace(
+        Webhook=Webhook,Subscription=SubscriptionAPI,
+        Customer=SimpleNamespace(retrieve=lambda _:{'metadata':{'job_agent_user_id':str(uid)}}),
+        error=SimpleNamespace(SignatureVerificationError=ValueError),
+    )
+    monkeypatch.setattr(main,'stripe_sdk',lambda:fake)
+    monkeypatch.setenv('STRIPE_WEBHOOK_SECRET','whsec_simulated')
+    monkeypatch.setenv('STRIPE_PRICE_ID','price_jobagent_299')
+    assert c.post('/api/billing/webhook',content=b'{}').status_code==200
+    assert c.get('/api/billing/status',headers=a).json()['premium_enabled'] is True
+    assert c.get('/api/billing/status',headers=b).json()['premium_enabled'] is False
+
+
+def test_sec05_missing_price_is_not_premium(monkeypatch):
+    """Missing remote price fails closed even when Stripe reports active."""
+    from types import SimpleNamespace
+    a,_,_=user()
+    uid=c.get('/api/me',headers=a).json()['id']
+    customer='cus_sec05_missing_'+str(uid)
+    sid='sub_sec05_missing_'+str(uid)
+    class Webhook:
+        @staticmethod
+        def construct_event(payload,signature,secret):
+            return {'id':'evt_sec05_missing_'+uuid.uuid4().hex,
+                    'type':'customer.subscription.updated',
+                    'data':{'object':{'customer':customer,'id':sid,
+                          'metadata':{'job_agent_user_id':str(uid)},'status':'active'}}}
+    class SubscriptionAPI:
+        @staticmethod
+        def retrieve(*args):
+            return {'id':sid,'customer':customer,'status':'active'}
+    fake=SimpleNamespace(
+        Webhook=Webhook,Subscription=SubscriptionAPI,
+        Customer=SimpleNamespace(retrieve=lambda _:{'metadata':{'job_agent_user_id':str(uid)}}),
+        error=SimpleNamespace(SignatureVerificationError=ValueError),
+    )
+    monkeypatch.setattr(main,'stripe_sdk',lambda:fake)
+    monkeypatch.setenv('STRIPE_WEBHOOK_SECRET','whsec_simulated')
+    monkeypatch.setenv('STRIPE_PRICE_ID','price_jobagent_299')
+    assert c.post('/api/billing/webhook',content=b'{}').status_code==200
+    assert c.get('/api/billing/status',headers=a).json()['premium_enabled'] is False
