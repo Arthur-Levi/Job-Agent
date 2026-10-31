@@ -20,7 +20,7 @@ function renderAt(path: string) {
 }
 
 beforeEach(() => {
-  vi.resetAllMocks()
+  vi.clearAllMocks()
   vi.mocked(jobsApi.list).mockResolvedValue(pageOf([]))
   vi.mocked(applicationsApi.list).mockResolvedValue(pageOf([]))
   vi.mocked(authApi.hasSession).mockReturnValue(true)
