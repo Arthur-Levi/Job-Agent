@@ -7,7 +7,8 @@ import { LoginPage } from '../pages/LoginPage'
 import { NotFoundPage } from '../pages/NotFoundPage'
 import { ProfilePage } from '../pages/ProfilePage'
 import { RegisterPage } from '../pages/RegisterPage'
-import { AuthProvider, useAuth } from './AuthProvider'
+import { AuthProvider } from './AuthProvider'
+import { useAuth } from './authContext'
 import { AppShell } from './AppShell'
 
 function ProtectedRoute() {
