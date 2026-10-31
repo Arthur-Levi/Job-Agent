@@ -75,6 +75,7 @@ describe('authenticated routing and shell', () => {
   })
 
   it('logs in and returns to the requested private route', async () => {
+    clearAccessToken()
     vi.mocked(authApi.hasSession).mockReturnValue(false)
     renderAt('/jobs')
     fireEvent.change(await screen.findByLabelText('Email'), { target: { value: 'test@example.com' } })
@@ -93,6 +94,7 @@ describe('authenticated routing and shell', () => {
   })
 
   it('registers but requires login before displaying private pages', async () => {
+    clearAccessToken()
     vi.mocked(authApi.hasSession).mockReturnValue(false)
     renderAt('/register')
     fireEvent.change(await screen.findByLabelText('Nome'), { target: { value: 'Synthetic Candidate' } })
