@@ -11,6 +11,17 @@ function json(body: unknown, status = 200): Response {
   })
 }
 
+function requestHeaders(index: number): Record<string, string> {
+  const call = fetchMock.mock.calls[index] as unknown[] | undefined
+  const init = call?.[1] as RequestInit | undefined
+
+  if (!init?.headers) {
+    throw new Error(`Missing headers in fetch call ${index}`)
+  }
+
+  return init.headers as Record<string, string>
+}
+
 beforeEach(() => {
   clearAccessToken()
   fetchMock.mockReset()
@@ -26,7 +37,7 @@ describe('authenticated HTTP transport', () => {
   it('does not attach Authorization without a session', async () => {
     fetchMock.mockResolvedValue(json({ items: [] }))
     await authApi.register({ name: 'Test Candidate', email: 'candidate@example.com', password: 'test-only-pass-123!' })
-    const headers = fetchMock.mock.calls[0][1].headers as Record<string, string>
+    const headers = requestHeaders(0)
     expect(headers.Authorization).toBeUndefined()
   })
 
@@ -40,10 +51,10 @@ describe('authenticated HTTP transport', () => {
     expect(user.name).toBe('Lucas')
     expect(authApi.hasSession()).toBe(true)
     expect(getAccessToken()).toBe('a'.repeat(64))
-    expect((fetchMock.mock.calls[0][1].headers as Record<string, string>).Authorization).toBeUndefined()
-    expect((fetchMock.mock.calls[1][1].headers as Record<string, string>).Authorization).toBe('Bearer ' + 'a'.repeat(64))
+    expect(requestHeaders(0).Authorization).toBeUndefined()
+    expect(requestHeaders(1).Authorization).toBe('Bearer ' + 'a'.repeat(64))
     await authApi.me()
-    expect((fetchMock.mock.calls[2][1].headers as Record<string, string>).Authorization).toBe('Bearer ' + 'a'.repeat(64))
+    expect(requestHeaders(2).Authorization).toBe('Bearer ' + 'a'.repeat(64))
   })
 
   it('does not retain token when /me verification fails after login', async () => {
@@ -65,7 +76,7 @@ describe('authenticated HTTP transport', () => {
     setAccessToken('d'.repeat(64))
     fetchMock.mockResolvedValueOnce(new Response(null, { status: 204 }))
     await authApi.logout()
-    expect((fetchMock.mock.calls[0][1].headers as Record<string, string>).Authorization).toBe('Bearer ' + 'd'.repeat(64))
+    expect(requestHeaders(0).Authorization).toBe('Bearer ' + 'd'.repeat(64))
     expect(getAccessToken()).toBeNull()
   })
 
