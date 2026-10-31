@@ -34,3 +34,9 @@ Stop at any failed assertion. Browser acceptance will be recorded only upon actu
 ## Browser preflight gate / first failure
 
 The first Playwright run filled the registration form but the UI displayed a generic registration error before account creation. Suspected mismatch: backend `CORS_ORIGINS=http://localhost:5173` vs browser `http://127.0.0.1:5173`; exact cause must be confirmed by OPTIONS preflight. The script now defaults to `http://localhost:5173` and runs a browser-origin CORS preflight before creating any accounts. This change is not yet executed/accepted. If preflight fails, inspect the API CORS configuration rather than weakening backend security or changing the database.
+
+## Second operator run — memory-only bearer navigation correction
+
+The CORS-aligned browser run reached registration and authenticated navigation, then failed while waiting for the Jobs heading. The browser showed the login screen after `page.goto(web + "/jobs")`. The cause is a full document navigation: React's intentionally memory-only bearer token is cleared whenever the app reloads. This is a test navigation bug, not evidence that login failed or cross-account isolation broke.
+
+Commit `6e32caf` updates authenticated navigation to click the React Router `Main` navigation's `Jobs` link; the explicit `page.goto` after logout is retained as the deliberate unauthenticated redirect test. The account-switch scenario now expects the Jobs page because its requested destination is preserved across login. **Not executed since this correction; browser PASS not yet claimed.**
