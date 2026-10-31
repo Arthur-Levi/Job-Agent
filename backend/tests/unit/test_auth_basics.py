@@ -6,6 +6,7 @@ only on the verified disposable React PostgreSQL after an Alembic migration.
 import secrets
 
 import pytest
+from fastapi.routing import APIRoute
 from fastapi.testclient import TestClient
 from pydantic import ValidationError
 
@@ -53,7 +54,7 @@ def test_auth_routes_are_versioned_and_bearer_header_allowed():
         cors_origins=["http://localhost:5173"],
     )
     app = create_app(settings)
-    routes = {r.path for r in app.routes}
+    routes = {r.path for r in app.routes if isinstance(r, APIRoute)}
     assert {
         "/api/v1/auth/register",
         "/api/v1/auth/login",
