@@ -1,6 +1,6 @@
 # D2-E1.5 — Public exposure security gate
 
-**Status: implementation under CI review; NOT APPROVED for public exposure.**
+**Status: IMPLEMENTATION + CI PASS; PUBLIC DEPLOYMENT APPROVAL PENDING.**
 **Scope:** isolated feature branch and PR #3. No deployments, database resets, original DB changes, or merge.
 
 ## Implemented
@@ -35,3 +35,18 @@ The `example.com` address is a documentation placeholder, **not** a real deploym
 ## Evidence and acceptance
 
 Run GitHub CI backend Ruff/MyPy/pytest, frontend lint/build/tests, security audit. The proxy dry-run and synthetic proxy tests validate policy logic only. Full D2-E1.5 requires evidence of a real HTTPS reverse proxy setup, effective forwarding/IP tests from distinct clients, registration privacy with protections enabled, and safe operations before the PR can leave draft.
+
+## CI evidence — PASS (2026-10-31)
+
+GitHub Actions workflow run `41241427531` for feature commit `4f4fe30`:
+
+- Backend: Ruff lint PASS, Ruff formatter PASS, MyPy PASS, Alembic migration cycle PASS, **232 tests passed, 1 warning (12.65 seconds)**.
+- Frontend: lint PASS, Vite production build PASS, **83 tests passed, 5 live contracts gated/skipped**. The live contracts previously passed on D2-E1.2; they were not re-executed in this CI.
+- Security audit job: PASS. The audit workflow is informational (`continue-on-error`); this alone does not certify absence of all vulnerabilities.
+- The new proxy gate `scripts/d2e15_proxy_policy.py` completed its synthetic HTTPS-origin dry run with `D2-E1.5 PROXY POLICY DRY-RUN PASS`.
+
+**Accepted:** `D2-E1.5 IMPLEMENTATION + CI REGRESSION PASS`.
+
+**Not accepted:** `D2-E1.5 PUBLIC EXPOSURE PASS` or `D2-E1 COMPLETE`. We have not deployed a real TLS ingress, verified IP forwarding through distinct external clients, sent verified signup emails, established account recovery, or performed an external review. PR #3 stays draft, main and original DBs unchanged.
+
+CI: https://github.com/Arthur-Levi/Job-Agent/actions/runs/41241427531
