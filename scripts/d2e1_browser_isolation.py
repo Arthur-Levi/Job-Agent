@@ -11,7 +11,7 @@ import re
 import secrets
 import sys
 from urllib.parse import urlparse
-from urllib.request import urlopen
+from urllib.request import Request, urlopen
 
 from playwright.sync_api import sync_playwright, expect
 
@@ -21,7 +21,7 @@ def require_isolated_target() -> tuple[str, str]:
     if os.environ.get("D2E1_BROWSER_DISPOSABLE_ACK") != "jobagent_react_test":
         raise RuntimeError("Expected D2E1_BROWSER_DISPOSABLE_ACK=jobagent_react_test")
 
-    web = os.environ.get("D2E1_WEB_URL", "http://127.0.0.1:5173").rstrip("/")
+    web = os.environ.get("D2E1_WEB_URL", "http://localhost:5173").rstrip("/")
     api = os.environ.get("D2E1_API_URL", "http://127.0.0.1:18081").rstrip("/")
     for url, port in ((web, 5173), (api, 18081)):
         parsed = urlparse(url)
@@ -39,6 +39,23 @@ def require_isolated_target() -> tuple[str, str]:
     with urlopen(api + "/ready", timeout=5) as response:
         if response.status != 200:
             raise RuntimeError("Disposable API not ready")
+    # A health check does not validate browser CORS. Fail before creating accounts.
+    preflight = Request(
+        api + "/api/v1/auth/register",
+        method="OPTIONS",
+        headers={
+            "Origin": web,
+            "Access-Control-Request-Method": "POST",
+            "Access-Control-Request-Headers": "content-type,x-request-id",
+        },
+    )
+    with urlopen(preflight, timeout=5) as response:
+        allowed = response.headers.get("Access-Control-Allow-Origin")
+        if response.status != 200 or allowed != web:
+            raise RuntimeError(
+                f"CORS preflight denied for frontend origin {web}; "
+                "check backend CORS_ORIGINS before browser test"
+            )
     return web, api
 
 
