@@ -113,9 +113,30 @@ class TaskIn(BaseModel):
 class TaskUpdate(BaseModel):
     done:bool
 
+def subscription_eligible(sub):
+    """Fail closed unless the recorded Stripe customer, subscription and exact price match."""
+    expected=os.getenv('STRIPE_PRICE_ID','').strip()
+    return bool(
+        sub and expected and sub.stripe_customer_id and sub.stripe_subscription_id
+        and sub.stripe_price_id == expected
+        and sub.status in ('active','trialing')
+    )
+
+
+def authorized_stripe_price(remote, expected, customer, subscription_id):
+    """Exact single-price guard; reject missing fields, multiple prices or wrong ownership."""
+    if not expected or remote.get('id')!=subscription_id or remote.get('customer')!=customer:
+        return None
+    items=(remote.get('items') or {}).get('data') or []
+    if len(items)!=1:
+        return None
+    price=(items[0].get('price') or {}).get('id')
+    return price if price == expected else None
+
+
 def require_premium(uid:int=Depends(current_user),s:DBSession=Depends(getdb)):
     sub=s.get(Subscription,uid)
-    if not sub or sub.status not in ('active','trialing'):
+    if not subscription_eligible(sub):
         raise HTTPException(402,'Career Professional necessário')
     return uid
 
@@ -508,7 +529,7 @@ def account_delete(p:DeleteConfirm,uid:int=Depends(current_user),s:DBSession=Dep
 @app.get('/api/billing/status')
 def billing_status(uid:int=Depends(current_user),s:DBSession=Depends(getdb)):
     o=s.get(Subscription,uid)
-    return {'plan':'Career Professional','status':o.status if o else 'inactive','premium_enabled':bool(o and o.status in ('active','trialing'))}
+    return {'plan':'Career Professional','status':o.status if o else 'inactive','premium_enabled':subscription_eligible(o)}
 
 def stripe_sdk():
     try:import stripe
@@ -573,9 +594,16 @@ async def stripe_webhook(req:Request,s:DBSession=Depends(getdb)):
                 raise HTTPException(409,'Assinaturas conflitantes: requer reconciliação')
             # Always retrieve current authoritative subscription state: event arrival order cannot downgrade a newer state.
             remote=stripe.Subscription.retrieve(subscription_id)
+            allowed_price=authorized_stripe_price(
+                remote,os.getenv('STRIPE_PRICE_ID','').strip(),customer,subscription_id
+            )
             existing.stripe_customer_id=customer
             existing.stripe_subscription_id=subscription_id
-            existing.status=remote.get('status','inactive')
+            # Never translate a different or unverifiable Stripe price into premium.
+            existing.stripe_price_id=allowed_price
+            existing.status=remote.get('status','inactive') if allowed_price else 'inactive'
+            if not allowed_price:
+                log.warning('subscription price not authorized event=%s',event['id'])
         else:
             log.warning('unmatched subscription event=%s',event['id'])
             raise HTTPException(503,'Assinatura sem usuário; tentar novamente após checkout')
