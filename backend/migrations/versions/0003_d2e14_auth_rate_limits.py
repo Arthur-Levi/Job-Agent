@@ -3,6 +3,7 @@
 Revision ID: 0003
 Revises: 0002
 """
+
 from collections.abc import Sequence
 
 import sqlalchemy as sa
@@ -23,7 +24,8 @@ def upgrade() -> None:
     )
     op.create_index(
         "ix_auth_rate_limits_window_started_at",
-        "auth_rate_limits", ["window_started_at"],
+        "auth_rate_limits",
+        ["window_started_at"],
     )
 
 
