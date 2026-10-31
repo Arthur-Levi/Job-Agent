@@ -1,6 +1,6 @@
 # D2-E1.4 — Auth security hardening (implementation checkpoint)
 
-**Status: CODE COMMITTED — BACKEND REGRESSION NOT EXECUTED. DO NOT MARK PASS.**
+**Status: D2-E1.4 CI REGRESSION PASS — production deployment and security gate still pending.**
 **Branch:** `feature/d2-e1-react-auth-ui`; PR #3 remains draft.
 
 ## What is implemented
@@ -45,3 +45,18 @@ The operator must first:
 - Duplicate registration still returns 409; account enumeration-resistant registration semantics and recovery/email verification are **not resolved**.
 - MFA, password reset, token/session management, HTTPS/TLS, reverse proxy trust hardening and monitoring remain release gates.
 - This implementation has not been compiled, linted, run or validated by Codespaces at the time of this document. Never claim security PASS until operator evidence is supplied.
+
+## CI evidence — PASS (2026-10-31)
+
+GitHub Actions CI run **41239115759** on the draft PR #3 feature branch, backed by a **fresh disposable CI PostgreSQL 16**:
+
+- **Backend**: `ruff check .` PASS; `ruff format --check .` PASS (99 files); `mypy` PASS (95 source files); Alembic `upgrade head` -> `downgrade base` -> `upgrade head` PASS including revision **0003**; `pytest` **229 passed, 1 warning** (13.52s).
+- **Frontend**: ESLint PASS, production Vite build PASS, Vitest **83 passed / 5 skipped**; the five live contracts are intentionally gated and had already passed separately against authenticated disposable API in D2-E1.2.
+- **Audit**: workflow audit job PASS (informational job with `continue-on-error`; separately confirmed `npm audit --omit=dev` was previously zero vulnerabilities).
+- Operator's previously verified D2-E1.3 browser isolation: ten synthetic accounts and 90 cross-account negative visibility checks PASS.
+
+**Accepted checkpoint:** `D2-E1.4 CODE + CI REGRESSION PASS`.
+
+**Still NOT accepted:** `D2-E1 COMPLETE`, live rate-limit behavior on the operator's Codespaces API, trusted-proxy production configuration, user enrollment enumeration-resistant behavior, recovery and hardening of public infrastructure. The `0003` migration has **not** been applied to any user's local or preserved database by the agent. The draft PR is **not merged**.
+
+CI evidence: https://github.com/Arthur-Levi/Job-Agent/actions/runs/41239115759
