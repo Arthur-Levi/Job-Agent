@@ -4,6 +4,7 @@ No client-supplied X-Forwarded-For parsing. The ASGI server must be configured
 with an explicit trusted-proxy allowlist; otherwise use the direct peer address.
 Email/IP identifiers are stored as HMAC-SHA256 digests, never as plaintext.
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -61,9 +62,7 @@ DELETE FROM auth_rate_limits WHERE key_digest IN (
 def _key(settings: Settings, kind: str, identity: str) -> str:
     assert settings.auth_rate_limit_secret is not None
     secret = settings.auth_rate_limit_secret.get_secret_value().encode("utf-8")
-    return hmac.new(
-        secret, f"{kind}:{identity}".encode(), hashlib.sha256
-    ).hexdigest()
+    return hmac.new(secret, f"{kind}:{identity}".encode(), hashlib.sha256).hexdigest()
 
 
 def consume(
