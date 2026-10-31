@@ -48,6 +48,8 @@ class Settings(BaseSettings):
     # D1-only test/dev compatibility. Never permitted in production.
     allow_legacy_local_user: bool = False
     # PostgreSQL counters shared by all API workers; require migration 0003.
+    # Public registration is intentionally nondisclosing in production.
+    registration_privacy_enabled: bool = False
     auth_rate_limit_enabled: bool = False
     auth_rate_limit_secret: SecretStr | None = None
     auth_login_ip_max: int = Field(default=60, ge=1, le=10000)
@@ -91,6 +93,8 @@ class Settings(BaseSettings):
             raise ValueError("CORS_ORIGINS must not contain '*' when APP_ENV=production")
         if self.app_env is AppEnv.PRODUCTION and self.allow_legacy_local_user:
             raise ValueError("ALLOW_LEGACY_LOCAL_USER is forbidden in production")
+        if self.app_env is AppEnv.PRODUCTION and not self.registration_privacy_enabled:
+            raise ValueError("REGISTRATION_PRIVACY_ENABLED must be true in production")
         if self.app_env is AppEnv.PRODUCTION and not self.auth_rate_limit_enabled:
             raise ValueError("AUTH_RATE_LIMIT_ENABLED must be true in production")
         if self.auth_rate_limit_enabled and (
