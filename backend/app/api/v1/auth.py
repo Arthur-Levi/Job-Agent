@@ -6,8 +6,12 @@ from pydantic import BaseModel, EmailStr, Field
 
 from app.api.deps import SessionDep, SettingsDep, get_database
 from app.db.session import Database
-from app.services.auth_rate_limit import consume, RateLimitExceeded, RateLimitUnavailable
 from app.services import auth
+from app.services.auth_rate_limit import (
+    RateLimitExceeded,
+    RateLimitUnavailable,
+    consume,
+)
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
