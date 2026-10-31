@@ -52,6 +52,10 @@ def test_adversarial_cases_are_present():
     assert len(roles) == 3
     assert len({x["role"] for x in roles}) == 3
     assert len({x["employer"] for x in roles}) == 1
+    assert [x["role"] for x in roles] == ["Auxiliar de Estoque", "Conferente", "Supervisor de Operações"]
+    assert [x["start"] for x in roles] == ["2014-01", "2018-01", "2021-01"]
+    assert [x["end"] for x in roles] == ["2017-12", "2020-12", "2026-10"]
+    assert by_id["P01"]["resume"]["sections"][0]["role"] == "Aprendiz Administrativo"
     assert len(by_id["P09"]["resume"]["conflicting_claims"][0]["values"]) == 2
     assert by_id["P10"]["resume"]["language"] == "pt-BR/en-US"
     assert by_id["P05"]["resume"]["sections"][0]["kind"] == "project"
@@ -62,8 +66,11 @@ def test_all_source_dates_and_labels_are_bounded():
         for section in p["resume"]["sections"]:
             assert section["role"].strip()
             assert section["description"].strip()
+            assert set(("kind", "employer", "role", "start", "end", "description")) <= set(section)
+            assert section["employer"].strip()
+            import re
             start = section["start"]
-            assert len(start) == 7 and start[4] == "-"
+            assert re.fullmatch(r"(19|20)\\d{2}-(0[1-9]|1[0-2])", start)
             if section["end"]:
-                assert len(section["end"]) == 7 and section["end"][4] == "-"
+                assert re.fullmatch(r"(19|20)\\d{2}-(0[1-9]|1[0-2])", section["end"])
                 assert section["end"] >= start
