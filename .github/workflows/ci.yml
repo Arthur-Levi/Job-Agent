@@ -50,6 +50,7 @@ jobs:
         run: |
           python -m py_compile ../scripts/d2e14_operational_gate.py
           python ../scripts/d2e14_operational_gate.py --help
+          python ../scripts/d2e14_operational_gate.py self-test-headers
       - name: Migrations (CLI path) upgrade -> downgrade -> upgrade
         env:
           DATABASE_URL: ${{ env.TEST_DATABASE_URL }}
