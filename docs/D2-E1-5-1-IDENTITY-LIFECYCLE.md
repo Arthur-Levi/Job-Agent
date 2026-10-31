@@ -61,3 +61,34 @@ Run **41243282845**, with all three jobs concluded successfully:
 Accepted: `D2-E1.5.1 IMPLEMENTATION + CI PASS`. Codespaces `0004` migration, real email transport and delivery, and public deployment remain unapproved/pending. GitHub PR #3 stays Draft.
 
 https://github.com/Arthur-Levi/Job-Agent/actions/runs/41243282845
+
+## Operational checkpoint — Codespaces migration 0004 PASS, lifecycle probe pending
+
+Operator reported on 2026-10-31:
+
+```text
+GUARDED TARGET: jobagent_react_test / react_test / 127.0.0.1:55435 / 0003
+VERIFIED ISOLATED API STOP PASS: 140573
+Port 18081 listening: False
+GUARDED TARGET: jobagent_react_test / react_test / 127.0.0.1:55435 / 0004
+D2-E1.5.1 MIGRATION 0004 PASS: additive upgrade, disposable DB only
+Port 18081 listening: False
+```
+
+**Migration operational acceptance: PASS**, with exact database identity verified and the old isolated FastAPI process stopped. No other DB was in scope, and migration is already applied; do **not** re-run.
+
+The guarded `scripts/d2e151_operational_probe.py` now provides an end-to-end FastAPI ASGI + real PostgreSQL exercise, **without launching a web listener or using destructive integration fixtures**. It requires `0004`, confirms the exact disposable Docker database, refuses if the old API is listening, creates random synthetic credentials, uses the in-memory outbox, asserts account verification, token replay and expiry, generic recovery, multi-session revocation and new/old password behavior, and uses an **outer SQL transaction with unconditional rollback**. An independent SQL read verifies zero synthetic test accounts persisted.
+
+Run only after the branch has the probe and its CLI compile check passes:
+
+```bash
+cd /workspaces/Job-Agent-D2-E1-UI
+git status --short --branch
+git fetch origin feature/d2-e1-react-auth-ui
+git merge --ff-only origin/feature/d2-e1-react-auth-ui
+PY=/workspaces/Job-Agent-SEC05/backend/.venv/bin/python
+"$PY" scripts/d2e151_migration_gate.py inspect
+"$PY" scripts/d2e151_operational_probe.py --ack PROBE_ONLY_jobagent_react_test_REV0004
+```
+
+Expected acceptance marker: `D2-E1.5.1 OPERATIONAL IDENTITY LIFECYCLE PASS`. Do not claim it until the operator provides the actual output. This ASGI test does not prove external SMTP delivery, HTTPS or an actual Uvicorn network deployment.
