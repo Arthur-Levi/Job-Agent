@@ -1,0 +1,114 @@
+"""D2-E1 — RED-first multi-tenant acceptance specification.
+
+Not a PASS claim: these tests MUST fail before auth routes and ownership are implemented.
+Run only against a verified, disposable React PostgreSQL test DB. The integration
+fixture recreates the public schema on first use.
+"""
+import json
+from pathlib import Path
+
+from fastapi.testclient import TestClient
+from sqlalchemy.orm import Session
+
+from app.models import User
+from tests.integration.factories import make_job, make_profile
+
+PERSONAS = json.loads(
+    (Path(__file__).with_name("d2e_personas.json")).read_text(encoding="utf-8")
+)["personas"]
+
+
+def credentials(persona):
+    # Test-only password, never a user/production credential.
+    return {"email": persona["email"], "password": f"TestOnly-D2E1-{persona['id']}-not-for-prod!"}
+
+
+def token(client, persona):
+    response = client.post("/api/v1/auth/login", json=credentials(persona))
+    assert response.status_code == 200, response.text
+    data = response.json()
+    assert isinstance(data.get("access_token"), str) and len(data["access_token"]) >= 32
+    assert data.get("token_type", "").lower() == "bearer"
+    return data["access_token"]
+
+
+def headers(token_value):
+    return {"Authorization": f"Bearer {token_value}"}
+
+
+def test_e1_no_default_identity_and_unauthenticated_requests_blocked(api_client: TestClient):
+    # The current D1 default-user route returns 200, so this intentionally starts RED.
+    for path in ("/api/v1/profile", "/api/v1/jobs", "/api/v1/applications"):
+        response = api_client.get(path)
+        assert response.status_code == 401, (path, response.status_code, response.text)
+
+
+def test_e1_ten_accounts_are_distinct_and_own_their_profiles(api_client: TestClient):
+    for persona in PERSONAS:
+        response = api_client.post(
+            "/api/v1/auth/register", json={**credentials(persona), "name": persona["name"]}
+        )
+        assert response.status_code == 201, (persona["id"], response.status_code, response.text)
+
+    ids = set()
+    for persona in PERSONAS:
+        auth = headers(token(api_client, persona))
+        me = api_client.get("/api/v1/auth/me", headers=auth)
+        assert me.status_code == 200, me.text
+        assert me.json()["email"].lower() == persona["email"]
+        ids.add(me.json()["id"])
+        profile = api_client.post(
+            "/api/v1/profile",
+            headers=auth,
+            json={"headline": persona["target_role"]},
+        )
+        assert profile.status_code == 201, (persona["id"], profile.text)
+        assert api_client.get("/api/v1/profile", headers=auth).json()["headline"] == persona["target_role"]
+    assert len(ids) == 10
+
+
+def test_e1_cross_user_jobs_are_not_exposed(api_client: TestClient):
+    # Independent from previous test: never rely on test execution order.
+    identities = []
+    for persona in PERSONAS:
+        registered = api_client.post(
+            "/api/v1/auth/register", json={**credentials(persona), "name": persona["name"]}
+        )
+        assert registered.status_code == 201, (persona["id"], registered.text)
+        identities.append(headers(token(api_client, persona)))
+
+    job_ids = []
+    for persona, auth in zip(PERSONAS, identities):
+        job = api_client.post(
+            "/api/v1/jobs",
+            headers=auth,
+            json={
+                "title": persona["job"]["title"],
+                "company": persona["job"]["company"],
+                "description": "Synthetic D2-E1 isolation scenario",
+            },
+        )
+        assert job.status_code == 201, job.text
+        job_ids.append(job.json()["id"])
+
+    for i, auth in enumerate(identities):
+        own_jobs = api_client.get("/api/v1/jobs", headers=auth)
+        assert own_jobs.status_code == 200
+        assert {x["id"] for x in own_jobs.json()["items"]} == {job_ids[i]}
+        for j, job_id in enumerate(job_ids):
+            if i != j:
+                foreign = api_client.get(f"/api/v1/jobs/{job_id}", headers=auth)
+                assert foreign.status_code == 404, (i, j, foreign.status_code)
+
+
+def test_e1_logout_revokes_only_its_own_session(api_client: TestClient):
+    first, second = PERSONAS[:2]
+    for persona in (first, second):
+        response = api_client.post(
+            "/api/v1/auth/register", json={**credentials(persona), "name": persona["name"]}
+        )
+        assert response.status_code == 201
+    a, b = token(api_client, first), token(api_client, second)
+    assert api_client.post("/api/v1/auth/logout", headers=headers(a)).status_code in (200, 204)
+    assert api_client.get("/api/v1/auth/me", headers=headers(a)).status_code == 401
+    assert api_client.get("/api/v1/auth/me", headers=headers(b)).status_code == 200
