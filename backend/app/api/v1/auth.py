@@ -1,4 +1,5 @@
 """D2-E1 real user identity API. All payloads synthetic in acceptance tests."""
+
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Header, HTTPException
@@ -68,13 +69,16 @@ def login(
     if settings.auth_rate_limit_enabled:
         try:
             consume(
-                database, settings, kind="login_account",
+                database,
+                settings,
+                kind="login_account",
                 identity=payload.email.strip().casefold(),
                 maximum=settings.auth_login_account_max,
             )
         except RateLimitExceeded as exc:
             raise HTTPException(
-                429, "Too many requests. Try again later.",
+                429,
+                "Too many requests. Try again later.",
                 headers={"Retry-After": str(exc.retry_after)},
             ) from None
         except RateLimitUnavailable:
