@@ -5,7 +5,7 @@
     {
       "id": "P01",
       "name": "Lucas Andrade",
-      "email": "d2e-p01@example.test",
+      "email": "d2e-p01@example.com",
       "segment": "administrativo_jovem",
       "target_role": "Assistente Administrativo",
       "resume": {
@@ -56,7 +56,7 @@
     {
       "id": "P02",
       "name": "Mariana Costa",
-      "email": "d2e-p02@example.test",
+      "email": "d2e-p02@example.com",
       "segment": "dev_junior",
       "target_role": "Desenvolvedora Backend Júnior",
       "resume": {
@@ -107,7 +107,7 @@
     {
       "id": "P03",
       "name": "Roberto Silva",
-      "email": "d2e-p03@example.test",
+      "email": "d2e-p03@example.com",
       "segment": "logistica_senior",
       "target_role": "Supervisor de Logística",
       "resume": {
@@ -174,7 +174,7 @@
     {
       "id": "P04",
       "name": "Camila Rocha",
-      "email": "d2e-p04@example.test",
+      "email": "d2e-p04@example.com",
       "segment": "transicao_carreira",
       "target_role": "Analista de Dados Júnior",
       "resume": {
@@ -222,7 +222,7 @@
     {
       "id": "P05",
       "name": "Gabriel Souza",
-      "email": "d2e-p05@example.test",
+      "email": "d2e-p05@example.com",
       "segment": "primeiro_emprego",
       "target_role": "Auxiliar Administrativo",
       "resume": {
@@ -270,7 +270,7 @@
     {
       "id": "P06",
       "name": "Fernanda Lima",
-      "email": "d2e-p06@example.test",
+      "email": "d2e-p06@example.com",
       "segment": "financas",
       "target_role": "Analista Financeira",
       "resume": {
@@ -321,7 +321,7 @@
     {
       "id": "P07",
       "name": "Andre Martins",
-      "email": "d2e-p07@example.test",
+      "email": "d2e-p07@example.com",
       "segment": "freelancer",
       "target_role": "Desenvolvedor Full Stack",
       "resume": {
@@ -372,7 +372,7 @@
     {
       "id": "P08",
       "name": "Patricia Oliveira",
-      "email": "d2e-p08@example.test",
+      "email": "d2e-p08@example.com",
       "segment": "retorno_mercado",
       "target_role": "Assistente de Recursos Humanos",
       "resume": {
@@ -423,7 +423,7 @@
     {
       "id": "P09",
       "name": "Rafael Mendes",
-      "email": "d2e-p09@example.test",
+      "email": "d2e-p09@example.com",
       "segment": "contradicoes",
       "target_role": "Analista de Operações",
       "resume": {
@@ -484,7 +484,7 @@
     {
       "id": "P10",
       "name": "Beatriz Santos",
-      "email": "d2e-p10@example.test",
+      "email": "d2e-p10@example.com",
       "segment": "bilingue",
       "target_role": "Analista de Suporte Técnico",
       "resume": {
