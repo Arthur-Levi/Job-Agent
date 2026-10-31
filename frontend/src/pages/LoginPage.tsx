@@ -24,9 +24,11 @@ export function LoginPage() {
     try {
       await login({ email: email.trim(), password })
     } catch (cause) {
-      setError(cause instanceof ApiError && cause.status === 401
-        ? 'Email ou senha inválidos.'
-        : 'Não foi possível entrar. Tente novamente.')
+      setError(cause instanceof ApiError && cause.status === 429
+        ? 'Muitas tentativas de acesso. Aguarde alguns minutos antes de tentar novamente.'
+        : cause instanceof ApiError && cause.status === 401
+          ? 'Email ou senha inválidos.'
+          : 'Não foi possível entrar. Tente novamente.')
     } finally {
       setBusy(false)
     }
