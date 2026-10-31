@@ -1,7 +1,7 @@
 """Importar todos os models aqui garante que Base.metadata esteja completo (Alembic/testes)."""
 
 from app.models.application import Application, ApplicationEvent
-from app.models.auth import AuthCredential, AuthSession
+from app.models.auth import AuthCredential, AuthRateLimit, AuthSession
 from app.models.candidate import (
     CandidateEducation,
     CandidateExperience,
@@ -16,6 +16,7 @@ from app.models.user import User
 __all__ = [
     "Application",
     "AuthCredential",
+    "AuthRateLimit",
     "AuthSession",
     "ApplicationEvent",
     "CandidateEducation",
