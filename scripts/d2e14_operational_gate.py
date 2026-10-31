@@ -275,7 +275,11 @@ def assert_status(
     if code != status:
         raise AssertionError(f"{label}: expected HTTP {status}; got HTTP {code}")
     if status == 429:
-        retry = headers.get("Retry-After")
+        # HTTP headers are case-insensitive; urllib may preserve "Retry-after".
+        retry = next(
+            (value for name, value in headers.items() if name.casefold() == "retry-after"),
+            None,
+        )
         if retry is None or not retry.isdecimal():
             raise AssertionError(f"{label}: missing valid Retry-After")
         if json.loads(body).get("error", {}).get("code") not in (
@@ -285,6 +289,23 @@ def assert_status(
         return int(retry)
     return 0
 
+
+
+def self_test_headers() -> None:
+    """No database, HTTP requests, or Docker required."""
+    body = json.dumps({
+        "error": {
+            "code": "RATE_LIMITED",
+            "message": "Too many requests. Try again later.",
+        }
+    }).encode()
+    for header in ("Retry-After", "Retry-after", "retry-after", "RETRY-AFTER"):
+        assert assert_status(
+            f"case insensitive header {header}",
+            (429, {header: "35"}, body),
+            429,
+        ) == 35
+    print("HEADER CASE-INSENSITIVITY SELF-TEST PASS")
 
 def probe() -> None:
     url = inspect_target()
@@ -362,6 +383,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="cmd", required=True)
     sub.add_parser("inspect")
+    sub.add_parser("self-test-headers")
     sub.add_parser("stop-previous-api")
     migrate_cmd = sub.add_parser("migrate")
     migrate_cmd.add_argument("--ack", required=True)
@@ -369,7 +391,9 @@ def main() -> int:
     sub.add_parser("probe")
     args = parser.parse_args()
     try:
-        if args.cmd == "inspect":
+        if args.cmd == "self-test-headers":
+            self_test_headers()
+        elif args.cmd == "inspect":
             inspect_target()
         elif args.cmd == "stop-previous-api":
             stop_previous_api()
