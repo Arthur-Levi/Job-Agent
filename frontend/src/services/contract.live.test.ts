@@ -42,7 +42,7 @@ describe.skipIf(!live)('API contract (live backend)', () => {
     if (!loopback || import.meta.env.VITE_LIVE_DISPOSABLE_ACK !== 'jobagent_react_test') {
       throw new Error('Live contract requires loopback API and acknowledgement of jobagent_react_test')
     }
-    const testEmail = `d2e1-live-${Date.now()}-${unique}@example.invalid`
+    const testEmail = `d2e1-live-${Date.now()}-${unique}@example.com`
     const password = `Live-only-${Date.now()}-${unique}-pass!`
     await authApi.register({ name: 'D2 E1 Synthetic Contract', email: testEmail, password })
     await authApi.login({ email: testEmail, password })
