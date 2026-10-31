@@ -62,11 +62,13 @@ def login(session: Session, *, email: str, password: str) -> str:
     user = UserRepository(session).get_by_email(email.strip())
     credential = session.get(AuthCredential, user.id) if user else None
     candidate_hash = credential.password_hash if credential else _DUMMY_PASSWORD_HASH
+    verified = False
     try:
-        verified = PASSWORD_HASHER.verify(candidate_hash, password)
+        PASSWORD_HASHER.verify(candidate_hash, password)
+        verified = True
     except (VerificationError, ValueError):
-        verified = False
-    if not (credential and verified):
+        pass
+    if credential is None or user is None or not verified:
         raise InvalidCredentials
     token = secrets.token_urlsafe(48)
     session.add(
