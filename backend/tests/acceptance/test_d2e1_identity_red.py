@@ -4,6 +4,7 @@ Not a PASS claim: these tests MUST fail before auth routes and ownership are imp
 Run only against a verified, disposable React PostgreSQL test DB. The integration
 fixture recreates the public schema on first use.
 """
+
 import json
 from datetime import timedelta
 from pathlib import Path
@@ -15,9 +16,9 @@ from sqlalchemy.orm import Session
 from app.models import AuthSession
 from app.services.auth import digest, now_utc
 
-PERSONAS = json.loads(
-    (Path(__file__).with_name("d2e_personas.json")).read_text(encoding="utf-8")
-)["personas"]
+PERSONAS = json.loads((Path(__file__).with_name("d2e_personas.json")).read_text(encoding="utf-8"))[
+    "personas"
+]
 
 
 def credentials(persona):
@@ -130,18 +131,24 @@ def test_e1_duplicate_registration_wrong_password_and_invalid_token(auth_client:
         "/api/v1/auth/login", json={**credentials(persona), "password": "wrong-password"}
     )
     assert bad.status_code == 401
-    assert auth_client.get(
-        "/api/v1/auth/me", headers=headers("bogus-auth-token-that-is-not-valid")
-    ).status_code == 401
+    assert (
+        auth_client.get(
+            "/api/v1/auth/me", headers=headers("bogus-auth-token-that-is-not-valid")
+        ).status_code
+        == 401
+    )
     correct = headers(token(auth_client, persona))
     assert auth_client.get("/api/v1/auth/me", headers=correct).status_code == 200
 
 
 def test_e1_session_expiry_revokes_access(auth_client: TestClient, db_session: Session):
     persona = PERSONAS[1]
-    assert auth_client.post(
-        "/api/v1/auth/register", json={**credentials(persona), "name": persona["name"]}
-    ).status_code == 201
+    assert (
+        auth_client.post(
+            "/api/v1/auth/register", json={**credentials(persona), "name": persona["name"]}
+        ).status_code
+        == 201
+    )
     bearer_token = token(auth_client, persona)
     session = db_session.execute(
         select(AuthSession).where(AuthSession.token_hash == digest(bearer_token))
