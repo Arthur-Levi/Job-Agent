@@ -18,6 +18,8 @@ from app.repositories.user import UserRepository
 
 PASSWORD_HASHER = PasswordHasher(time_cost=3, memory_cost=65536, parallelism=2)
 SESSION_TTL = timedelta(hours=12)
+# Always verify one Argon2 hash to reduce timing differences for unknown accounts.
+_DUMMY_PASSWORD_HASH = PASSWORD_HASHER.hash(secrets.token_urlsafe(32))
 
 
 class DuplicateAccount(Exception):
@@ -59,11 +61,12 @@ def register(session: Session, *, name: str, email: str, password: str) -> User:
 def login(session: Session, *, email: str, password: str) -> str:
     user = UserRepository(session).get_by_email(email.strip())
     credential = session.get(AuthCredential, user.id) if user else None
+    candidate_hash = credential.password_hash if credential else _DUMMY_PASSWORD_HASH
     try:
-        accepted = bool(credential and PASSWORD_HASHER.verify(credential.password_hash, password))
+        verified = PASSWORD_HASHER.verify(candidate_hash, password)
     except (VerificationError, ValueError):
-        accepted = False
-    if not accepted:
+        verified = False
+    if not (credential and verified):
         raise InvalidCredentials
     token = secrets.token_urlsafe(48)
     session.add(
