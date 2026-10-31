@@ -61,6 +61,9 @@ def test_every_foreign_key_is_covered_by_an_index() -> None:
         indexed_prefixes += [
             list(c.columns.keys()) for c in table.constraints if isinstance(c, UniqueConstraint)
         ]
+        # PostgreSQL indexes the primary key automatically; auth_credentials uses
+        # user_id as a UUID primary key and foreign key simultaneously.
+        indexed_prefixes.append([c.name for c in table.primary_key.columns])
         for fk in table.foreign_key_constraints:
             cols = [c.name for c in fk.columns]
             assert any(p[: len(cols)] == cols for p in indexed_prefixes), f"{table.name}: {cols}"
