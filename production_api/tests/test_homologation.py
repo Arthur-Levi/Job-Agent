@@ -262,3 +262,135 @@ def test_sec05_missing_price_is_not_premium(monkeypatch):
     monkeypatch.setenv('STRIPE_PRICE_ID','price_jobagent_299')
     assert c.post('/api/billing/webhook',content=b'{}').status_code==200
     assert c.get('/api/billing/status',headers=a).json()['premium_enabled'] is False
+
+
+def test_sec05_webhook_duplicate_is_idempotent(monkeypatch):
+    """SEC05-FC03: replaying an identical event does not apply the mutation twice."""
+    from types import SimpleNamespace
+    a,_,_=user()
+    uid=c.get('/api/me',headers=a).json()['id']
+    customer=f'cus_sec05_replay_{uid}'
+    sid=f'sub_sec05_replay_{uid}'
+    event_id='evt_sec05_replay_'+uuid.uuid4().hex
+    calls={'retrieve':0}
+
+    class Webhook:
+        @staticmethod
+        def construct_event(payload,signature,secret):
+            if signature!='signed-mock':
+                raise ValueError('bad signature')
+            return {'id':event_id,'type':'customer.subscription.updated',
+                    'data':{'object':{'customer':customer,'id':sid,
+                    'metadata':{'job_agent_user_id':str(uid)}}}}
+
+    class SubscriptionAPI:
+        @staticmethod
+        def retrieve(*args):
+            calls['retrieve']+=1
+            return {'id':sid,'customer':customer,'status':'active',
+                    'items':{'data':[{'price':{'id':'price_jobagent_299'}}]}}
+
+    fake=SimpleNamespace(
+        Webhook=Webhook,Subscription=SubscriptionAPI,
+        Customer=SimpleNamespace(retrieve=lambda _:{'metadata':{'job_agent_user_id':str(uid)}}),
+        error=SimpleNamespace(SignatureVerificationError=ValueError),
+    )
+    monkeypatch.setattr(main,'stripe_sdk',lambda:fake)
+    monkeypatch.setenv('STRIPE_WEBHOOK_SECRET','whsec_mock')
+    monkeypatch.setenv('STRIPE_PRICE_ID','price_jobagent_299')
+    headers={'stripe-signature':'signed-mock'}
+    first=c.post('/api/billing/webhook',content=b'{}',headers=headers)
+    second=c.post('/api/billing/webhook',content=b'{}',headers=headers)
+    assert first.status_code==200,first.text
+    assert second.status_code==200,second.text
+    assert second.json().get('duplicate') is True
+    assert calls['retrieve']==1
+    with main.SessionLocal() as s:
+        assert s.get(WebhookEvent,event_id) is not None
+        assert s.get(Subscription,uid).stripe_price_id=='price_jobagent_299'
+    assert c.get('/api/billing/status',headers=a).json()['premium_enabled'] is True
+
+
+def test_sec05_cancel_revokes_premium_and_old_event_cannot_reactivate(monkeypatch):
+    """SEC05-FC03: latest authoritative canceled state overrides stale active event."""
+    from types import SimpleNamespace
+    a,_,_=user()
+    uid=c.get('/api/me',headers=a).json()['id']
+    customer=f'cus_sec05_cancel_{uid}'
+    sid=f'sub_sec05_cancel_{uid}'
+    state={'status':'active'}
+    ids={'next':0}
+
+    class Webhook:
+        @staticmethod
+        def construct_event(payload,signature,secret):
+            ids['next']+=1
+            # Deliberately stale status in payload; remote lookup must win.
+            return {'id':f'evt_sec05_cancel_{uid}_{ids["next"]}',
+                    'type':'customer.subscription.updated',
+                    'data':{'object':{'customer':customer,'id':sid,
+                          'metadata':{'job_agent_user_id':str(uid)},'status':'active'}}}
+
+    class SubscriptionAPI:
+        @staticmethod
+        def retrieve(*args):
+            return {'id':sid,'customer':customer,'status':state['status'],
+                    'items':{'data':[{'price':{'id':'price_jobagent_299'}}]}}
+
+    fake=SimpleNamespace(
+        Webhook=Webhook,Subscription=SubscriptionAPI,
+        Customer=SimpleNamespace(retrieve=lambda _:{'metadata':{'job_agent_user_id':str(uid)}}),
+        error=SimpleNamespace(SignatureVerificationError=ValueError),
+    )
+    monkeypatch.setattr(main,'stripe_sdk',lambda:fake)
+    monkeypatch.setenv('STRIPE_WEBHOOK_SECRET','whsec_mock')
+    monkeypatch.setenv('STRIPE_PRICE_ID','price_jobagent_299')
+
+    assert c.post('/api/billing/webhook',content=b'{}').status_code==200
+    assert c.get('/api/billing/status',headers=a).json()['premium_enabled'] is True
+
+    state['status']='canceled'
+    assert c.post('/api/billing/webhook',content=b'{}').status_code==200
+    assert c.get('/api/billing/status',headers=a).json()['premium_enabled'] is False
+
+    # Even if another out-of-order webhook claims active, remote state is canceled.
+    assert c.post('/api/billing/webhook',content=b'{}').status_code==200
+    assert c.get('/api/billing/status',headers=a).json()['premium_enabled'] is False
+
+
+def test_sec05_price_change_revokes_premium(monkeypatch):
+    """SEC05-FC03: remote price switching away from allowlist revokes entitlement."""
+    from types import SimpleNamespace
+    a,_,_=user()
+    uid=c.get('/api/me',headers=a).json()['id']
+    customer=f'cus_sec05_price_change_{uid}'
+    sid=f'sub_sec05_price_change_{uid}'
+    state={'price':'price_jobagent_299'}
+    ids={'next':0}
+
+    class Webhook:
+        @staticmethod
+        def construct_event(payload,signature,secret):
+            ids['next']+=1
+            return {'id':f'evt_sec05_price_change_{uid}_{ids["next"]}',
+                    'type':'customer.subscription.updated',
+                    'data':{'object':{'customer':customer,'id':sid,
+                          'metadata':{'job_agent_user_id':str(uid)},'status':'active'}}}
+    class SubscriptionAPI:
+        @staticmethod
+        def retrieve(*args):
+            return {'id':sid,'customer':customer,'status':'active',
+                    'items':{'data':[{'price':{'id':state['price']}}]}}
+    fake=SimpleNamespace(
+        Webhook=Webhook,Subscription=SubscriptionAPI,
+        Customer=SimpleNamespace(retrieve=lambda _:{'metadata':{'job_agent_user_id':str(uid)}}),
+        error=SimpleNamespace(SignatureVerificationError=ValueError),
+    )
+    monkeypatch.setattr(main,'stripe_sdk',lambda:fake)
+    monkeypatch.setenv('STRIPE_WEBHOOK_SECRET','whsec_mock')
+    monkeypatch.setenv('STRIPE_PRICE_ID','price_jobagent_299')
+    assert c.post('/api/billing/webhook',content=b'{}').status_code==200
+    assert c.get('/api/billing/status',headers=a).json()['premium_enabled'] is True
+    state['price']='price_different_product'
+    assert c.post('/api/billing/webhook',content=b'{}').status_code==200
+    assert c.get('/api/billing/status',headers=a).json()['premium_enabled'] is False
