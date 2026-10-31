@@ -11,6 +11,7 @@ EXPECTED_TABLES = {
     "auth_credentials",
     "auth_sessions",
     "auth_rate_limits",
+    "auth_action_tokens",
     "candidate_profiles",
     "candidate_skills",
     "candidate_projects",
@@ -39,13 +40,13 @@ def test_expected_tables_exist() -> None:
 
 def test_every_primary_key_is_a_uuid() -> None:
     for table in Base.metadata.tables.values():
-        if table.name == "auth_rate_limits":
-            expected = ["key_digest"]
+        if table.name in {"auth_rate_limits", "auth_action_tokens"}:
+            expected = ["key_digest" if table.name == "auth_rate_limits" else "token_hash"]
         else:
             expected = ["user_id"] if table.name == "auth_credentials" else ["id"]
         assert [c.name for c in table.primary_key.columns] == expected, table.name
         pk = next(iter(table.primary_key.columns))
-        if table.name != "auth_rate_limits":
+        if table.name not in {"auth_rate_limits", "auth_action_tokens"}:
             assert isinstance(pk.type, Uuid), table.name
 
 
