@@ -1,7 +1,7 @@
 from collections.abc import Iterator
 from typing import Annotated
 
-from fastapi import Depends, Request
+from fastapi import Depends, Header, HTTPException, Request
 from sqlalchemy.orm import Session
 
 from app.core.clock import Clock, utc_now
@@ -17,6 +17,7 @@ from app.services.candidate_profile import CandidateProfileService
 from app.services.job import JobService
 from app.services.readiness import ReadinessService
 from app.services.user import UserService
+from app.services import auth
 
 
 def get_settings(request: Request) -> Settings:
@@ -82,9 +83,23 @@ def get_application_service(session: SessionDep, clock: ClockDep) -> Application
     )
 
 
-def get_current_user(service: Annotated[UserService, Depends(get_user_service)]) -> User:
-    """Ponto ÚNICO de identidade. D1: usuário local padrão. Com auth real, só isto muda."""
-    return service.get_or_create_default()
+def get_current_user(
+    session: SessionDep,
+    settings: SettingsDep,
+    service: Annotated[UserService, Depends(get_user_service)],
+    authorization: Annotated[str | None, Header()] = None,
+) -> User:
+    """Resolve identity from a revocable bearer token; no shared-user fallback by default."""
+    if authorization:
+        scheme, sep, token = authorization.partition(" ")
+        if sep and scheme.lower() == "bearer":
+            user = auth.current(session, token)
+            if user is not None:
+                return user
+        raise HTTPException(401, "Sessão inválida")
+    if settings.allow_legacy_local_user and not settings.is_production:
+        return service.get_or_create_default()
+    raise HTTPException(401, "Autenticação necessária")
 
 
 ReadinessServiceDep = Annotated[ReadinessService, Depends(get_readiness_service)]
