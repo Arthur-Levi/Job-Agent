@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { Link, Navigate } from 'react-router-dom'
-import { useAuth } from '../app/AuthProvider'
+import { useAuth } from '../app/authContext'
 import { authApi } from '../services/authApi'
 import { ApiError } from '../services/http'
 
