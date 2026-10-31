@@ -13,7 +13,6 @@ from app.core.config import Settings
 from app.main import create_app
 from app.services.auth import PASSWORD_HASHER, digest
 
-
 DB = "postgresql+psycopg://dummy:dummy@127.0.0.1:1/dummy_test"
 
 
