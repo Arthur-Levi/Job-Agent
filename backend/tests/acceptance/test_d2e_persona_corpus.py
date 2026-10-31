@@ -52,7 +52,11 @@ def test_adversarial_cases_are_present():
     assert len(roles) == 3
     assert len({x["role"] for x in roles}) == 3
     assert len({x["employer"] for x in roles}) == 1
-    assert [x["role"] for x in roles] == ["Auxiliar de Estoque", "Conferente", "Supervisor de Operações"]
+    assert [x["role"] for x in roles] == [
+        "Auxiliar de Estoque",
+        "Conferente",
+        "Supervisor de Operações",
+    ]
     assert [x["start"] for x in roles] == ["2014-01", "2018-01", "2021-01"]
     assert [x["end"] for x in roles] == ["2017-12", "2020-12", "2026-10"]
     assert by_id["P01"]["resume"]["sections"][0]["role"] == "Aprendiz Administrativo"
