@@ -112,3 +112,41 @@ def test_e1_logout_revokes_only_its_own_session(auth_client: TestClient):
     assert auth_client.post("/api/v1/auth/logout", headers=headers(a)).status_code in (200, 204)
     assert auth_client.get("/api/v1/auth/me", headers=headers(a)).status_code == 401
     assert auth_client.get("/api/v1/auth/me", headers=headers(b)).status_code == 200
+
+
+def test_e1_duplicate_registration_wrong_password_and_invalid_token(auth_client: TestClient):
+    persona = PERSONAS[0]
+    data = {**credentials(persona), "name": persona["name"]}
+    created = auth_client.post("/api/v1/auth/register", json=data)
+    assert created.status_code == 201, created.text
+    repeated = auth_client.post("/api/v1/auth/register", json=data)
+    assert repeated.status_code == 409
+    bad = auth_client.post(
+        "/api/v1/auth/login", json={**credentials(persona), "password": "wrong-password"}
+    )
+    assert bad.status_code == 401
+    assert auth_client.get(
+        "/api/v1/auth/me", headers=headers("bogus-auth-token-that-is-not-valid")
+    ).status_code == 401
+    correct = headers(token(auth_client, persona))
+    assert auth_client.get("/api/v1/auth/me", headers=correct).status_code == 200
+
+
+def test_e1_session_expiry_revokes_access(auth_client: TestClient, db_session: Session):
+    from datetime import timedelta
+    from sqlalchemy import select
+
+    from app.models import AuthSession
+    from app.services.auth import now_utc
+
+    persona = PERSONAS[1]
+    assert auth_client.post(
+        "/api/v1/auth/register", json={**credentials(persona), "name": persona["name"]}
+    ).status_code == 201
+    bearer_token = token(auth_client, persona)
+    session = db_session.execute(
+        select(AuthSession).where(AuthSession.token_hash == __import__("hashlib").sha256(bearer_token.encode()).hexdigest())
+    ).scalar_one()
+    session.expires_at = now_utc() - timedelta(seconds=1)
+    db_session.flush()
+    assert auth_client.get("/api/v1/auth/me", headers=headers(bearer_token)).status_code == 401
