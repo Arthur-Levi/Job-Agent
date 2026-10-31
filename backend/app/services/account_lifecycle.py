@@ -2,6 +2,7 @@
 
 Raw tokens exist only transiently in the test mailer's message link.
 """
+
 import secrets
 from datetime import timedelta
 from urllib.parse import quote
@@ -73,9 +74,7 @@ def dispatch(
     mailer.send(user.email, subject, link)
 
 
-def consume(
-    session: Session, *, token: str, purpose: str, new_password: str | None = None
-) -> None:
+def consume(session: Session, *, token: str, purpose: str, new_password: str | None = None) -> None:
     if not (32 <= len(token) <= 256 and token.isascii()):
         raise InvalidActionToken
     token_hash = auth.digest(token)
