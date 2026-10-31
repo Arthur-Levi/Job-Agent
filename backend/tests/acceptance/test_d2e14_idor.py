@@ -3,6 +3,7 @@
 Foreign IDs must be invisible even when the client knows the UUID.
 Only run on the guarded disposable PostgreSQL *_test integration fixture.
 """
+
 from uuid import uuid4
 
 from fastapi.testclient import TestClient
@@ -16,9 +17,7 @@ def _identity(client: TestClient, suffix: str) -> dict[str, str]:
         json={"name": f"Synthetic {suffix}", "email": email, "password": password},
     )
     assert user.status_code == 201
-    token = client.post(
-        "/api/v1/auth/login", json={"email": email, "password": password}
-    )
+    token = client.post("/api/v1/auth/login", json={"email": email, "password": password})
     assert token.status_code == 200
     return {"Authorization": "Bearer " + token.json()["access_token"]}
 
@@ -29,14 +28,13 @@ def test_d2e14_foreign_job_and_application_ids_are_denied(
     owner = _identity(auth_client, "owner")
     outsider = _identity(auth_client, "outsider")
     created = auth_client.post(
-        "/api/v1/jobs", headers=owner,
+        "/api/v1/jobs",
+        headers=owner,
         json={"title": "D2E14 Synthetic Job", "company": "Synthetic", "description": "test"},
     )
     assert created.status_code == 201
     job_id = created.json()["id"]
-    application = auth_client.post(
-        "/api/v1/applications", headers=owner, json={"job_id": job_id}
-    )
+    application = auth_client.post("/api/v1/applications", headers=owner, json={"job_id": job_id})
     assert application.status_code == 201
     application_id = application.json()["id"]
 
@@ -63,6 +61,6 @@ def test_d2e14_foreign_job_and_application_ids_are_denied(
         response = auth_client.get(route)
         assert response.status_code == 401
     assert auth_client.get(f"/api/v1/jobs/{job_id}", headers=owner).status_code == 200
-    assert auth_client.get(
-        f"/api/v1/applications/{application_id}", headers=owner
-    ).status_code == 200
+    assert (
+        auth_client.get(f"/api/v1/applications/{application_id}", headers=owner).status_code == 200
+    )
