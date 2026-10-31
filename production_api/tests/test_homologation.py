@@ -154,3 +154,45 @@ def test_subscription_webhook_authoritative_remote_state(monkeypatch):
     monkeypatch.setenv('STRIPE_PRICE_ID','price_test');monkeypatch.setenv('PUBLIC_BASE_URL','https://example.com')
     assert c.get('/api/billing/status',headers=a).json()['premium_enabled'] is True
     assert c.post('/api/billing/checkout',headers=a).status_code==409
+
+
+def test_sec05_wrong_price_cannot_unlock_premium(monkeypatch):
+    """SEC05-FC01 (negative): an active subscription to a DIFFERENT Stripe price must not grant premium."""
+    from types import SimpleNamespace
+    a,_,_=user()
+    uid=c.get('/api/me',headers=a).json()['id']
+    customer='cus_sec05_'+str(uid)
+    sid='sub_sec05_'+str(uid)
+    class Webhook:
+        @staticmethod
+        def construct_event(payload,signature,secret):
+            return {
+                'id':'evt_sec05_'+uuid.uuid4().hex,
+                'type':'customer.subscription.updated',
+                'data':{'object':{
+                    'customer':customer,'id':sid,
+                    'metadata':{'job_agent_user_id':str(uid)},
+                    'status':'active',
+                }},
+            }
+    class SubscriptionAPI:
+        @staticmethod
+        def retrieve(*args):
+            return {
+                'id':sid,'customer':customer,'status':'active',
+                'items':{'data':[{'price':{'id':'price_unrelated_product'}}]},
+            }
+    fake=SimpleNamespace(
+        Webhook=Webhook,Subscription=SubscriptionAPI,
+        Customer=SimpleNamespace(retrieve=lambda _:{'metadata':{'job_agent_user_id':str(uid)}}),
+        error=SimpleNamespace(SignatureVerificationError=ValueError),
+    )
+    monkeypatch.setattr(main,'stripe_sdk',lambda:fake)
+    monkeypatch.setenv('STRIPE_WEBHOOK_SECRET','whsec_simulated')
+    monkeypatch.setenv('STRIPE_PRICE_ID','price_jobagent_299')
+    response=c.post('/api/billing/webhook',content=b'{}')
+    assert response.status_code in (200,400,409,422), response.text
+    status=c.get('/api/billing/status',headers=a).json()
+    assert status['premium_enabled'] is False, (
+        'SEC05-FC01 FAIL: a foreign Stripe price unlocked Job Agent Premium'
+    )
