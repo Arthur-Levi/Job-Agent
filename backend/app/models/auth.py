@@ -3,8 +3,8 @@
 No plaintext passwords or bearer tokens are stored. The user model remains an
 ownership model; these tables only link security state to an existing user UUID.
 """
-from datetime import datetime
 import uuid
+from datetime import datetime
 
 from sqlalchemy import DateTime, ForeignKey, Index, String, Uuid, func
 from sqlalchemy.orm import Mapped, mapped_column
