@@ -58,7 +58,9 @@ def register(session: Session, *, name: str, email: str, password: str) -> User:
         raise
 
 
-def login(session: Session, *, email: str, password: str) -> str:
+def login(
+    session: Session, *, email: str, password: str, require_verified: bool = False
+) -> str:
     user = UserRepository(session).get_by_email(email.strip())
     credential = session.get(AuthCredential, user.id) if user else None
     candidate_hash = credential.password_hash if credential else _DUMMY_PASSWORD_HASH
@@ -69,6 +71,8 @@ def login(session: Session, *, email: str, password: str) -> str:
     except (VerificationError, ValueError):
         pass
     if credential is None or user is None or not verified:
+        raise InvalidCredentials
+    if require_verified and user.email_verified_at is None:
         raise InvalidCredentials
     token = secrets.token_urlsafe(48)
     session.add(
