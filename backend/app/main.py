@@ -11,7 +11,11 @@ from app.api.v1.router import api_router
 from app.core.config import Settings
 from app.core.errors import register_exception_handlers
 from app.core.logging import configure_logging
-from app.core.middleware import AuthRateLimitMiddleware, BodySizeLimitMiddleware, RequestIdMiddleware
+from app.core.middleware import (
+    AuthRateLimitMiddleware,
+    BodySizeLimitMiddleware,
+    RequestIdMiddleware,
+)
 from app.core.request_context import REQUEST_ID_HEADER
 from app.db.session import Database
 
