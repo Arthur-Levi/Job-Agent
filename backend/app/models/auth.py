@@ -3,6 +3,7 @@
 No plaintext passwords or bearer tokens are stored. The user model remains an
 ownership model; these tables only link security state to an existing user UUID.
 """
+
 import uuid
 from datetime import datetime
 
@@ -31,9 +32,7 @@ class AuthSession(Base):
         Index("uq_auth_sessions_token_hash", "token_hash", unique=True),
     )
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4
-    )
+    id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_id: Mapped[uuid.UUID] = mapped_column(
         Uuid(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
     )
