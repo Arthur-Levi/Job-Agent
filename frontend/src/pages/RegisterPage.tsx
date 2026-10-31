@@ -28,9 +28,11 @@ export function RegisterPage() {
       setPassword('')
       setCreated(true)
     } catch (cause) {
-      setError(cause instanceof ApiError && cause.status === 409
-        ? 'Não foi possível cadastrar este email. Confira os dados ou tente entrar.'
-        : 'Não foi possível cadastrar. Verifique os campos e tente novamente.')
+      setError(cause instanceof ApiError && cause.status === 429
+        ? 'Muitas tentativas de cadastro. Aguarde alguns minutos antes de tentar novamente.'
+        : cause instanceof ApiError && cause.status === 409
+          ? 'Não foi possível cadastrar este email. Confira os dados ou tente entrar.'
+          : 'Não foi possível cadastrar. Verifique os campos e tente novamente.')
     } finally {
       setBusy(false)
     }
