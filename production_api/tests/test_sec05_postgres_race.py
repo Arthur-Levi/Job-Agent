@@ -23,7 +23,7 @@ from models import User, Subscription, WebhookEvent
 def _verify_target():
     url = make_url(os.environ["DATABASE_URL"])
     assert (url.drivername, url.username, url.host, url.port, url.database) == (
-        "postgresql+psycopg", "ux_test", "127.0.0.1", 55433, "jobagent_ux"
+        "postgresql+psycopg", "ux_test", "127.0.0.1", 55434, "jobagent_ux"
     ), "BLOCKED: non-disposable database"
     with main.engine.connect() as conn:
         assert conn.execute(text("SELECT current_database(), current_user")).one() == (
