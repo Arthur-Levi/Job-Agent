@@ -49,3 +49,15 @@ To conduct operational acceptance later:
 - Production deploy with HTTPS, trusted proxy, account abuse observation and privacy compliance.
 - Dedicated review of concurrency, time/side-channel differences, and token lifecycle under multiple workers.
 - PR #3 remains draft; DO NOT declare `D2-E1 COMPLETE` or publicly launch.
+
+## Latest complete GitHub Actions regression — PASS
+
+Run **41243282845**, with all three jobs concluded successfully:
+
+- Backend: Ruff lint/format PASS (105 files formatted), MyPy PASS (100 source files), Alembic upgrade/downgrade cycle including revision `0004` PASS, pytest **235 passed / 1 warning**.
+- Frontend: ESLint PASS, Vite production build PASS, Vitest **85 passed / 5 live tests skipped**. The additional tests exercise the generic recovery request UX and absence of a verification link token.
+- Audit job: PASS (the audit remains informational and not a security certification).
+
+Accepted: `D2-E1.5.1 IMPLEMENTATION + CI PASS`. Codespaces `0004` migration, real email transport and delivery, and public deployment remain unapproved/pending. GitHub PR #3 stays Draft.
+
+https://github.com/Arthur-Levi/Job-Agent/actions/runs/41243282845
