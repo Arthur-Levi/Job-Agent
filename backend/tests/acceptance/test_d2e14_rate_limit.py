@@ -75,8 +75,8 @@ def test_d2e14_account_throttle_and_generic_bad_login(
 def test_d2e14_register_returns_503_when_counter_store_is_unavailable(
     test_database_url: str, db_session: Session, monkeypatch
 ) -> None:
-    from app.services.auth_rate_limit import RateLimitUnavailable
     from app.core import middleware
+    from app.services.auth_rate_limit import RateLimitUnavailable
 
     with _client(test_database_url, db_session) as client:
         def unavailable(*args, **kwargs):
