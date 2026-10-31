@@ -33,3 +33,17 @@ npm run typecheck && npm run lint && npm run test && npm run build
 ```
 
 Do not run test fixtures that recreate a database schema without independently verifying a disposable database.
+
+## Operator validation — 2026-10-31
+
+Operator ran full frontend validation in the isolated `/workspaces/Job-Agent-D2-E1-UI` worktree at commit `108dc15`:
+- `npm run typecheck`: PASS
+- `npm run lint`: PASS
+- `npm run test`: **82 passed; 5 skipped**, 13 test files passing, 1 contract file skipped
+- `npm run build`: PASS (Vite v8.3.3; 68 modules; 352 ms)
+- Targeted `src/app/App.test.tsx`: **10/10 PASS**
+- Initial route-return regression was corrected in `108dc15`: login now returns to requested private route.
+
+**Accepted gate:** D2-E1.1 FRONTEND REGRESSION PASS (operator evidence). **NOT accepted:** D2-E1 complete, authenticated real API/browser E2E, 5 live contract tests, production security.
+
+Dependency review remains necessary: prior `npm ci` reported 14 vulnerabilities (12 moderate, 2 high); severity in production dependency tree has not yet been classified. Do not run `npm audit fix --force`.
