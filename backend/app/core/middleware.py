@@ -129,6 +129,10 @@ class AuthRateLimitMiddleware:
         if scope.get("method") != "POST" or path not in (
             "/api/v1/auth/login",
             "/api/v1/auth/register",
+            "/api/v1/auth/request-verification",
+            "/api/v1/auth/verify-email",
+            "/api/v1/auth/request-password-reset",
+            "/api/v1/auth/reset-password",
         ):
             await self.app(scope, receive, send)
             return
