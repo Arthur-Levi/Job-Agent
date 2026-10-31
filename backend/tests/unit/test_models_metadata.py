@@ -22,7 +22,14 @@ EXPECTED_TABLES = {
     "applications",
     "application_events",
 }
-USER_OWNED = {"candidate_profiles", "jobs", "resume_versions", "applications", "auth_credentials", "auth_sessions"}
+USER_OWNED = {
+    "candidate_profiles",
+    "jobs",
+    "resume_versions",
+    "applications",
+    "auth_credentials",
+    "auth_sessions",
+}
 
 
 def test_expected_tables_exist() -> None:
@@ -31,7 +38,8 @@ def test_expected_tables_exist() -> None:
 
 def test_every_primary_key_is_a_uuid() -> None:
     for table in Base.metadata.tables.values():
-        assert [c.name for c in table.primary_key.columns] == (["user_id"] if table.name == "auth_credentials" else ["id"]), table.name
+        expected = ["user_id"] if table.name == "auth_credentials" else ["id"]
+        assert [c.name for c in table.primary_key.columns] == expected, table.name
         pk = next(iter(table.primary_key.columns))
         assert isinstance(pk.type, Uuid), table.name
 
