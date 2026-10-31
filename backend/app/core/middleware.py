@@ -190,7 +190,9 @@ class SecurityResponseHeadersMiddleware:
                     headers["Cache-Control"] = "no-store"
                     headers["Pragma"] = "no-cache"
                 if self.production:
-                    headers["Content-Security-Policy"] = "default-src 'none'; frame-ancestors 'none'"
+                    headers["Content-Security-Policy"] = (
+                        "default-src 'none'; frame-ancestors 'none'"
+                    )
                     # HSTS on an API only after TLS termination and public HTTPS are verified.
                     # Set Strict-Transport-Security at the trusted HTTPS ingress, not here.
             await send(message)
