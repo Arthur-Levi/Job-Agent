@@ -8,14 +8,14 @@ from pydantic import BaseModel, EmailStr, Field
 
 from app.api.deps import SessionDep, SettingsDep, get_database
 from app.db.session import Database
-from app.services import auth
 from app.services import account_lifecycle as lifecycle
-from app.services.email_delivery import MemoryMailer
+from app.services import auth
 from app.services.auth_rate_limit import (
     RateLimitExceeded,
     RateLimitUnavailable,
     consume,
 )
+from app.services.email_delivery import MemoryMailer
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
