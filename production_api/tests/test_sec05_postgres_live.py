@@ -21,7 +21,7 @@ from models import User, Session, Subscription, WebhookEvent
 import main
 
 _EXPECTED = (
-    "postgresql+psycopg", "ux_test", "127.0.0.1", 55433, "jobagent_ux"
+    "postgresql+psycopg", "ux_test", "127.0.0.1", 55434, "jobagent_ux"
 )
 
 
