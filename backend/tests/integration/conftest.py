@@ -87,7 +87,8 @@ def api_client(test_database_url: str, db_session: Session) -> Iterator[TestClie
     `session.commit()` dos services só libera o SAVEPOINT; o rollback final descarta tudo.
     """
     settings = Settings(
-        _env_file=None, app_env="test", database_url=test_database_url, log_level="WARNING"
+        _env_file=None, app_env="test", database_url=test_database_url, log_level="WARNING",
+        allow_legacy_local_user=True
     )
     app = create_app(settings)
     app.dependency_overrides[get_session] = lambda: db_session
