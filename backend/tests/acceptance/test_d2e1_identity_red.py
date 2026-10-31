@@ -36,50 +36,50 @@ def headers(token_value):
     return {"Authorization": f"Bearer {token_value}"}
 
 
-def test_e1_no_default_identity_and_unauthenticated_requests_blocked(api_client: TestClient):
+def test_e1_no_default_identity_and_unauthenticated_requests_blocked(auth_client: TestClient):
     # The current D1 default-user route returns 200, so this intentionally starts RED.
     for path in ("/api/v1/profile", "/api/v1/jobs", "/api/v1/applications"):
-        response = api_client.get(path)
+        response = auth_client.get(path)
         assert response.status_code == 401, (path, response.status_code, response.text)
 
 
-def test_e1_ten_accounts_are_distinct_and_own_their_profiles(api_client: TestClient):
+def test_e1_ten_accounts_are_distinct_and_own_their_profiles(auth_client: TestClient):
     for persona in PERSONAS:
-        response = api_client.post(
+        response = auth_client.post(
             "/api/v1/auth/register", json={**credentials(persona), "name": persona["name"]}
         )
         assert response.status_code == 201, (persona["id"], response.status_code, response.text)
 
     ids = set()
     for persona in PERSONAS:
-        auth = headers(token(api_client, persona))
-        me = api_client.get("/api/v1/auth/me", headers=auth)
+        auth = headers(token(auth_client, persona))
+        me = auth_client.get("/api/v1/auth/me", headers=auth)
         assert me.status_code == 200, me.text
         assert me.json()["email"].lower() == persona["email"]
         ids.add(me.json()["id"])
-        profile = api_client.post(
+        profile = auth_client.post(
             "/api/v1/profile",
             headers=auth,
             json={"headline": persona["target_role"]},
         )
         assert profile.status_code == 201, (persona["id"], profile.text)
-        assert api_client.get("/api/v1/profile", headers=auth).json()["headline"] == persona["target_role"]
+        assert auth_client.get("/api/v1/profile", headers=auth).json()["headline"] == persona["target_role"]
     assert len(ids) == 10
 
 
-def test_e1_cross_user_jobs_are_not_exposed(api_client: TestClient):
+def test_e1_cross_user_jobs_are_not_exposed(auth_client: TestClient):
     # Independent from previous test: never rely on test execution order.
     identities = []
     for persona in PERSONAS:
-        registered = api_client.post(
+        registered = auth_client.post(
             "/api/v1/auth/register", json={**credentials(persona), "name": persona["name"]}
         )
         assert registered.status_code == 201, (persona["id"], registered.text)
-        identities.append(headers(token(api_client, persona)))
+        identities.append(headers(token(auth_client, persona)))
 
     job_ids = []
     for persona, auth in zip(PERSONAS, identities):
-        job = api_client.post(
+        job = auth_client.post(
             "/api/v1/jobs",
             headers=auth,
             json={
@@ -92,23 +92,23 @@ def test_e1_cross_user_jobs_are_not_exposed(api_client: TestClient):
         job_ids.append(job.json()["id"])
 
     for i, auth in enumerate(identities):
-        own_jobs = api_client.get("/api/v1/jobs", headers=auth)
+        own_jobs = auth_client.get("/api/v1/jobs", headers=auth)
         assert own_jobs.status_code == 200
         assert {x["id"] for x in own_jobs.json()["items"]} == {job_ids[i]}
         for j, job_id in enumerate(job_ids):
             if i != j:
-                foreign = api_client.get(f"/api/v1/jobs/{job_id}", headers=auth)
+                foreign = auth_client.get(f"/api/v1/jobs/{job_id}", headers=auth)
                 assert foreign.status_code == 404, (i, j, foreign.status_code)
 
 
-def test_e1_logout_revokes_only_its_own_session(api_client: TestClient):
+def test_e1_logout_revokes_only_its_own_session(auth_client: TestClient):
     first, second = PERSONAS[:2]
     for persona in (first, second):
-        response = api_client.post(
+        response = auth_client.post(
             "/api/v1/auth/register", json={**credentials(persona), "name": persona["name"]}
         )
         assert response.status_code == 201
-    a, b = token(api_client, first), token(api_client, second)
-    assert api_client.post("/api/v1/auth/logout", headers=headers(a)).status_code in (200, 204)
-    assert api_client.get("/api/v1/auth/me", headers=headers(a)).status_code == 401
-    assert api_client.get("/api/v1/auth/me", headers=headers(b)).status_code == 200
+    a, b = token(auth_client, first), token(auth_client, second)
+    assert auth_client.post("/api/v1/auth/logout", headers=headers(a)).status_code in (200, 204)
+    assert auth_client.get("/api/v1/auth/me", headers=headers(a)).status_code == 401
+    assert auth_client.get("/api/v1/auth/me", headers=headers(b)).status_code == 200
