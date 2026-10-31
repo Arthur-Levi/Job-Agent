@@ -76,7 +76,8 @@ def test_reset_revokes_all_sessions_and_old_password(
         email = f"d2e151-reset-{uuid4().hex}@example.com"
         old = "TestOnly-OldPassword-12345!"
         new = "TestOnly-NewPassword-12345!"
-        registered = post_status(client, "register", {"name": "Synthetic", "email": email, "password": old})
+        registration_payload = {"name": "Synthetic", "email": email, "password": old}
+        registered = post_status(client, "register", registration_payload)
         assert registered == 202
         assert post_status(client, "verify-email", {"token": last_token(client)}) == 204
         sessions: list[str] = []
