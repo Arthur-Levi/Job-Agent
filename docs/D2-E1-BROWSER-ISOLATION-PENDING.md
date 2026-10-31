@@ -5,7 +5,7 @@
 ## Dependencies and scope
 
 - Script: `scripts/d2e1_browser_isolation.py` (Playwright Python).
-- Runs headless Chromium against React/Vite at `127.0.0.1:5173` and isolated FastAPI at `127.0.0.1:18081`.
+- Runs headless Chromium against React/Vite at `localhost:5173` and isolated FastAPI at `127.0.0.1:18081`.
 - Requires 10 synthetic account registrations and 10 synthetic jobs; it **writes data** to the API DB. It never drops or recreates a schema.
 - Each identity uses its own browser context. Every account sees its own synthetic job and not the other nine (90 negative list checks). Same-context logout/account switch and refresh requiring login are also asserted.
 - No real emails, users, credentials, tokens or screenshots included in commits.
@@ -24,9 +24,13 @@
 
 ```bash
 D2E1_BROWSER_DISPOSABLE_ACK=jobagent_react_test \
-D2E1_WEB_URL=http://127.0.0.1:5173 \
+D2E1_WEB_URL=http://localhost:5173 \
 D2E1_API_URL=http://127.0.0.1:18081 \
 python scripts/d2e1_browser_isolation.py
 ```
 
 Stop at any failed assertion. Browser acceptance will be recorded only upon actual passing output and review. Rate limiting and recovery security remain separate public-launch gates.
+
+## Browser preflight gate / first failure
+
+The first Playwright run filled the registration form but the UI displayed a generic registration error before account creation. Suspected mismatch: backend `CORS_ORIGINS=http://localhost:5173` vs browser `http://127.0.0.1:5173`; exact cause must be confirmed by OPTIONS preflight. The script now defaults to `http://localhost:5173` and runs a browser-origin CORS preflight before creating any accounts. This change is not yet executed/accepted. If preflight fails, inspect the API CORS configuration rather than weakening backend security or changing the database.
