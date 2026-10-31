@@ -1,7 +1,9 @@
 /**
  * Teste de CONTRATO contra um backend REAL. Fica desligado por padrão.
  *
- *   VITE_LIVE_CONTRACT=1 VITE_API_URL=http://127.0.0.1:8000 npm test -- contract
+ *   Only after verifying the API's disposable DB binding:
+ *   VITE_LIVE_DISPOSABLE_ACK=jobagent_react_test VITE_LIVE_CONTRACT=1 \
+ *     VITE_API_URL=http://127.0.0.1:18081 npm test -- contract
  *
  * Grava dados no banco do backend alvo: aponte para um banco descartável.
  * Detecta divergência entre os tipos TypeScript e o que a API realmente devolve.
@@ -21,7 +23,7 @@ import { ApiError, getBaseUrl } from './http'
 import { jobsApi } from './jobsApi'
 import { profileApi } from './profileApi'
 
-const live = Boolean(import.meta.env.VITE_LIVE_CONTRACT)
+const live = import.meta.env.VITE_LIVE_CONTRACT === '1'
 const unique = Math.random().toString(36).slice(2, 10)
 
 async function rejection(promise: Promise<unknown>): Promise<ApiError> {
