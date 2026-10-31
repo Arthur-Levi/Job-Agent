@@ -27,12 +27,11 @@ describe('fail-closed authentication transport', () => {
 
   it('does not clear a newer session when an older request receives a delayed 401', async () => {
     setAccessToken('a'.repeat(64))
-    let resolveResponse: ((value: Response) => void) | undefined
-    fetchMock.mockImplementationOnce(() => new Promise<Response>(resolve => { resolveResponse = resolve }))
+    const deferred = { resolve: (_value: Response) => {} }
+    fetchMock.mockImplementationOnce(() => new Promise<Response>(resolve => { deferred.resolve = resolve }))
     const first = request('GET', '/api/v1/jobs').catch((error: unknown) => error)
     setAccessToken('b'.repeat(64))
-    expect(resolveResponse).toBeTypeOf('function')
-    resolveResponse?.(new Response('Unauthorized', { status: 401 }))
+    deferred.resolve(new Response('Unauthorized', { status: 401 }))
     await expect(first).resolves.toMatchObject({ status: 401 })
     expect(getAccessToken()).toBe('b'.repeat(64))
   })
