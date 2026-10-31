@@ -3,6 +3,7 @@
 Database-backed register/login/tenant tests live in tests/acceptance and must run
 only on the verified disposable React PostgreSQL after an Alembic migration.
 """
+
 import secrets
 
 import pytest
@@ -18,8 +19,7 @@ DB = "postgresql+psycopg://dummy:dummy@127.0.0.1:1/dummy_test"
 
 def test_default_identity_is_opt_in_and_forbidden_in_production():
     assert (
-        Settings(_env_file=None, database_url=DB, app_env="test").allow_legacy_local_user
-        is False
+        Settings(_env_file=None, database_url=DB, app_env="test").allow_legacy_local_user is False
     )
     with pytest.raises(ValidationError):
         Settings(
@@ -67,9 +67,7 @@ def test_auth_routes_are_versioned_and_bearer_header_allowed():
             "/api/v1/auth/me": "get",
             "/api/v1/auth/logout": "post",
         }.items() <= {
-            path: method
-            for path, operations in paths.items()
-            for method in operations
+            path: method for path, operations in paths.items() for method in operations
         }.items()
         response = client.options(
             "/api/v1/profile",
