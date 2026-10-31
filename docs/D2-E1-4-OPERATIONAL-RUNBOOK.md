@@ -78,3 +78,25 @@ This proves loopback direct-peer behavior, **not** safe trusted reverse-proxy op
 GitHub Actions run **41239950616**: backend PASS, frontend PASS, audit PASS. Backend pipeline included `python -m py_compile ../scripts/d2e14_operational_gate.py` and CLI `--help`, then Ruff, format, MyPy, migration cycle against disposable CI Postgres and pytest. This validates the harness can import/compile but **does not execute** its Docker guard, migration or real-time 429 recovery against Codespaces. Operational acceptance remains **PENDING** until operator logs are supplied.
 
 https://github.com/Arthur-Levi/Job-Agent/actions/runs/41239950616
+
+## Operator operational checkpoint — first live probe (2026-10-31)
+
+The operator verified disposable `jobagent_react_test/react_test` on loopback port `55435` with revision `0002`, safely stopped the validated old API PID `103117`, migrated only the disposable DB to `0003`, verified two repeated migration invocations were no-ops, and started the isolated rate-limited API on `127.0.0.1:18081` with PID `140573`. **Additive migration and isolated startup: PASS (operator reported).**
+
+First live `probe` reached the third deliberately invalid registration attempt and confirmed status **HTTP 429** (status assertion passed), but failed with `Register attempt 3: missing valid Retry-After`. The probe's `dict(response.headers).get("Retry-After")` was erroneously case-sensitive despite HTTP headers being case-insensitive. The script now matches header names using `casefold()`; CI exercises four header-capitalization variants with `self-test-headers`.
+
+**The first HTTP 429 is observed, but complete operational acceptance remains PENDING**: the `Retry-After` value, login per-account block, and expiry recovery still need a successful complete rerun. This correction does not change the backend, schema, users, or existing counters. After the initial failed probe, allow **at least 65 seconds** for the 60-second window to expire before repeating, or the already-consumed registration capacity can invalidate the first two 422 assertions.
+
+Rerun after updating the isolated worktree:
+```bash
+cd /workspaces/Job-Agent-D2-E1-UI
+git fetch origin feature/d2-e1-react-auth-ui
+git merge --ff-only origin/feature/d2-e1-react-auth-ui
+PY=/workspaces/Job-Agent-SEC05/backend/.venv/bin/python
+"$PY" scripts/d2e14_operational_gate.py self-test-headers
+"$PY" scripts/d2e14_operational_gate.py inspect
+sleep 65
+"$PY" scripts/d2e14_operational_gate.py probe
+```
+
+Do not restart the already validated API or reapply the additive migration merely to rerun the probe. No database resets, account deletion, or intervention in other containers are necessary.
