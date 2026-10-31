@@ -1,8 +1,12 @@
 """D2-E1 real user identity API. All payloads synthetic in acceptance tests."""
-from fastapi import APIRouter, Header, HTTPException
+from typing import Annotated
+
+from fastapi import APIRouter, Depends, Header, HTTPException
 from pydantic import BaseModel, EmailStr, Field
 
-from app.api.deps import SessionDep
+from app.api.deps import SessionDep, SettingsDep, get_database
+from app.db.session import Database
+from app.services.auth_rate_limit import consume, RateLimitExceeded, RateLimitUnavailable
 from app.services import auth
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -49,7 +53,26 @@ def register(payload: RegisterIn, session: SessionDep) -> UserOut:
 
 
 @router.post("/login", response_model=TokenOut)
-def login(payload: LoginIn, session: SessionDep) -> TokenOut:
+def login(
+    payload: LoginIn,
+    session: SessionDep,
+    settings: SettingsDep,
+    database: Annotated[Database, Depends(get_database)],
+) -> TokenOut:
+    if settings.auth_rate_limit_enabled:
+        try:
+            consume(
+                database, settings, kind="login_account",
+                identity=payload.email.strip().casefold(),
+                maximum=settings.auth_login_account_max,
+            )
+        except RateLimitExceeded as exc:
+            raise HTTPException(
+                429, "Too many requests. Try again later.",
+                headers={"Retry-After": str(exc.retry_after)},
+            ) from None
+        except RateLimitUnavailable:
+            raise HTTPException(503, "Service temporarily unavailable") from None
     try:
         token = auth.login(session, email=payload.email, password=payload.password)
     except auth.InvalidCredentials:
