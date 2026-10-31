@@ -45,9 +45,7 @@ def last_token(client: TestClient) -> str:
     return link.partition("#token=")[2]
 
 
-def post_status(
-    client: TestClient, route: str, payload: dict[str, str]
-) -> int:
+def post_status(client: TestClient, route: str, payload: dict[str, str]) -> int:
     return client.post("/api/v1/auth/" + route, json=payload).status_code
 
 
@@ -57,9 +55,10 @@ def test_verification_required_single_use_and_replay_denied(
     with lifecycle_client(test_database_url, db_session) as client:
         email = f"d2e151-verify-{uuid4().hex}@example.com"
         password = "TestOnly-Synthetic-StrongPassword123!"
-        assert post_status(
+        registered = post_status(
             client, "register", {"name": "Synthetic", "email": email, "password": password}
-        ) == 202
+        )
+        assert registered == 202
         assert post_status(client, "login", {"email": email, "password": password}) == 401
         raw = last_token(client)
         record = db_session.get(AuthActionToken, digest(raw))
@@ -77,15 +76,12 @@ def test_reset_revokes_all_sessions_and_old_password(
         email = f"d2e151-reset-{uuid4().hex}@example.com"
         old = "TestOnly-OldPassword-12345!"
         new = "TestOnly-NewPassword-12345!"
-        assert post_status(
-            client, "register", {"name": "Synthetic", "email": email, "password": old}
-        ) == 202
+        registered = post_status(client, "register", {"name": "Synthetic", "email": email, "password": old})
+        assert registered == 202
         assert post_status(client, "verify-email", {"token": last_token(client)}) == 204
         sessions: list[str] = []
         for _ in range(2):
-            response = client.post(
-                "/api/v1/auth/login", json={"email": email, "password": old}
-            )
+            response = client.post("/api/v1/auth/login", json={"email": email, "password": old})
             assert response.status_code == 200
             sessions.append(str(response.json()["access_token"]))
         assert post_status(client, "request-password-reset", {"email": email}) == 202
@@ -93,9 +89,7 @@ def test_reset_revokes_all_sessions_and_old_password(
         assert post_status(client, "reset-password", {"token": raw, "new_password": new}) == 204
         assert post_status(client, "reset-password", {"token": raw, "new_password": new}) == 400
         for bearer in sessions:
-            response = client.get(
-                "/api/v1/auth/me", headers={"Authorization": f"Bearer {bearer}"}
-            )
+            response = client.get("/api/v1/auth/me", headers={"Authorization": f"Bearer {bearer}"})
             assert response.status_code == 401
         assert post_status(client, "login", {"email": email, "password": old}) == 401
         assert post_status(client, "login", {"email": email, "password": new}) == 200
@@ -107,18 +101,16 @@ def test_expiry_and_unknown_email_do_not_disclose(
     with lifecycle_client(test_database_url, db_session) as client:
         email = f"d2e151-expiry-{uuid4().hex}@example.com"
         unknown = f"d2e151-unknown-{uuid4().hex}@example.com"
-        assert post_status(
-            client, "register",
+        registered = post_status(
+            client,
+            "register",
             {"name": "Synthetic", "email": email, "password": "TestOnly-Password-567890!"},
-        ) == 202
+        )
+        assert registered == 202
         old = last_token(client)
         count = len(mailer_for(client).messages)
-        unknown_response = client.post(
-            "/api/v1/auth/request-verification", json={"email": unknown}
-        )
-        known_response = client.post(
-            "/api/v1/auth/request-verification", json={"email": email}
-        )
+        unknown_response = client.post("/api/v1/auth/request-verification", json={"email": unknown})
+        known_response = client.post("/api/v1/auth/request-verification", json={"email": email})
         assert unknown_response.status_code == known_response.status_code == 202
         assert unknown_response.json() == known_response.json()
         assert len(mailer_for(client).messages) == count + 1
