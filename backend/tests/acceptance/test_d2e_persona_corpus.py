@@ -22,7 +22,7 @@ def test_exactly_ten_distinct_synthetic_identities():
     assert {p["id"] for p in rows} == {f"P{i:02d}" for i in range(1, 11)}
     assert len({p["email"].lower() for p in rows}) == 10
     assert len({p["name"] for p in rows}) == 10
-    assert all(p["email"].endswith("@example.test") for p in rows)
+    assert all(p["email"].endswith("@example.com") for p in rows)
 
 
 def test_every_persona_has_a_different_career_case():
@@ -74,3 +74,16 @@ def test_all_source_dates_and_labels_are_bounded():
             if section["end"]:
                 assert re.fullmatch(r"(19|20)\d{2}-(0[1-9]|1[0-2])", section["end"])
                 assert section["end"] >= start
+
+
+def test_all_synthetic_email_addresses_are_accepted_by_registration_schema():
+    """Prevent future 422 errors caused by reserved invalid e-mail TLDs."""
+    from app.api.v1.auth import RegisterIn
+
+    for p in personas():
+        data = RegisterIn(
+            name=p["name"],
+            email=p["email"],
+            password="D2E1-TestOnly-Password-For-Schema-123",
+        )
+        assert str(data.email) == p["email"]
