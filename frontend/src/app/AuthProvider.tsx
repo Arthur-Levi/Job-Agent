@@ -1,14 +1,8 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
-import { authApi, type AuthInput, type AuthUser } from '../services/authApi'
+import { useEffect, useState, type ReactNode } from 'react'
+import { authApi, type AuthInput } from '../services/authApi'
 import { clearAccessToken, getAccessToken } from '../services/authSession'
 import { onUnauthorized } from '../services/http'
-
-type AuthState = { status: 'checking' | 'guest' | 'authenticated'; user: AuthUser | null }
-interface AuthContextValue extends AuthState {
-  login: (input: AuthInput) => Promise<void>
-  logout: () => Promise<void>
-}
-const AuthContext = createContext<AuthContextValue | null>(null)
+import { AuthContext, type AuthState } from './authContext'
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AuthState>(() => ({
@@ -54,10 +48,4 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return <AuthContext.Provider value={{ ...state, login, logout }}>{children}</AuthContext.Provider>
-}
-
-export function useAuth(): AuthContextValue {
-  const context = useContext(AuthContext)
-  if (!context) throw new Error('useAuth must be used inside AuthProvider')
-  return context
 }
