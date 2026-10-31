@@ -17,7 +17,7 @@ from app.services.auth import PASSWORD_HASHER, digest
 DB = "postgresql+psycopg://dummy:dummy@127.0.0.1:1/dummy_test"
 
 
-def test_default_identity_is_opt_in_and_forbidden_in_production():
+def test_default_identity_is_opt_in_and_forbidden_in_production() -> None:
     assert (
         Settings(_env_file=None, database_url=DB, app_env="test").allow_legacy_local_user is False
     )
@@ -30,7 +30,7 @@ def test_default_identity_is_opt_in_and_forbidden_in_production():
         )
 
 
-def test_opaque_token_is_not_equal_to_stored_digest():
+def test_opaque_token_is_not_equal_to_stored_digest() -> None:
     token = secrets.token_urlsafe(48)
     hashed = digest(token)
     assert len(hashed) == 64
@@ -39,7 +39,7 @@ def test_opaque_token_is_not_equal_to_stored_digest():
     assert digest(token) != digest(secrets.token_urlsafe(48))
 
 
-def test_password_hasher_is_argon2():
+def test_password_hasher_is_argon2() -> None:
     secret = "TestOnly-password-not-from-real-user-123"
     hashed = PASSWORD_HASHER.hash(secret)
     assert hashed.startswith("$argon2")
@@ -47,7 +47,7 @@ def test_password_hasher_is_argon2():
     assert PASSWORD_HASHER.verify(hashed, secret)
 
 
-def test_auth_routes_are_versioned_and_bearer_header_allowed():
+def test_auth_routes_are_versioned_and_bearer_header_allowed() -> None:
     settings = Settings(
         _env_file=None,
         database_url=DB,
