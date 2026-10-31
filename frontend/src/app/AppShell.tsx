@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { ErrorBoundary } from '../components/ErrorBoundary'
-import { useAuth } from './AuthProvider'
+import { useAuth } from './authContext'
 
 const NAV = [
   { to: '/dashboard', label: 'Dashboard' },
