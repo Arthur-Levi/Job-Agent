@@ -13,7 +13,7 @@ vi.mock('../services/jobsApi', () => ({ jobsApi: { list: vi.fn() } }))
 vi.mock('../services/applicationsApi', () => ({ applicationsApi: { list: vi.fn() } }))
 vi.mock('../services/profileApi', () => ({ profileApi: { get: vi.fn().mockResolvedValue(null) } }))
 vi.mock('../services/authApi', () => ({
-  authApi: { hasSession: vi.fn(), me: vi.fn(), login: vi.fn(), register: vi.fn(), logout: vi.fn() },
+  authApi: { hasSession: vi.fn(), me: vi.fn(), login: vi.fn(), register: vi.fn(), logout: vi.fn(), requestVerification: vi.fn(), verifyEmail: vi.fn(), requestPasswordReset: vi.fn(), resetPassword: vi.fn() },
 }))
 
 const user = { id: 'synthetic-1', name: 'Test Candidate', email: 'test@example.com' }
@@ -116,7 +116,7 @@ describe('authenticated routing and shell', () => {
     fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'candidate@example.com' } })
     fireEvent.change(screen.getByLabelText('Senha (12 a 128 caracteres)'), { target: { value: 'synthetic-pass-1234' } })
     fireEvent.click(screen.getByRole('button', { name: 'Criar conta' }))
-    expect(await screen.findByText(/Cadastro realizado/)).toBeInTheDocument()
+    expect(await screen.findByText(/Solicitação recebida/)).toBeInTheDocument()
     expect(authApi.register).toHaveBeenCalledOnce()
     expect(screen.queryByRole('heading', { name: 'JOB COMMAND' })).not.toBeInTheDocument()
   })
