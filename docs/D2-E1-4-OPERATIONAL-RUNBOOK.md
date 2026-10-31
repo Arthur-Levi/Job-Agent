@@ -72,3 +72,9 @@ This proves loopback direct-peer behavior, **not** safe trusted reverse-proxy op
 - The script uses no real credentials, creates no real users, and does not alter existing schemas except the additive `0003` table and index.
 - No `DROP SCHEMA`, `alembic downgrade`, `docker compose down -v`, or production migration is authorized.
 - A successful CI run alone does **not** claim Codespaces operational PASS. Wait for operator output.
+
+## Operational harness CI check (2026-10-31)
+
+GitHub Actions run **41239950616**: backend PASS, frontend PASS, audit PASS. Backend pipeline included `python -m py_compile ../scripts/d2e14_operational_gate.py` and CLI `--help`, then Ruff, format, MyPy, migration cycle against disposable CI Postgres and pytest. This validates the harness can import/compile but **does not execute** its Docker guard, migration or real-time 429 recovery against Codespaces. Operational acceptance remains **PENDING** until operator logs are supplied.
+
+https://github.com/Arthur-Levi/Job-Agent/actions/runs/41239950616
