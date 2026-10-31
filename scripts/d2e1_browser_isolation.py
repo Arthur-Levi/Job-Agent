@@ -7,7 +7,6 @@ Creates ten synthetic accounts and one synthetic job for each account.
 from __future__ import annotations
 
 import os
-import re
 import secrets
 import sys
 from urllib.parse import urlparse
@@ -74,8 +73,14 @@ def register_and_login(page, web: str, email: str, password: str, name: str) -> 
     expect(page.get_by_text(name, exact=False)).to_be_visible()
 
 
-def create_job(page, web: str, title: str) -> None:
-    page.goto(web + "/jobs")
+def open_jobs_without_reload(page) -> None:
+    """Use React Router navigation: full page goto/reload discards memory-only bearer."""
+    page.get_by_role("navigation", name="Main").get_by_role("link", name="Jobs").click()
+    expect(page.get_by_role("heading", name="Jobs", exact=True)).to_be_visible()
+
+
+def create_job(page, title: str) -> None:
+    open_jobs_without_reload(page)
     expect(page.get_by_role("heading", name="Jobs", exact=True)).to_be_visible()
     page.get_by_role("button", name="Add Job", exact=True).first.click()
     form = page.get_by_role("form", name="Add job")
@@ -86,8 +91,8 @@ def create_job(page, web: str, title: str) -> None:
     expect(page.get_by_role("heading", name=title, exact=True)).to_be_visible()
 
 
-def assert_only_owned_job(page, web: str, owned: str, forbidden: list[str]) -> None:
-    page.goto(web + "/jobs")
+def assert_only_owned_job(page, owned: str, forbidden: list[str]) -> None:
+    open_jobs_without_reload(page)
     expect(page.get_by_role("heading", name="Jobs", exact=True)).to_be_visible()
     expect(page.get_by_text(owned, exact=True)).to_be_visible()
     for other in forbidden:
@@ -114,13 +119,13 @@ def main() -> int:
                 contexts.append(context)
                 page = context.new_page()
                 register_and_login(page, web, email, password, name)
-                create_job(page, web, title)
+                create_job(page, title)
                 # New context per account prevents accidental cookie/storage carry-over.
                 print(f"Account {i + 1}/10: register, login, create job PASS")
 
             for i, context in enumerate(contexts):
                 page = context.pages[0]
-                assert_only_owned_job(page, web, titles[i], titles[:i] + titles[i + 1:])
+                assert_only_owned_job(page, titles[i], titles[:i] + titles[i + 1:])
                 print(f"Account {i + 1}/10: cross-account job list isolation PASS")
 
             # Explicitly test logout and account switching in the SAME browser context.
@@ -132,8 +137,8 @@ def main() -> int:
             page.get_by_label("Email").fill(users[1][0])
             page.get_by_label("Senha", exact=True).fill(password)
             page.get_by_role("button", name="Entrar", exact=True).click()
-            expect(page.get_by_role("heading", name="JOB COMMAND")).to_be_visible()
-            assert_only_owned_job(page, web, titles[1], titles[:1] + titles[2:])
+            expect(page.get_by_role("heading", name="Jobs", exact=True)).to_be_visible()
+            assert_only_owned_job(page, titles[1], titles[:1] + titles[2:])
             print("Same-context logout / account switch isolation PASS")
 
             # In-memory bearer is deliberately discarded on full browser reload.
