@@ -47,3 +47,13 @@ Operator ran full frontend validation in the isolated `/workspaces/Job-Agent-D2-
 **Accepted gate:** D2-E1.1 FRONTEND REGRESSION PASS (operator evidence). **NOT accepted:** D2-E1 complete, authenticated real API/browser E2E, 5 live contract tests, production security.
 
 Dependency review remains necessary: prior `npm ci` reported 14 vulnerabilities (12 moderate, 2 high); severity in production dependency tree has not yet been classified. Do not run `npm audit fix --force`.
+
+## Operator evidence — D2-E1.2 authenticated live contract PASS (2026-10-31)
+
+At branch commit `4457feb`, operator executed `VITE_LIVE_CONTRACT=1 VITE_LIVE_DISPOSABLE_ACK=jobagent_react_test VITE_API_URL=http://127.0.0.1:18081 npm test -- contract.live.test.ts` within isolated React worktree. The dedicated disposable PostgreSQL was separately inspected as container `jobagent-react-test-db`, database `jobagent_react_test`, user `react_test`, loopback host port `55435`; isolated FastAPI used port `18081` as configured in the preceding gate.
+
+Output: **1 test file PASS, 5/5 tests PASS, zero failed, zero skipped**, duration 1.93 seconds. Tests included OpenAPI enums; profile create/read/update; jobs and error mapping; application transitions and delete protection; 204 delete. Synthetic account setup via register/login succeeded.
+
+**Accepted:** `D2-E1.2 AUTHENTICATED LIVE CONTRACT PASS`.
+
+**Not yet accepted:** ten-user browser E2E/account-switch isolation, password/rate limit and account security review, dependency audit, public launch. D2-E1 COMPLETE not claimed.
