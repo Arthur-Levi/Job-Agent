@@ -70,7 +70,7 @@ def test_all_source_dates_and_labels_are_bounded():
             assert section["employer"].strip()
             import re
             start = section["start"]
-            assert re.fullmatch(r"(19|20)\\d{2}-(0[1-9]|1[0-2])", start)
+            assert re.fullmatch(r"(19|20)\d{2}-(0[1-9]|1[0-2])", start)
             if section["end"]:
-                assert re.fullmatch(r"(19|20)\\d{2}-(0[1-9]|1[0-2])", section["end"])
+                assert re.fullmatch(r"(19|20)\d{2}-(0[1-9]|1[0-2])", section["end"])
                 assert section["end"] >= start
