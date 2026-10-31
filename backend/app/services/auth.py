@@ -2,6 +2,7 @@
 
 Opaque bearer tokens are returned once, never persisted in plaintext.
 """
+
 import hashlib
 import secrets
 from datetime import UTC, datetime, timedelta
