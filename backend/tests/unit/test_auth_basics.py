@@ -6,7 +6,6 @@ only on the verified disposable React PostgreSQL after an Alembic migration.
 import secrets
 
 import pytest
-from fastapi.routing import APIRoute
 from fastapi.testclient import TestClient
 from pydantic import ValidationError
 
@@ -54,14 +53,22 @@ def test_auth_routes_are_versioned_and_bearer_header_allowed():
         cors_origins=["http://localhost:5173"],
     )
     app = create_app(settings)
-    routes = {r.path for r in app.routes if isinstance(r, APIRoute)}
-    assert {
-        "/api/v1/auth/register",
-        "/api/v1/auth/login",
-        "/api/v1/auth/me",
-        "/api/v1/auth/logout",
-    } <= routes
+    # Exercise public OpenAPI rather than FastAPI internals: newer FastAPI builds
+    # retain included routers as _IncludedRouter until routing is resolved.
     with TestClient(app) as client:
+        spec_response = client.get("/openapi.json")
+        assert spec_response.status_code == 200
+        paths = spec_response.json()["paths"]
+        assert {
+            "/api/v1/auth/register": "post",
+            "/api/v1/auth/login": "post",
+            "/api/v1/auth/me": "get",
+            "/api/v1/auth/logout": "post",
+        }.items() <= {
+            path: method
+            for path, operations in paths.items()
+            for method in operations
+        }.items()
         response = client.options(
             "/api/v1/profile",
             headers={
