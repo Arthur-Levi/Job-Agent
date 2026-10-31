@@ -3,20 +3,23 @@ import re
 import time
 from uuid import uuid4
 
+from starlette.concurrency import run_in_threadpool
 from starlette.datastructures import Headers, MutableHeaders
 from starlette.responses import JSONResponse
-from starlette.concurrency import run_in_threadpool
-
-from app.core.config import Settings
-from app.db.session import Database
-from app.services.auth_rate_limit import consume, RateLimitExceeded, RateLimitUnavailable
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
+from app.core.config import Settings
 from app.core.errors import error_payload
 from app.core.request_context import (
     REQUEST_ID_HEADER,
     reset_request_id,
     set_request_id,
+)
+from app.db.session import Database
+from app.services.auth_rate_limit import (
+    RateLimitExceeded,
+    RateLimitUnavailable,
+    consume,
 )
 
 logger = logging.getLogger("app.request")
