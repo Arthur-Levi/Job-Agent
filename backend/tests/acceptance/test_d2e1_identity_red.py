@@ -5,13 +5,15 @@ Run only against a verified, disposable React PostgreSQL test DB. The integratio
 fixture recreates the public schema on first use.
 """
 import json
+from datetime import timedelta
 from pathlib import Path
 
 from fastapi.testclient import TestClient
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.models import User
-from tests.integration.factories import make_job, make_profile
+from app.models import AuthSession
+from app.services.auth import digest, now_utc
 
 PERSONAS = json.loads(
     (Path(__file__).with_name("d2e_personas.json")).read_text(encoding="utf-8")
@@ -63,7 +65,10 @@ def test_e1_ten_accounts_are_distinct_and_own_their_profiles(auth_client: TestCl
             json={"headline": persona["target_role"]},
         )
         assert profile.status_code == 201, (persona["id"], profile.text)
-        assert auth_client.get("/api/v1/profile", headers=auth).json()["headline"] == persona["target_role"]
+        assert (
+            auth_client.get("/api/v1/profile", headers=auth).json()["headline"]
+            == persona["target_role"]
+        )
     assert len(ids) == 10
 
 
@@ -78,7 +83,7 @@ def test_e1_cross_user_jobs_are_not_exposed(auth_client: TestClient):
         identities.append(headers(token(auth_client, persona)))
 
     job_ids = []
-    for persona, auth in zip(PERSONAS, identities):
+    for persona, auth in zip(PERSONAS, identities, strict=True):
         job = auth_client.post(
             "/api/v1/jobs",
             headers=auth,
@@ -133,12 +138,6 @@ def test_e1_duplicate_registration_wrong_password_and_invalid_token(auth_client:
 
 
 def test_e1_session_expiry_revokes_access(auth_client: TestClient, db_session: Session):
-    from datetime import timedelta
-    from sqlalchemy import select
-
-    from app.models import AuthSession
-    from app.services.auth import digest, now_utc
-
     persona = PERSONAS[1]
     assert auth_client.post(
         "/api/v1/auth/register", json={**credentials(persona), "name": persona["name"]}
