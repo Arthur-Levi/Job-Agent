@@ -45,7 +45,7 @@ export function RegisterPage() {
         <h1 className="mb-5 text-2xl font-semibold text-white">Criar conta</h1>
         {created ? (
           <div role="status" className="space-y-4">
-            <p>Cadastro realizado. Entre com suas credenciais para começar.</p>
+            <p>Solicitação recebida. Se necessário, confirme seu email antes de entrar.</p>
             <Link to="/login" className="inline-block rounded-md bg-sky-600 px-4 py-3 text-white">Ir para login</Link>
           </div>
         ) : (
@@ -71,6 +71,7 @@ export function RegisterPage() {
             </button>
           </form>
         )}
+        <p className="mt-4 text-sm"><Link to="/request-verification" className="text-sky-400 underline">Solicitar confirmação de email</Link></p>
         <p className="mt-5 text-sm text-slate-400">Já tem conta? <Link to="/login" className="text-sky-400 underline">Entrar</Link></p>
       </section>
     </main>
