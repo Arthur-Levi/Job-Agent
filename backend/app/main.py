@@ -15,6 +15,7 @@ from app.core.middleware import (
     AuthRateLimitMiddleware,
     BodySizeLimitMiddleware,
     RequestIdMiddleware,
+    SecurityResponseHeadersMiddleware,
 )
 from app.core.request_context import REQUEST_ID_HEADER
 from app.db.session import Database
@@ -57,6 +58,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.add_middleware(BodySizeLimitMiddleware, max_bytes=settings.max_request_bytes)
     app.add_middleware(AuthRateLimitMiddleware, database=database, settings=settings)
     app.add_middleware(RequestIdMiddleware)
+    app.add_middleware(
+        SecurityResponseHeadersMiddleware, production=settings.is_production
+    )
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.cors_origins,
