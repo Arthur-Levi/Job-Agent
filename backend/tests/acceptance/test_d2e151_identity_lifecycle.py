@@ -46,7 +46,7 @@ def last_token(client: TestClient) -> str:
 
 
 def post_status(client: TestClient, route: str, payload: dict[str, str]) -> int:
-    return client.post("/api/v1/auth/" + route, json=payload).status_code
+    return int(client.post("/api/v1/auth/" + route, json=payload).status_code)
 
 
 def test_verification_required_single_use_and_replay_denied(
