@@ -127,7 +127,8 @@ class AuthRateLimitMiddleware:
             return
         path = scope.get("path")
         if scope.get("method") != "POST" or path not in (
-            "/api/v1/auth/login", "/api/v1/auth/register",
+            "/api/v1/auth/login",
+            "/api/v1/auth/register",
         ):
             await self.app(scope, receive, send)
             return
@@ -137,12 +138,17 @@ class AuthRateLimitMiddleware:
         kind = "login_ip" if path == "/api/v1/auth/login" else "register_ip"
         maximum = (
             self.settings.auth_login_ip_max
-            if kind == "login_ip" else self.settings.auth_register_ip_max
+            if kind == "login_ip"
+            else self.settings.auth_register_ip_max
         )
         try:
             await run_in_threadpool(
-                consume, self.database, self.settings,
-                kind=kind, identity=identity, maximum=maximum,
+                consume,
+                self.database,
+                self.settings,
+                kind=kind,
+                identity=identity,
+                maximum=maximum,
             )
         except RateLimitExceeded as exc:
             response = JSONResponse(
