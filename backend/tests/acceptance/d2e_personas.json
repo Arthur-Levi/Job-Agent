@@ -1,0 +1,527 @@
+{
+  "schema_version": 1,
+  "notice": "100% synthetic; not real identities, resumes, employers, or job offers",
+  "personas": [
+    {
+      "id": "P01",
+      "name": "Lucas Andrade",
+      "email": "d2e-p01@example.test",
+      "segment": "administrativo_jovem",
+      "target_role": "Assistente Administrativo",
+      "resume": {
+        "format": "txt",
+        "sections": [
+          {
+            "kind": "experience",
+            "employer": "Aprendiz Administrativo",
+            "role": "2025-02",
+            "start": "2026-10",
+            "description": "Excel;Power BI;planilhas;lançamento de dados"
+          }
+        ],
+        "skill_mentions": [
+          "Power BI",
+          "Excel"
+        ],
+        "special_case": "administrativo_jovem"
+      },
+      "job": {
+        "title": "Assistente Administrativo",
+        "company": "Empresa-Alvo Fictícia",
+        "requirements": [
+          "Power BI",
+          "Excel",
+          "SQL",
+          "controles internos"
+        ]
+      },
+      "expected": {
+        "supported_mentions": [
+          "Power BI",
+          "Excel"
+        ],
+        "gaps_to_investigate": [
+          "SQL",
+          "controles internos"
+        ],
+        "forbidden_claims": [
+          "competência verificada sem evidência",
+          "experiência inventada",
+          "probabilidade de contratação garantida"
+        ],
+        "requires_human_review": true
+      }
+    },
+    {
+      "id": "P02",
+      "name": "Mariana Costa",
+      "email": "d2e-p02@example.test",
+      "segment": "dev_junior",
+      "target_role": "Desenvolvedora Backend Júnior",
+      "resume": {
+        "format": "docx",
+        "sections": [
+          {
+            "kind": "experience",
+            "employer": "Desenvolvedora de projeto próprio",
+            "role": "2025-06",
+            "start": "2026-10",
+            "description": "Python;React;PostgreSQL;FastAPI"
+          }
+        ],
+        "skill_mentions": [
+          "Python",
+          "PostgreSQL"
+        ],
+        "special_case": "dev_junior"
+      },
+      "job": {
+        "title": "Desenvolvedora Backend Júnior",
+        "company": "Empresa-Alvo Fictícia",
+        "requirements": [
+          "Python",
+          "PostgreSQL",
+          "Docker",
+          "testes automatizados"
+        ]
+      },
+      "expected": {
+        "supported_mentions": [
+          "Python",
+          "PostgreSQL"
+        ],
+        "gaps_to_investigate": [
+          "Docker",
+          "testes automatizados"
+        ],
+        "forbidden_claims": [
+          "competência verificada sem evidência",
+          "experiência inventada",
+          "probabilidade de contratação garantida"
+        ],
+        "requires_human_review": true
+      }
+    },
+    {
+      "id": "P03",
+      "name": "Roberto Silva",
+      "email": "d2e-p03@example.test",
+      "segment": "logistica_senior",
+      "target_role": "Supervisor de Logística",
+      "resume": {
+        "format": "pdf",
+        "sections": [
+          {
+            "kind": "experience",
+            "employer": "Auxiliar de Estoque",
+            "role": "2014-01",
+            "start": "2017-12",
+            "description": "WMS;controle de estoque;liderança;inventários"
+          },
+          {
+            "kind": "experience",
+            "employer": "Operadora Logística Simulada",
+            "role": "Conferente",
+            "start": "2018-01",
+            "end": "2020-12",
+            "description": "Conferência de estoque e inventários"
+          },
+          {
+            "kind": "experience",
+            "employer": "Operadora Logística Simulada",
+            "role": "Supervisor de Operações",
+            "start": "2021-01",
+            "end": "2026-10",
+            "description": "Supervisão de equipe e processos WMS"
+          }
+        ],
+        "skill_mentions": [
+          "WMS",
+          "inventários"
+        ],
+        "special_case": "logistica_senior"
+      },
+      "job": {
+        "title": "Supervisor de Logística",
+        "company": "Empresa-Alvo Fictícia",
+        "requirements": [
+          "WMS",
+          "inventários",
+          "Power BI",
+          "SQL"
+        ]
+      },
+      "expected": {
+        "supported_mentions": [
+          "WMS",
+          "inventários"
+        ],
+        "gaps_to_investigate": [
+          "Power BI",
+          "SQL"
+        ],
+        "forbidden_claims": [
+          "competência verificada sem evidência",
+          "experiência inventada",
+          "probabilidade de contratação garantida"
+        ],
+        "requires_human_review": true
+      }
+    },
+    {
+      "id": "P04",
+      "name": "Camila Rocha",
+      "email": "d2e-p04@example.test",
+      "segment": "transicao_carreira",
+      "target_role": "Analista de Dados Júnior",
+      "resume": {
+        "format": "txt",
+        "sections": [
+          {
+            "kind": "experience",
+            "employer": "Professora",
+            "role": "2019-02",
+            "start": "2026-02",
+            "description": "Excel;didática;análise de avaliações;gestão de turma"
+          }
+        ],
+        "skill_mentions": [
+          "Excel"
+        ],
+        "special_case": "transicao_carreira"
+      },
+      "job": {
+        "title": "Analista de Dados Júnior",
+        "company": "Empresa-Alvo Fictícia",
+        "requirements": [
+          "Excel",
+          "SQL",
+          "Python"
+        ]
+      },
+      "expected": {
+        "supported_mentions": [
+          "Excel"
+        ],
+        "gaps_to_investigate": [
+          "SQL",
+          "Python"
+        ],
+        "forbidden_claims": [
+          "competência verificada sem evidência",
+          "experiência inventada",
+          "probabilidade de contratação garantida"
+        ],
+        "requires_human_review": true
+      }
+    },
+    {
+      "id": "P05",
+      "name": "Gabriel Souza",
+      "email": "d2e-p05@example.test",
+      "segment": "primeiro_emprego",
+      "target_role": "Auxiliar Administrativo",
+      "resume": {
+        "format": "docx",
+        "sections": [
+          {
+            "kind": "project",
+            "employer": "Participante",
+            "role": "2025-03",
+            "start": "2026-08",
+            "description": "projeto escolar;organização de eventos;Excel"
+          }
+        ],
+        "skill_mentions": [
+          "Excel"
+        ],
+        "special_case": "primeiro_emprego"
+      },
+      "job": {
+        "title": "Auxiliar Administrativo",
+        "company": "Empresa-Alvo Fictícia",
+        "requirements": [
+          "Excel",
+          "experiência formal",
+          "rotinas administrativas"
+        ]
+      },
+      "expected": {
+        "supported_mentions": [
+          "Excel"
+        ],
+        "gaps_to_investigate": [
+          "experiência formal",
+          "rotinas administrativas"
+        ],
+        "forbidden_claims": [
+          "competência verificada sem evidência",
+          "experiência inventada",
+          "probabilidade de contratação garantida"
+        ],
+        "requires_human_review": true
+      }
+    },
+    {
+      "id": "P06",
+      "name": "Fernanda Lima",
+      "email": "d2e-p06@example.test",
+      "segment": "financas",
+      "target_role": "Analista Financeira",
+      "resume": {
+        "format": "pdf",
+        "sections": [
+          {
+            "kind": "experience",
+            "employer": "Assistente Financeira",
+            "role": "2021-04",
+            "start": "2026-10",
+            "description": "conciliação bancária;relatórios;Excel;indicadores"
+          }
+        ],
+        "skill_mentions": [
+          "Excel",
+          "conciliação bancária"
+        ],
+        "special_case": "financas"
+      },
+      "job": {
+        "title": "Analista Financeira",
+        "company": "Empresa-Alvo Fictícia",
+        "requirements": [
+          "Excel",
+          "conciliação bancária",
+          "Power BI",
+          "automação"
+        ]
+      },
+      "expected": {
+        "supported_mentions": [
+          "Excel",
+          "conciliação bancária"
+        ],
+        "gaps_to_investigate": [
+          "Power BI",
+          "automação"
+        ],
+        "forbidden_claims": [
+          "competência verificada sem evidência",
+          "experiência inventada",
+          "probabilidade de contratação garantida"
+        ],
+        "requires_human_review": true
+      }
+    },
+    {
+      "id": "P07",
+      "name": "Andre Martins",
+      "email": "d2e-p07@example.test",
+      "segment": "freelancer",
+      "target_role": "Desenvolvedor Full Stack",
+      "resume": {
+        "format": "txt",
+        "sections": [
+          {
+            "kind": "experience",
+            "employer": "Freelancer",
+            "role": "2022-01",
+            "start": "",
+            "description": "sites;JavaScript;HTML;CSS;projetos freelance"
+          }
+        ],
+        "skill_mentions": [
+          "JavaScript",
+          "HTML"
+        ],
+        "special_case": "freelancer"
+      },
+      "job": {
+        "title": "Desenvolvedor Full Stack",
+        "company": "Empresa-Alvo Fictícia",
+        "requirements": [
+          "JavaScript",
+          "HTML",
+          "testes",
+          "deploy documentado"
+        ]
+      },
+      "expected": {
+        "supported_mentions": [
+          "JavaScript",
+          "HTML"
+        ],
+        "gaps_to_investigate": [
+          "testes",
+          "deploy documentado"
+        ],
+        "forbidden_claims": [
+          "competência verificada sem evidência",
+          "experiência inventada",
+          "probabilidade de contratação garantida"
+        ],
+        "requires_human_review": true
+      }
+    },
+    {
+      "id": "P08",
+      "name": "Patricia Oliveira",
+      "email": "d2e-p08@example.test",
+      "segment": "retorno_mercado",
+      "target_role": "Assistente de Recursos Humanos",
+      "resume": {
+        "format": "docx",
+        "sections": [
+          {
+            "kind": "experience",
+            "employer": "Assistente de RH",
+            "role": "2012-04",
+            "start": "2019-11",
+            "description": "atendimento;arquivo;rotinas de RH"
+          }
+        ],
+        "skill_mentions": [
+          "atendimento",
+          "rotinas de RH"
+        ],
+        "special_case": "retorno_mercado"
+      },
+      "job": {
+        "title": "Assistente de Recursos Humanos",
+        "company": "Empresa-Alvo Fictícia",
+        "requirements": [
+          "atendimento",
+          "rotinas de RH",
+          "eSocial",
+          "Excel avançado"
+        ]
+      },
+      "expected": {
+        "supported_mentions": [
+          "atendimento",
+          "rotinas de RH"
+        ],
+        "gaps_to_investigate": [
+          "eSocial",
+          "Excel avançado"
+        ],
+        "forbidden_claims": [
+          "competência verificada sem evidência",
+          "experiência inventada",
+          "probabilidade de contratação garantida"
+        ],
+        "requires_human_review": true
+      }
+    },
+    {
+      "id": "P09",
+      "name": "Rafael Mendes",
+      "email": "d2e-p09@example.test",
+      "segment": "contradicoes",
+      "target_role": "Analista de Operações",
+      "resume": {
+        "format": "pdf",
+        "sections": [
+          {
+            "kind": "experience",
+            "employer": "Analista de Estoque",
+            "role": "2022-01",
+            "start": "2024-08",
+            "description": "planilhas;inventário;Excel"
+          }
+        ],
+        "skill_mentions": [
+          "Excel",
+          "inventário"
+        ],
+        "special_case": "contradicoes",
+        "conflicting_claims": [
+          {
+            "field": "end",
+            "role": "Analista de Estoque",
+            "values": [
+              "2024-08",
+              "2025-01"
+            ]
+          }
+        ]
+      },
+      "job": {
+        "title": "Analista de Operações",
+        "company": "Empresa-Alvo Fictícia",
+        "requirements": [
+          "Excel",
+          "inventário",
+          "Power BI",
+          "gestão de projetos"
+        ]
+      },
+      "expected": {
+        "supported_mentions": [
+          "Excel",
+          "inventário"
+        ],
+        "gaps_to_investigate": [
+          "Power BI",
+          "gestão de projetos"
+        ],
+        "forbidden_claims": [
+          "competência verificada sem evidência",
+          "experiência inventada",
+          "probabilidade de contratação garantida"
+        ],
+        "requires_human_review": true
+      }
+    },
+    {
+      "id": "P10",
+      "name": "Beatriz Santos",
+      "email": "d2e-p10@example.test",
+      "segment": "bilingue",
+      "target_role": "Analista de Suporte Técnico",
+      "resume": {
+        "format": "txt",
+        "sections": [
+          {
+            "kind": "experience",
+            "employer": "Support Analyst",
+            "role": "2020-09",
+            "start": "2026-10",
+            "description": "technical support;help desk;Windows;English"
+          }
+        ],
+        "skill_mentions": [
+          "technical support",
+          "English"
+        ],
+        "special_case": "bilingue",
+        "language": "pt-BR/en-US"
+      },
+      "job": {
+        "title": "Analista de Suporte Técnico",
+        "company": "Empresa-Alvo Fictícia",
+        "requirements": [
+          "technical support",
+          "English",
+          "Linux",
+          "cloud"
+        ]
+      },
+      "expected": {
+        "supported_mentions": [
+          "technical support",
+          "English"
+        ],
+        "gaps_to_investigate": [
+          "Linux",
+          "cloud"
+        ],
+        "forbidden_claims": [
+          "competência verificada sem evidência",
+          "experiência inventada",
+          "probabilidade de contratação garantida"
+        ],
+        "requires_human_review": true
+      }
+    }
+  ]
+}
