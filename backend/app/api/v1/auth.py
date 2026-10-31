@@ -127,7 +127,9 @@ def login(
             raise HTTPException(503, "Service temporarily unavailable") from None
     try:
         token = auth.login(
-            session, email=payload.email, password=payload.password,
+            session,
+            email=payload.email,
+            password=payload.password,
             require_verified=settings.identity_lifecycle_enabled,
         )
     except auth.InvalidCredentials:
@@ -175,7 +177,8 @@ def _limited_email_request(
         )
     except RateLimitExceeded as exc:
         raise HTTPException(
-            429, "Too many requests. Try again later.",
+            429,
+            "Too many requests. Try again later.",
             headers={"Retry-After": str(exc.retry_after)},
         ) from None
     except RateLimitUnavailable:
@@ -193,8 +196,11 @@ def request_verification(
     mailer = _mailer(request, settings)
     _limited_email_request(database, settings, email=payload.email, purpose="verify")
     lifecycle.dispatch(
-        session, email=payload.email, purpose=lifecycle.VERIFY,
-        mailer=mailer, frontend_url=settings.public_frontend_url,
+        session,
+        email=payload.email,
+        purpose=lifecycle.VERIFY,
+        mailer=mailer,
+        frontend_url=settings.public_frontend_url,
     )
     return MessageOut(message="Se existir uma conta elegível, enviaremos instruções.")
 
@@ -221,8 +227,11 @@ def request_password_reset(
     mailer = _mailer(request, settings)
     _limited_email_request(database, settings, email=payload.email, purpose="reset")
     lifecycle.dispatch(
-        session, email=payload.email, purpose=lifecycle.RESET,
-        mailer=mailer, frontend_url=settings.public_frontend_url,
+        session,
+        email=payload.email,
+        purpose=lifecycle.RESET,
+        mailer=mailer,
+        frontend_url=settings.public_frontend_url,
     )
     return MessageOut(message="Se existir uma conta elegível, enviaremos instruções.")
 
@@ -234,7 +243,9 @@ def reset_password(
     _mailer(request, settings)
     try:
         lifecycle.consume(
-            session, token=payload.token, purpose=lifecycle.RESET,
+            session,
+            token=payload.token,
+            purpose=lifecycle.RESET,
             new_password=payload.new_password,
         )
     except lifecycle.InvalidActionToken:
