@@ -1,6 +1,7 @@
 """D2-E1.5 trusted proxy scope contract — no database or external network."""
 
 import asyncio
+from typing import Any, cast
 
 from starlette.types import Message, Receive, Scope, Send
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
@@ -13,7 +14,7 @@ def test_proxy_headers_only_from_trusted_peer() -> None:
         async def inner(scope: Scope, receive: Receive, send: Send) -> None:
             seen.append(scope["client"])
 
-        app = ProxyHeadersMiddleware(inner, trusted_hosts=["127.0.0.1"])
+        app = ProxyHeadersMiddleware(cast(Any, inner), trusted_hosts=["127.0.0.1"])
         scope: Scope = {
             "type": "http",
             "method": "GET",
@@ -30,7 +31,7 @@ def test_proxy_headers_only_from_trusted_peer() -> None:
         async def send(message: Message) -> None:
             return None
 
-        await app(scope, receive, send)
+        await app(cast(Any, scope), cast(Any, receive), cast(Any, send))
         assert len(seen) == 1
         return seen[0]
 
