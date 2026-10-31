@@ -1,11 +1,10 @@
 import { useState, type FormEvent } from 'react'
-import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
+import { Link, Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../app/authContext'
 import { ApiError } from '../services/http'
 
 export function LoginPage() {
   const { status, login } = useAuth()
-  const navigate = useNavigate()
   const location = useLocation()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -15,7 +14,7 @@ export function LoginPage() {
   const redirect = destination?.startsWith('/') && !destination.startsWith('//') && !destination.startsWith('/login') && !destination.startsWith('/register')
     ? destination : '/dashboard'
 
-  if (status === 'authenticated') return <Navigate to="/dashboard" replace />
+  if (status === 'authenticated') return <Navigate to={redirect} replace />
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -24,7 +23,6 @@ export function LoginPage() {
     setBusy(true)
     try {
       await login({ email: email.trim(), password })
-      navigate(redirect, { replace: true })
     } catch (cause) {
       setError(cause instanceof ApiError && cause.status === 401
         ? 'Email ou senha inválidos.'
