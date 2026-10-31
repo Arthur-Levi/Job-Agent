@@ -50,6 +50,10 @@ class Settings(BaseSettings):
     # PostgreSQL counters shared by all API workers; require migration 0003.
     # Public registration is intentionally nondisclosing in production.
     registration_privacy_enabled: bool = False
+    identity_lifecycle_enabled: bool = False
+    # Memory mail exists exclusively for disposable testing, never real-user delivery.
+    email_delivery_mode: Literal["disabled", "memory"] = "disabled"
+    public_frontend_url: str = "http://localhost:5173"
     auth_rate_limit_enabled: bool = False
     auth_rate_limit_secret: SecretStr | None = None
     auth_login_ip_max: int = Field(default=60, ge=1, le=10000)
@@ -93,6 +97,16 @@ class Settings(BaseSettings):
             raise ValueError("CORS_ORIGINS must not contain '*' when APP_ENV=production")
         if self.app_env is AppEnv.PRODUCTION and self.allow_legacy_local_user:
             raise ValueError("ALLOW_LEGACY_LOCAL_USER is forbidden in production")
+        if self.app_env is AppEnv.PRODUCTION and not self.identity_lifecycle_enabled:
+            raise ValueError("IDENTITY_LIFECYCLE_ENABLED is required in production")
+        if self.app_env is AppEnv.PRODUCTION and self.email_delivery_mode != "disabled":
+            raise ValueError("Memory mail is forbidden in production; real provider not integrated")
+        if self.identity_lifecycle_enabled and self.email_delivery_mode == "disabled":
+            raise ValueError("Identity lifecycle needs a verified email-delivery integration")
+        if self.identity_lifecycle_enabled and not self.public_frontend_url.startswith(
+            "https://" if self.app_env is AppEnv.PRODUCTION else "http"
+        ):
+            raise ValueError("Invalid public frontend origin for identity links")
         if self.app_env is AppEnv.PRODUCTION and not self.registration_privacy_enabled:
             raise ValueError("REGISTRATION_PRIVACY_ENABLED must be true in production")
         if self.app_env is AppEnv.PRODUCTION and not self.auth_rate_limit_enabled:
