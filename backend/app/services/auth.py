@@ -58,9 +58,7 @@ def register(session: Session, *, name: str, email: str, password: str) -> User:
         raise
 
 
-def login(
-    session: Session, *, email: str, password: str, require_verified: bool = False
-) -> str:
+def login(session: Session, *, email: str, password: str, require_verified: bool = False) -> str:
     user = UserRepository(session).get_by_email(email.strip())
     credential = session.get(AuthCredential, user.id) if user else None
     candidate_hash = credential.password_hash if credential else _DUMMY_PASSWORD_HASH
