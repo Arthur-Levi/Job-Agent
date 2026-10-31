@@ -18,7 +18,10 @@ DB = "postgresql+psycopg://dummy:dummy@127.0.0.1:1/dummy_test"
 
 
 def test_default_identity_is_opt_in_and_forbidden_in_production():
-    assert Settings(_env_file=None, database_url=DB, app_env="test").allow_legacy_local_user is False
+    assert (
+        Settings(_env_file=None, database_url=DB, app_env="test").allow_legacy_local_user
+        is False
+    )
     with pytest.raises(ValidationError):
         Settings(
             _env_file=None,
