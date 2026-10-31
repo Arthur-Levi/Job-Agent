@@ -1,3 +1,5 @@
+import { getAccessToken } from './authSession'
+
 export type Query = Record<string, string | number | boolean | null | undefined>
 
 export interface ApiErrorInit {
@@ -100,6 +102,8 @@ export async function request<T>(
 
   try {
     const headers: Record<string, string> = { Accept: 'application/json', [REQUEST_ID_HEADER]: requestId }
+    const token = getAccessToken()
+    if (token) headers.Authorization = `Bearer ${token}`
     const init: RequestInit = { method, headers, signal: controller.signal }
     if (options.body !== undefined) {
       headers['Content-Type'] = 'application/json'
