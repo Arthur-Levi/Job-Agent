@@ -6,6 +6,7 @@ Never run against an original, shared, or production DB: the fixture resets sche
 
 from uuid import uuid4
 
+import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
@@ -15,7 +16,13 @@ from app.main import create_app
 
 
 def _client(
-    database_url: str, session: Session, *, secret: str | None = None, **limits: int
+    database_url: str,
+    session: Session,
+    *,
+    secret: str | None = None,
+    register_ip_max: int = 10,
+    login_ip_max: int = 60,
+    login_account_max: int = 12,
 ) -> TestClient:
     settings = Settings(
         _env_file=None,
@@ -25,7 +32,9 @@ def _client(
         allow_legacy_local_user=False,
         auth_rate_limit_enabled=True,
         auth_rate_limit_secret=secret or ("D2E1-TEST-ONLY-" + uuid4().hex + uuid4().hex),
-        **limits,
+        auth_register_ip_max=register_ip_max,
+        auth_login_ip_max=login_ip_max,
+        auth_login_account_max=login_account_max,
     )
     app = create_app(settings)
     app.dependency_overrides[get_session] = lambda: session
@@ -35,7 +44,7 @@ def _client(
 def test_d2e14_registration_ip_throttle_includes_bad_payloads(
     test_database_url: str, db_session: Session
 ) -> None:
-    with _client(test_database_url, db_session, auth_register_ip_max=2) as client:
+    with _client(test_database_url, db_session, register_ip_max=2) as client:
         path = "/api/v1/auth/register"
         # Validation errors consume IP capacity too; fake forwarded header is ignored.
         for i in range(2):
@@ -57,8 +66,8 @@ def test_d2e14_account_throttle_and_generic_bad_login(
     with _client(
         test_database_url,
         db_session,
-        auth_login_ip_max=20,
-        auth_login_account_max=2,
+        login_ip_max=20,
+        login_account_max=2,
     ) as client:
         path = "/api/v1/auth/login"
         email = f"synthetic-{uuid4().hex}@example.com"
@@ -76,14 +85,14 @@ def test_d2e14_account_throttle_and_generic_bad_login(
 
 
 def test_d2e14_register_returns_503_when_counter_store_is_unavailable(
-    test_database_url: str, db_session: Session, monkeypatch
+    test_database_url: str, db_session: Session, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     from app.core import middleware
     from app.services.auth_rate_limit import RateLimitUnavailable
 
     with _client(test_database_url, db_session) as client:
 
-        def unavailable(*args, **kwargs):
+        def unavailable(*args: object, **kwargs: object) -> None:
             raise RateLimitUnavailable
 
         monkeypatch.setattr(middleware, "consume", unavailable)
@@ -97,10 +106,9 @@ def test_d2e14_shared_counters_survive_multiple_app_instances(
 ) -> None:
     # Two independent FastAPI instances with separate engine pools but common HMAC key.
     shared_key = "D2E1-TEST-SHARED-" + uuid4().hex + uuid4().hex
-    options = {"auth_register_ip_max": 2}
     with (
-        _client(test_database_url, db_session, secret=shared_key, **options) as first,
-        _client(test_database_url, db_session, secret=shared_key, **options) as second,
+        _client(test_database_url, db_session, secret=shared_key, register_ip_max=2) as first,
+        _client(test_database_url, db_session, secret=shared_key, register_ip_max=2) as second,
     ):
         path = "/api/v1/auth/register"
         assert first.post(path, json={"invalid": 1}).status_code == 422
