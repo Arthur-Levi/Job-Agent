@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import hashlib
 import hmac
+import secrets
 from datetime import datetime, timedelta, timezone
 from math import ceil
 
@@ -87,8 +88,8 @@ def consume(
                 _ATOMIC_INCREMENT,
                 {"key_digest": digest, "seconds": seconds},
             ).one()
-            # Opportunistic cleanup every 64th attempted request for this key.
-            if row.hits % 64 == 0:
+            # Probabilistic cleanup also covers one-off, high-cardinality attacker keys.
+            if secrets.randbelow(64) == 0:
                 connection.execute(_PRUNE)
     except SQLAlchemyError as exc:
         raise RateLimitUnavailable from exc
@@ -96,5 +97,6 @@ def consume(
         start = row.window_started_at
         if start.tzinfo is None:
             start = start.replace(tzinfo=timezone.utc)
-        remaining = (start + timedelta(seconds=seconds) - datetime.now(timezone.utc)).total_seconds()
+        deadline = start + timedelta(seconds=seconds)
+        remaining = (deadline - datetime.now(timezone.utc)).total_seconds()
         raise RateLimitExceeded(ceil(remaining))
