@@ -53,3 +53,24 @@ class AuthRateLimit(Base):
     key_digest: Mapped[str] = mapped_column(String(64), primary_key=True)
     window_started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     hits: Mapped[int] = mapped_column(Integer, nullable=False)
+
+
+class AuthActionToken(Base):
+    """Opaque verification/reset token digest, never a plaintext secret."""
+
+    __tablename__ = "auth_action_tokens"
+    __table_args__ = (
+        Index("ix_auth_action_tokens_user_purpose", "user_id", "purpose"),
+        Index("ix_auth_action_tokens_expires_at", "expires_at"),
+    )
+
+    token_hash: Mapped[str] = mapped_column(String(64), primary_key=True)
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    purpose: Mapped[str] = mapped_column(String(20), nullable=False)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    consumed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
