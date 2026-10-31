@@ -3,6 +3,7 @@ import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { applicationsApi } from '../services/applicationsApi'
 import { authApi } from '../services/authApi'
+import { clearAccessToken, setAccessToken } from '../services/authSession'
 import { jobsApi } from '../services/jobsApi'
 import { pageOf } from '../test/fixtures'
 import { App } from './App'
@@ -21,6 +22,8 @@ function renderAt(path: string) {
 
 beforeEach(() => {
   vi.clearAllMocks()
+  clearAccessToken()
+  setAccessToken('t'.repeat(64))
   vi.mocked(jobsApi.list).mockResolvedValue(pageOf([]))
   vi.mocked(applicationsApi.list).mockResolvedValue(pageOf([]))
   vi.mocked(authApi.hasSession).mockReturnValue(true)
@@ -57,6 +60,7 @@ describe('authenticated routing and shell', () => {
   })
 
   it('redirects unauthenticated private routes to login', async () => {
+    clearAccessToken()
     vi.mocked(authApi.hasSession).mockReturnValue(false)
     renderAt('/jobs')
     expect(await screen.findByRole('heading', { name: 'Entrar na sua conta' })).toBeInTheDocument()
