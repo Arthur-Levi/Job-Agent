@@ -7,7 +7,7 @@ ownership model; these tables only link security state to an existing user UUID.
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, Index, String, Uuid, func
+from sqlalchemy import DateTime, ForeignKey, Index, Integer, String, Uuid, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
@@ -42,3 +42,14 @@ class AuthSession(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
+
+
+class AuthRateLimit(Base):
+    """Security infrastructure counter; HMAC key is not a user identifier."""
+
+    __tablename__ = "auth_rate_limits"
+    __table_args__ = (Index("ix_auth_rate_limits_window_started_at", "window_started_at"),)
+
+    key_digest: Mapped[str] = mapped_column(String(64), primary_key=True)
+    window_started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    hits: Mapped[int] = mapped_column(Integer, nullable=False)
