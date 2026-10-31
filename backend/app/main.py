@@ -11,7 +11,7 @@ from app.api.v1.router import api_router
 from app.core.config import Settings
 from app.core.errors import register_exception_handlers
 from app.core.logging import configure_logging
-from app.core.middleware import BodySizeLimitMiddleware, RequestIdMiddleware
+from app.core.middleware import AuthRateLimitMiddleware, BodySizeLimitMiddleware, RequestIdMiddleware
 from app.core.request_context import REQUEST_ID_HEADER
 from app.db.session import Database
 
@@ -49,8 +49,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.database = database
 
     # Ordem: o último adicionado é o mais externo.
-    # CORS (externo) -> RequestId -> BodySizeLimit -> app
+    # CORS (externo) -> RequestId -> AuthRateLimit -> BodySizeLimit -> app
     app.add_middleware(BodySizeLimitMiddleware, max_bytes=settings.max_request_bytes)
+    app.add_middleware(AuthRateLimitMiddleware, database=database, settings=settings)
     app.add_middleware(RequestIdMiddleware)
     app.add_middleware(
         CORSMiddleware,
