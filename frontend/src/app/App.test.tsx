@@ -108,6 +108,29 @@ describe('authenticated routing and shell', () => {
     expect(screen.queryByText(/Test Candidate/)).not.toBeInTheDocument()
   })
 
+  it('requests password recovery without disclosing account existence', async () => {
+    clearAccessToken()
+    vi.mocked(authApi.hasSession).mockReturnValue(false)
+    vi.mocked(authApi.requestPasswordReset).mockResolvedValue({
+      message: 'Se existir uma conta elegível, enviaremos instruções.',
+    })
+    renderAt('/request-password-reset')
+    fireEvent.change(await screen.findByLabelText('Email'), {
+      target: { value: 'synthetic@example.com' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Enviar instruções' }))
+    expect(await screen.findByRole('status')).toHaveTextContent('Se existir uma conta elegível')
+    expect(authApi.requestPasswordReset).toHaveBeenCalledWith('synthetic@example.com')
+  })
+
+  it('does not allow verification without a link token', async () => {
+    clearAccessToken()
+    vi.mocked(authApi.hasSession).mockReturnValue(false)
+    renderAt('/verify-email')
+    expect(await screen.findByText('Link de confirmação ausente ou inválido.')).toBeInTheDocument()
+    expect(authApi.verifyEmail).not.toHaveBeenCalled()
+  })
+
   it('registers but requires login before displaying private pages', async () => {
     clearAccessToken()
     vi.mocked(authApi.hasSession).mockReturnValue(false)
