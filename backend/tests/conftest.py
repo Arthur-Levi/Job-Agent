@@ -52,6 +52,7 @@ def settings() -> Settings:
         log_level="WARNING",
         cors_origins=["http://localhost:5173"],
         max_request_bytes=1024,
+        allow_legacy_local_user=True,
     )
 
 
