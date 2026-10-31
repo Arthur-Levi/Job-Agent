@@ -9,6 +9,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import signal
 import secrets
 import socket
 import subprocess
@@ -98,6 +99,45 @@ def inspect_target() -> URL:
     print(f"Port {API_PORT} currently listening: {api_port_is_open()}")
     return url
 
+
+
+def stop_previous_api() -> None:
+    """Stop only the legacy isolated server started by the earlier D2-E1 script."""
+    old_pid_file = Path("/tmp/jobagent-d2e1-api.pid")
+    if not old_pid_file.exists():
+        if api_port_is_open():
+            raise RuntimeError("Port 18081 in use by an unidentified process; refusing stop")
+        print("PREVIOUS API: already stopped")
+        return
+    pid = int(old_pid_file.read_text().strip())
+    cmd = Path(f"/proc/{pid}/cmdline").read_bytes().decode(errors="replace")
+    if "uvicorn" not in cmd or "app.main:create_app" not in cmd:
+        raise RuntimeError("Refusing to stop PID not identified as legacy isolated API")
+    if "18081" not in cmd:
+        raise RuntimeError("Refusing to stop process on unexpected port")
+    actual_cwd = Path(f"/proc/{pid}/cwd").resolve()
+    if actual_cwd != BACKEND.resolve():
+        raise RuntimeError("Refusing to stop process outside isolated worktree")
+    env = process_env(pid)
+    from sqlalchemy.engine import make_url
+
+    db = make_url(env.get("DATABASE_URL", ""))
+    if (
+        db.database != DB_NAME
+        or db.username != DB_USER
+        or db.host != "127.0.0.1"
+        or db.port != DB_PORT
+        or env.get("APP_ENV") != "test"
+    ):
+        raise RuntimeError("Refusing to stop API not bound to disposable test DB")
+    os.kill(pid, signal.SIGTERM)
+    for _ in range(30):
+        if not api_port_is_open():
+            old_pid_file.unlink(missing_ok=True)
+            print(f"PREVIOUS API STOP PASS: validated isolated PID {pid}")
+            return
+        time.sleep(0.2)
+    raise RuntimeError("Previous isolated API did not release port 18081")
 
 def migrate(acknowledgement: str) -> None:
     url = inspect_target()
@@ -322,6 +362,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="cmd", required=True)
     sub.add_parser("inspect")
+    sub.add_parser("stop-previous-api")
     migrate_cmd = sub.add_parser("migrate")
     migrate_cmd.add_argument("--ack", required=True)
     sub.add_parser("start")
@@ -330,6 +371,8 @@ def main() -> int:
     try:
         if args.cmd == "inspect":
             inspect_target()
+        elif args.cmd == "stop-previous-api":
+            stop_previous_api()
         elif args.cmd == "migrate":
             migrate(args.ack)
         elif args.cmd == "start":
