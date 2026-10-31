@@ -49,7 +49,8 @@ def test_checkout_requires_config_and_blocks_existing_subscription(monkeypatch):
     r=c.post('/api/billing/checkout',headers=a)
     assert r.status_code==200 and r.json()['url'].startswith('https://')
     uid=c.get('/api/me',headers=a).json()['id']
-    with SessionLocal() as s:s.add(Subscription(user_id=uid,status='active',stripe_customer_id='cus_test'));s.commit()
+    monkeypatch.setenv('STRIPE_PRICE_ID','price_test')
+    with SessionLocal() as s:s.add(Subscription(user_id=uid,status='active',stripe_customer_id='cus_test',stripe_subscription_id='sub_test',stripe_price_id='price_test'));s.commit()
     assert c.post('/api/billing/checkout',headers=a).status_code==409
     assert c.get('/api/billing/status',headers=a).json()['premium_enabled']
 def test_validation_and_delete():
