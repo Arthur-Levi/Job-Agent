@@ -5,6 +5,7 @@ import { applicationsApi } from '../services/applicationsApi'
 import { authApi } from '../services/authApi'
 import { clearAccessToken, setAccessToken } from '../services/authSession'
 import { jobsApi } from '../services/jobsApi'
+import { ApiError } from '../services/http'
 import { pageOf } from '../test/fixtures'
 import { App } from './App'
 
@@ -83,6 +84,20 @@ describe('authenticated routing and shell', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Entrar' }))
     expect(await screen.findByRole('heading', { name: 'Jobs' })).toBeInTheDocument()
     expect(authApi.login).toHaveBeenCalledWith({ email: 'test@example.com', password: 'synthetic-password-123' })
+  })
+
+  it('shows a safe temporary-block message when login is rate-limited', async () => {
+    clearAccessToken()
+    vi.mocked(authApi.hasSession).mockReturnValue(false)
+    vi.mocked(authApi.login).mockRejectedValue(
+      new ApiError({ status: 429, code: 'RATE_LIMITED', message: 'Too many requests' }),
+    )
+    renderAt('/login')
+    fireEvent.change(await screen.findByLabelText('Email'), { target: { value: 'test@example.com' } })
+    fireEvent.change(screen.getByLabelText('Senha'), { target: { value: 'test-pass-123456' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Entrar' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('Muitas tentativas de acesso')
+    expect(screen.queryByRole('heading', { name: 'JOB COMMAND' })).not.toBeInTheDocument()
   })
 
   it('logs out and hides private data', async () => {
