@@ -151,8 +151,8 @@ def test_subscription_webhook_authoritative_remote_state(monkeypatch):
     fake=SimpleNamespace(Webhook=Webhook,Subscription=SubscriptionAPI,Customer=SimpleNamespace(retrieve=lambda customer:{'metadata':{'job_agent_user_id':str(uid)}}),error=SimpleNamespace(SignatureVerificationError=ValueError))
     monkeypatch.setattr(main,'stripe_sdk',lambda:fake)
     monkeypatch.setenv('STRIPE_WEBHOOK_SECRET','whsec_test')
-    assert c.post('/api/billing/webhook',content=b'{}').status_code==200
     monkeypatch.setenv('STRIPE_PRICE_ID','price_test');monkeypatch.setenv('PUBLIC_BASE_URL','https://example.com')
+    assert c.post('/api/billing/webhook',content=b'{}').status_code==200
     assert c.get('/api/billing/status',headers=a).json()['premium_enabled'] is True
     assert c.post('/api/billing/checkout',headers=a).status_code==409
 
