@@ -9,7 +9,7 @@ from __future__ import annotations
 import hashlib
 import hmac
 import secrets
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from math import ceil
 
 from sqlalchemy import text
@@ -62,7 +62,7 @@ def _key(settings: Settings, kind: str, identity: str) -> str:
     assert settings.auth_rate_limit_secret is not None
     secret = settings.auth_rate_limit_secret.get_secret_value().encode("utf-8")
     return hmac.new(
-        secret, f"{kind}:{identity}".encode("utf-8"), hashlib.sha256
+        secret, f"{kind}:{identity}".encode(), hashlib.sha256
     ).hexdigest()
 
 
@@ -96,7 +96,7 @@ def consume(
     if row.hits > maximum:
         start = row.window_started_at
         if start.tzinfo is None:
-            start = start.replace(tzinfo=timezone.utc)
+            start = start.replace(tzinfo=UTC)
         deadline = start + timedelta(seconds=seconds)
-        remaining = (deadline - datetime.now(timezone.utc)).total_seconds()
+        remaining = (deadline - datetime.now(UTC)).total_seconds()
         raise RateLimitExceeded(ceil(remaining))
