@@ -50,7 +50,9 @@ def bearer(authorization: str | None) -> str:
 @router.post("/register", status_code=201, response_model=UserOut)
 def register(payload: RegisterIn, session: SessionDep) -> UserOut:
     try:
-        user = auth.register(session, name=payload.name, email=payload.email, password=payload.password)
+        user = auth.register(
+            session, name=payload.name, email=payload.email, password=payload.password
+        )
     except auth.DuplicateAccount:
         raise HTTPException(409, "Conta já cadastrada") from None
     return UserOut(id=str(user.id), name=user.name, email=user.email or "")
