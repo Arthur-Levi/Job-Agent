@@ -100,3 +100,30 @@ sleep 65
 ```
 
 Do not restart the already validated API or reapply the additive migration merely to rerun the probe. No database resets, account deletion, or intervention in other containers are necessary.
+
+## Operator acceptance — D2-E1.4 LIVE RATE-LIMIT OPERATIONAL PASS (2026-10-31)
+
+**Result: PASS** from operator's isolated Codespaces process, after fast-forward to commit `1a2f72a`.
+
+Verified live target:
+- disposable PostgreSQL `jobagent_react_test`, user `react_test`, loopback port `55435`
+- Alembic revision `0003` on the disposable target; previously verified additive migration and idempotent rerun
+- isolated FastAPI process PID `140573` on loopback `18081`
+- limiter enabled, 60-second window; no original databases touched
+
+Operator-provided output:
+```text
+HEADER CASE-INSENSITIVITY SELF-TEST PASS
+TARGET VERIFIED: jobagent_react_test / react_test / 127.0.0.1:55435 / alembic=0003
+Port 18081 currently listening: True
+API PID 140573: configured with 60-second throttling window
+REGISTER 429 PASS: malformed requests count; spoofed XFF did not evade
+ACCOUNT 429 PASS: normalized identity capped; unrelated account allowed
+Waiting up to 62 seconds for genuine window expiry...
+WINDOW EXPIRY PASS: registration 422 and login 401 (no longer 429)
+D2-E1.4 LIVE RATE-LIMIT OPERATIONAL PASS
+```
+
+**Checkpoint accepted:** `D2-E1.4 OPERATIONAL RATE-LIMIT PASS`. Combined with GitHub CI run 41239950616 (backend/frontend/audit successful) and earlier browser isolation acceptance, this establishes the implemented D2-E1.4 rate-limit acceptance criteria for isolated homologation.
+
+**Scope limitations:** direct loopback traffic only; trusted reverse-proxy correctness, edge/network DDoS protection, account enumeration resistance, HTTPS deployment, account recovery, and production-grade abuse monitoring remain future public-launch gates. PR #3 remains draft and unmerged; no changes applied to `main`, PR #2, or preserved database containers.
