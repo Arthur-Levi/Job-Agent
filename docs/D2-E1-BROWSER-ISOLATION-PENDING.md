@@ -40,3 +40,18 @@ The first Playwright run filled the registration form but the UI displayed a gen
 The CORS-aligned browser run reached registration and authenticated navigation, then failed while waiting for the Jobs heading. The browser showed the login screen after `page.goto(web + "/jobs")`. The cause is a full document navigation: React's intentionally memory-only bearer token is cleared whenever the app reloads. This is a test navigation bug, not evidence that login failed or cross-account isolation broke.
 
 Commit `6e32caf` updates authenticated navigation to click the React Router `Main` navigation's `Jobs` link; the explicit `page.goto` after logout is retained as the deliberate unauthenticated redirect test. The account-switch scenario now expects the Jobs page because its requested destination is preserved across login. **Not executed since this correction; browser PASS not yet claimed.**
+
+## Operator acceptance — D2-E1.3 BROWSER ISOLATION PASS (2026-10-31)
+
+**Status: PASS (operator-reported Playwright run).** The operator fast-forwarded this worktree to commit `fb8fd3d` and ran `scripts/d2e1_browser_isolation.py` against local React `http://localhost:5173` and the isolated API `http://127.0.0.1:18081` with the `jobagent_react_test` acknowledgement. Synthetic run identifier `4bceaebcfd`.
+
+Observed output:
+- All ten synthetic accounts: register, login, create job **PASS (10/10)**.
+- Each account's browser job list showed its own item and did not show the other nine synthetic job titles: **10/10 account isolation passes; 90 foreign-job absence assertions**.
+- Same-context logout and login as a different account, with corresponding job list isolation: **PASS**.
+- Full browser refresh discards memory-only bearer and requires login: **PASS**.
+- Final: `D2-E1.3 BROWSER ISOLATION PASS — 10 accounts, 90 foreign-job absences`.
+
+Evidence scope: real Chromium browser UI, opt-in synthetic write operations against an operator-confirmed disposable database. This does **not** establish full coverage of direct object-level authorization across every endpoint or production security.
+
+**Still open before D2-E1 COMPLETE:** rate limiting / brute force mitigation, credential/account security review, production-like deployment hardening and any further multiuser direct-object API checks. PR #3 remains draft; `main`, PR #2, original databases remain unchanged.
