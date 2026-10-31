@@ -13,10 +13,11 @@
         "sections": [
           {
             "kind": "experience",
-            "employer": "Aprendiz Administrativo",
-            "role": "2025-02",
-            "start": "2026-10",
-            "description": "Excel;Power BI;planilhas;lançamento de dados"
+            "employer": "Tramar Fictícia",
+            "role": "Aprendiz Administrativo",
+            "start": "2025-02",
+            "description": "Excel;Power BI;planilhas;lançamento de dados",
+            "end": "2026-10"
           }
         ],
         "skill_mentions": [
@@ -62,11 +63,12 @@
         "format": "docx",
         "sections": [
           {
-            "kind": "experience",
-            "employer": "Desenvolvedora de projeto próprio",
-            "role": "2025-06",
-            "start": "2026-10",
-            "description": "Python;React;PostgreSQL;FastAPI"
+            "kind": "project",
+            "employer": "Projeto Pessoal API",
+            "role": "Desenvolvedora de projeto próprio",
+            "start": "2025-06",
+            "description": "Python;React;PostgreSQL;FastAPI",
+            "end": "2026-10"
           }
         ],
         "skill_mentions": [
@@ -113,10 +115,11 @@
         "sections": [
           {
             "kind": "experience",
-            "employer": "Auxiliar de Estoque",
-            "role": "2014-01",
-            "start": "2017-12",
-            "description": "WMS;controle de estoque;liderança;inventários"
+            "employer": "Operadora Logística Simulada",
+            "role": "Auxiliar de Estoque",
+            "start": "2014-01",
+            "description": "WMS;controle de estoque;liderança;inventários",
+            "end": "2017-12"
           },
           {
             "kind": "experience",
@@ -179,10 +182,11 @@
         "sections": [
           {
             "kind": "experience",
-            "employer": "Professora",
-            "role": "2019-02",
-            "start": "2026-02",
-            "description": "Excel;didática;análise de avaliações;gestão de turma"
+            "employer": "Escola Modelo",
+            "role": "Professora",
+            "start": "2019-02",
+            "description": "Excel;didática;análise de avaliações;gestão de turma",
+            "end": "2026-02"
           }
         ],
         "skill_mentions": [
@@ -226,10 +230,11 @@
         "sections": [
           {
             "kind": "project",
-            "employer": "Participante",
-            "role": "2025-03",
-            "start": "2026-08",
-            "description": "projeto escolar;organização de eventos;Excel"
+            "employer": "Projeto Escolar Modelo",
+            "role": "Participante de projeto escolar",
+            "start": "2025-03",
+            "description": "projeto escolar;organização de eventos;Excel",
+            "end": "2026-08"
           }
         ],
         "skill_mentions": [
@@ -273,10 +278,11 @@
         "sections": [
           {
             "kind": "experience",
-            "employer": "Assistente Financeira",
-            "role": "2021-04",
-            "start": "2026-10",
-            "description": "conciliação bancária;relatórios;Excel;indicadores"
+            "employer": "Financeira Exemplo",
+            "role": "Assistente Financeira",
+            "start": "2021-04",
+            "description": "conciliação bancária;relatórios;Excel;indicadores",
+            "end": "2026-10"
           }
         ],
         "skill_mentions": [
@@ -323,10 +329,11 @@
         "sections": [
           {
             "kind": "experience",
-            "employer": "Freelancer",
-            "role": "2022-01",
-            "start": "",
-            "description": "sites;JavaScript;HTML;CSS;projetos freelance"
+            "employer": "Clientes Fictícios",
+            "role": "Freelancer",
+            "start": "2022-01",
+            "description": "sites;JavaScript;HTML;CSS;projetos freelance",
+            "end": ""
           }
         ],
         "skill_mentions": [
@@ -373,10 +380,11 @@
         "sections": [
           {
             "kind": "experience",
-            "employer": "Assistente de RH",
-            "role": "2012-04",
-            "start": "2019-11",
-            "description": "atendimento;arquivo;rotinas de RH"
+            "employer": "Recursos Humanos Modelo",
+            "role": "Assistente de RH",
+            "start": "2012-04",
+            "description": "atendimento;arquivo;rotinas de RH",
+            "end": "2019-11"
           }
         ],
         "skill_mentions": [
@@ -423,10 +431,11 @@
         "sections": [
           {
             "kind": "experience",
-            "employer": "Analista de Estoque",
-            "role": "2022-01",
-            "start": "2024-08",
-            "description": "planilhas;inventário;Excel"
+            "employer": "Distribuidora Fictícia",
+            "role": "Analista de Estoque",
+            "start": "2022-01",
+            "description": "planilhas;inventário;Excel",
+            "end": "2024-08"
           }
         ],
         "skill_mentions": [
@@ -483,10 +492,11 @@
         "sections": [
           {
             "kind": "experience",
-            "employer": "Support Analyst",
-            "role": "2020-09",
-            "start": "2026-10",
-            "description": "technical support;help desk;Windows;English"
+            "employer": "Helpdesk Example",
+            "role": "Support Analyst",
+            "start": "2020-09",
+            "description": "technical support;help desk;Windows;English",
+            "end": "2026-10"
           }
         ],
         "skill_mentions": [
