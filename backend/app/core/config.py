@@ -45,6 +45,8 @@ class Settings(BaseSettings):
     # Usuário único do D1: resolvido por e-mail e criado na primeira requisição (ver docs).
     default_user_email: str = Field(default="local@jobagent.local", min_length=3, max_length=320)
     default_user_name: str = Field(default="Local User", min_length=1, max_length=200)
+    # D1-only test/dev compatibility. Never permitted in production.
+    allow_legacy_local_user: bool = False
 
     @field_validator("log_level", mode="before")
     @classmethod
@@ -80,6 +82,8 @@ class Settings(BaseSettings):
     def _forbid_wildcard_cors_in_production(self) -> Self:
         if self.app_env is AppEnv.PRODUCTION and "*" in self.cors_origins:
             raise ValueError("CORS_ORIGINS must not contain '*' when APP_ENV=production")
+        if self.app_env is AppEnv.PRODUCTION and self.allow_legacy_local_user:
+            raise ValueError("ALLOW_LEGACY_LOCAL_USER is forbidden in production")
         return self
 
     @property
