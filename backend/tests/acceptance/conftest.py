@@ -3,6 +3,7 @@
 The shared integration fixtures RESET the public schema. NEVER pass a shared,
 original, production, or SEC05 PostgreSQL database as TEST_DATABASE_URL.
 """
+
 from collections.abc import Iterator
 
 import pytest
