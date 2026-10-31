@@ -97,8 +97,6 @@ class Settings(BaseSettings):
             raise ValueError("CORS_ORIGINS must not contain '*' when APP_ENV=production")
         if self.app_env is AppEnv.PRODUCTION and self.allow_legacy_local_user:
             raise ValueError("ALLOW_LEGACY_LOCAL_USER is forbidden in production")
-        if self.app_env is AppEnv.PRODUCTION and not self.identity_lifecycle_enabled:
-            raise ValueError("IDENTITY_LIFECYCLE_ENABLED is required in production")
         if self.app_env is AppEnv.PRODUCTION and self.email_delivery_mode != "disabled":
             raise ValueError("Memory mail is forbidden in production; real provider not integrated")
         if self.identity_lifecycle_enabled and self.email_delivery_mode == "disabled":
