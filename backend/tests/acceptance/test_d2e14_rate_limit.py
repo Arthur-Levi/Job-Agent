@@ -3,6 +3,7 @@
 These tests use the existing disposable *_test integration fixture.
 Never run against an original, shared, or production DB: the fixture resets schema.
 """
+
 from uuid import uuid4
 
 from fastapi.testclient import TestClient
@@ -39,7 +40,8 @@ def test_d2e14_registration_ip_throttle_includes_bad_payloads(
         # Validation errors consume IP capacity too; fake forwarded header is ignored.
         for i in range(2):
             response = client.post(
-                path, json={"invalid": i},
+                path,
+                json={"invalid": i},
                 headers={"X-Forwarded-For": f"203.0.113.{i + 1}"},
             )
             assert response.status_code == 422
@@ -53,7 +55,8 @@ def test_d2e14_account_throttle_and_generic_bad_login(
     test_database_url: str, db_session: Session
 ) -> None:
     with _client(
-        test_database_url, db_session,
+        test_database_url,
+        db_session,
         auth_login_ip_max=20,
         auth_login_account_max=2,
     ) as client:
@@ -79,6 +82,7 @@ def test_d2e14_register_returns_503_when_counter_store_is_unavailable(
     from app.services.auth_rate_limit import RateLimitUnavailable
 
     with _client(test_database_url, db_session) as client:
+
         def unavailable(*args, **kwargs):
             raise RateLimitUnavailable
 
