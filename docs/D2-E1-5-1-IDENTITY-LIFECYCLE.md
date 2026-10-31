@@ -92,3 +92,24 @@ PY=/workspaces/Job-Agent-SEC05/backend/.venv/bin/python
 ```
 
 Expected acceptance marker: `D2-E1.5.1 OPERATIONAL IDENTITY LIFECYCLE PASS`. Do not claim it until the operator provides the actual output. This ASGI test does not prove external SMTP delivery, HTTPS or an actual Uvicorn network deployment.
+
+## D2-E1.5.1 OPERATIONAL IDENTITY LIFECYCLE PASS (operator) — 2026-10-31
+
+The operator executed the guarded ASGI + real PostgreSQL probe on Codespaces against the explicitly verified disposable target `jobagent_react_test`, user `react_test`, loopback `127.0.0.1:55435`, with Alembic revision `0004`. The isolated API listener on port 18081 had previously been stopped safely; the probe did not restart it.
+
+Operator-provided evidence:
+
+```text
+GUARDED TARGET: jobagent_react_test / react_test / 127.0.0.1:55435 / 0004
+REGISTER / HASHED OUTBOX TOKEN PASS
+UNVERIFIED LOGIN / ONE-USE VERIFICATION PASS
+GENERIC ACCOUNT RECOVERY / TWO SESSIONS PASS
+RESET REPLAY / TWO SESSION REVOCATIONS / NEW PASSWORD PASS
+EXPIRED TOKEN / INELIGIBLE VERIFICATION PASS
+ROLLBACK VERIFIED: zero synthetic test accounts persisted
+D2-E1.5.1 OPERATIONAL IDENTITY LIFECYCLE PASS
+```
+
+**Acceptance: PASS for isolated operational identity-lifecycle scenarios** including hashed one-time tokens, email-verification gate, generic recovery, password reset, replay/expiry resistance, revocation of two bearer sessions, and verification that synthetic rows were rolled back. A `StarletteDeprecationWarning` about httpx vs httpx2 was emitted by the test environment; the operator's test completed successfully, but dependency compatibility should be assessed separately.
+
+**Scope limitations:** in-memory fake mail transport only, no real email delivery; single-process ASGI TestClient not an externally exposed Uvicorn reverse-proxy test; no actual production TLS or SMTP. Real delivery, deployment hardening, staging review and public-launch signoff are still PENDING. Do not mark PR #3 ready for merge solely from this result. The main branch, PR #2 and preserved DBs were not part of this probe.
