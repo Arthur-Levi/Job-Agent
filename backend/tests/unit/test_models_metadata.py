@@ -8,6 +8,8 @@ from app.domain.enums import ApplicationStatus
 
 EXPECTED_TABLES = {
     "users",
+    "auth_credentials",
+    "auth_sessions",
     "candidate_profiles",
     "candidate_skills",
     "candidate_projects",
@@ -20,7 +22,7 @@ EXPECTED_TABLES = {
     "applications",
     "application_events",
 }
-USER_OWNED = {"candidate_profiles", "jobs", "resume_versions", "applications"}
+USER_OWNED = {"candidate_profiles", "jobs", "resume_versions", "applications", "auth_credentials", "auth_sessions"}
 
 
 def test_expected_tables_exist() -> None:
@@ -29,8 +31,9 @@ def test_expected_tables_exist() -> None:
 
 def test_every_primary_key_is_a_uuid() -> None:
     for table in Base.metadata.tables.values():
-        assert [c.name for c in table.primary_key.columns] == ["id"], table.name
-        assert isinstance(table.c.id.type, Uuid), table.name
+        assert [c.name for c in table.primary_key.columns] == (["user_id"] if table.name == "auth_credentials" else ["id"]), table.name
+        pk = next(iter(table.primary_key.columns))
+        assert isinstance(pk.type, Uuid), table.name
 
 
 def test_user_owned_tables_have_user_id() -> None:
