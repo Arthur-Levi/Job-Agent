@@ -166,3 +166,33 @@ class AuthRateLimitMiddleware:
             await response(scope, receive, send)
             return
         await self.app(scope, receive, send)
+
+
+class SecurityResponseHeadersMiddleware:
+    """Protect API responses and prevent auth/session HTTP caching."""
+
+    def __init__(self, app: ASGIApp, *, production: bool) -> None:
+        self.app = app
+        self.production = production
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+
+        async def secured_send(message: Message) -> None:
+            if message["type"] == "http.response.start":
+                headers = MutableHeaders(scope=message)
+                headers["X-Content-Type-Options"] = "nosniff"
+                headers["Referrer-Policy"] = "no-referrer"
+                headers["X-Frame-Options"] = "DENY"
+                if scope.get("path", "").startswith("/api/v1/auth/"):
+                    headers["Cache-Control"] = "no-store"
+                    headers["Pragma"] = "no-cache"
+                if self.production:
+                    headers["Content-Security-Policy"] = "default-src 'none'; frame-ancestors 'none'"
+                    # HSTS on an API only after TLS termination and public HTTPS are verified.
+                    # Set Strict-Transport-Security at the trusted HTTPS ingress, not here.
+            await send(message)
+
+        await self.app(scope, receive, secured_send)
