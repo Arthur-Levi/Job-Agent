@@ -4,6 +4,7 @@ Run: backend/.venv/bin/python -m pytest backend/tests/acceptance/test_d2e_person
 from the repository root, or .venv/bin/python -m pytest tests/acceptance -q from backend/.
 This validates fixture quality only; it does NOT claim multi-user authentication is implemented.
 """
+
 import json
 from pathlib import Path
 
@@ -73,6 +74,7 @@ def test_all_source_dates_and_labels_are_bounded():
             assert set(("kind", "employer", "role", "start", "end", "description")) <= set(section)
             assert section["employer"].strip()
             import re
+
             start = section["start"]
             assert re.fullmatch(r"(19|20)\d{2}-(0[1-9]|1[0-2])", start)
             if section["end"]:
