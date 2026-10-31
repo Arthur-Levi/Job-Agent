@@ -1,5 +1,6 @@
 import { Navigate, Outlet, Route, Routes, useLocation } from 'react-router-dom'
 import { ApplicationsPage } from '../pages/ApplicationsPage'
+import { RequestAccountEmailPage, ResetPasswordPage, VerifyEmailPage } from '../pages/AccountRecoveryPages'
 import { DashboardPage } from '../pages/DashboardPage'
 import { JobDetailPage } from '../pages/JobDetailPage'
 import { JobsPage } from '../pages/JobsPage'
@@ -24,6 +25,10 @@ function AppRoutes() {
     <Routes>
       <Route path="login" element={<LoginPage />} />
       <Route path="register" element={<RegisterPage />} />
+      <Route path="request-verification" element={<RequestAccountEmailPage purpose="verify" />} />
+      <Route path="verify-email" element={<VerifyEmailPage />} />
+      <Route path="request-password-reset" element={<RequestAccountEmailPage purpose="reset" />} />
+      <Route path="reset-password" element={<ResetPasswordPage />} />
       <Route element={<ProtectedRoute />}>
         <Route element={<AppShell />}>
           <Route index element={<Navigate to="/dashboard" replace />} />
