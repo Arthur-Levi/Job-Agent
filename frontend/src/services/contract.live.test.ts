@@ -6,7 +6,7 @@
  * Grava dados no banco do backend alvo: aponte para um banco descartável.
  * Detecta divergência entre os tipos TypeScript e o que a API realmente devolve.
  */
-import { describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import {
   APPLICATION_STATUSES,
   EMPLOYMENT_TYPES,
@@ -16,6 +16,7 @@ import {
 } from '../types/api'
 import { fieldErrorsFrom } from '../utils/errors'
 import { applicationsApi } from './applicationsApi'
+import { authApi } from './authApi'
 import { ApiError, getBaseUrl } from './http'
 import { jobsApi } from './jobsApi'
 import { profileApi } from './profileApi'
@@ -33,6 +34,22 @@ async function rejection(promise: Promise<unknown>): Promise<ApiError> {
 }
 
 describe.skipIf(!live)('API contract (live backend)', () => {
+  beforeAll(async () => {
+    const baseUrl = getBaseUrl()
+    const loopback = /^http:\/\/(127\.0\.0\.1|localhost):[0-9]+$/.test(baseUrl)
+    if (!loopback || import.meta.env.VITE_LIVE_DISPOSABLE_ACK !== 'jobagent_react_test') {
+      throw new Error('Live contract requires loopback API and acknowledgement of jobagent_react_test')
+    }
+    const testEmail = `d2e1-live-${Date.now()}-${unique}@example.invalid`
+    const password = `Live-only-${Date.now()}-${unique}-pass!`
+    await authApi.register({ name: 'D2 E1 Synthetic Contract', email: testEmail, password })
+    await authApi.login({ email: testEmail, password })
+  })
+
+  afterAll(async () => {
+    if (authApi.hasSession()) await authApi.logout()
+  })
+
   it('enums in the frontend match the backend OpenAPI', async () => {
     const spec = (await (await fetch(`${getBaseUrl()}/openapi.json`)).json()) as {
       components: { schemas: Record<string, { enum?: string[] }> }
