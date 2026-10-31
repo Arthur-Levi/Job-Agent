@@ -3,6 +3,7 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Header, HTTPException
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, EmailStr, Field
 
 from app.api.deps import SessionDep, SettingsDep, get_database
@@ -49,13 +50,27 @@ def bearer(authorization: str | None) -> str:
 
 
 @router.post("/register", status_code=201, response_model=UserOut)
-def register(payload: RegisterIn, session: SessionDep) -> UserOut:
+def register(
+    payload: RegisterIn, session: SessionDep, settings: SettingsDep
+) -> UserOut | JSONResponse:
     try:
         user = auth.register(
             session, name=payload.name, email=payload.email, password=payload.password
         )
     except auth.DuplicateAccount:
-        raise HTTPException(409, "Conta já cadastrada") from None
+        if not settings.registration_privacy_enabled:
+            raise HTTPException(409, "Conta já cadastrada") from None
+        # Similar Argon2 workload; neither account identifiers nor existence escape.
+        auth.PASSWORD_HASHER.hash(payload.password)
+        return JSONResponse(
+            status_code=202,
+            content={"message": "Seus dados foram recebidos. Se puder concluir, entre na conta."},
+        )
+    if settings.registration_privacy_enabled:
+        return JSONResponse(
+            status_code=202,
+            content={"message": "Seus dados foram recebidos. Se puder concluir, entre na conta."},
+        )
     return UserOut(id=str(user.id), name=user.name, email=user.email or "")
 
 
