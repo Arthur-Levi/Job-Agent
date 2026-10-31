@@ -134,7 +134,7 @@ def migrate(acknowledgement: str) -> None:
 def process_env(pid: int) -> dict[str, str]:
     raw = Path(f"/proc/{pid}/environ").read_bytes()
     result: dict[str, str] = {}
-    for part in raw.split(b"\\0"):
+    for part in raw.split(bytes([0])):
         key, sep, value = part.partition(b"=")
         if sep:
             result[key.decode()] = value.decode()
