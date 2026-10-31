@@ -115,7 +115,7 @@ def main() -> int:
             page.get_by_label("Email").fill(users[1][0])
             page.get_by_label("Senha", exact=True).fill(password)
             page.get_by_role("button", name="Entrar", exact=True).click()
-            expect(page.get_by_role("heading", name="Jobs", exact=True)).to_be_visible()
+            expect(page.get_by_role("heading", name="JOB COMMAND")).to_be_visible()
             assert_only_owned_job(page, web, titles[1], titles[:1] + titles[2:])
             print("Same-context logout / account switch isolation PASS")
 
