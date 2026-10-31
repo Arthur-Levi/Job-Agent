@@ -66,6 +66,7 @@ class Subscription(Base):
     stripe_customer_id:Mapped[str|None]=mapped_column(String(120),nullable=True,unique=True)
     stripe_subscription_id:Mapped[str|None]=mapped_column(String(120),nullable=True,unique=True)
     status:Mapped[str]=mapped_column(String(40),default='inactive')
+    stripe_price_id:Mapped[str|None]=mapped_column(String(120),nullable=True)
     updated_at:Mapped[datetime]=mapped_column(DateTime(timezone=True),default=utcnow,onupdate=utcnow)
 class WebhookEvent(Base):
     __tablename__='webhook_events'
