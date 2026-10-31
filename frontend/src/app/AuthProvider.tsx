@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
 import { authApi, type AuthInput, type AuthUser } from '../services/authApi'
-import { clearAccessToken } from '../services/authSession'
+import { clearAccessToken, getAccessToken } from '../services/authSession'
 import { onUnauthorized } from '../services/http'
 
 type AuthState = { status: 'checking' | 'guest' | 'authenticated'; user: AuthUser | null }
@@ -21,10 +21,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const unsubscribe = onUnauthorized(() => {
       if (mounted) setState({ status: 'guest', user: null })
     })
-    if (authApi.hasSession()) {
+    const originalToken = getAccessToken()
+    if (originalToken) {
       void authApi.me().then(
-        user => { if (mounted) setState({ status: 'authenticated', user }) },
+        user => {
+          if (mounted && getAccessToken() === originalToken) setState({ status: 'authenticated', user })
+        },
         () => {
+          if (getAccessToken() !== originalToken) return
           clearAccessToken()
           if (mounted) setState({ status: 'guest', user: null })
         },
