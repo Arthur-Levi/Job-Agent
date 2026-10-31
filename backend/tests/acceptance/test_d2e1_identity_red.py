@@ -137,7 +137,7 @@ def test_e1_session_expiry_revokes_access(auth_client: TestClient, db_session: S
     from sqlalchemy import select
 
     from app.models import AuthSession
-    from app.services.auth import now_utc
+    from app.services.auth import digest, now_utc
 
     persona = PERSONAS[1]
     assert auth_client.post(
@@ -145,7 +145,7 @@ def test_e1_session_expiry_revokes_access(auth_client: TestClient, db_session: S
     ).status_code == 201
     bearer_token = token(auth_client, persona)
     session = db_session.execute(
-        select(AuthSession).where(AuthSession.token_hash == __import__("hashlib").sha256(bearer_token.encode()).hexdigest())
+        select(AuthSession).where(AuthSession.token_hash == digest(bearer_token))
     ).scalar_one()
     session.expires_at = now_utc() - timedelta(seconds=1)
     db_session.flush()
