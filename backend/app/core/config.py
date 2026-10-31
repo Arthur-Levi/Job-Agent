@@ -47,6 +47,19 @@ class Settings(BaseSettings):
     default_user_name: str = Field(default="Local User", min_length=1, max_length=200)
     # D1-only test/dev compatibility. Never permitted in production.
     allow_legacy_local_user: bool = False
+    # PostgreSQL counters shared by all API workers; require migration 0003.
+    # Public registration is intentionally nondisclosing in production.
+    registration_privacy_enabled: bool = False
+    identity_lifecycle_enabled: bool = False
+    # Memory mail exists exclusively for disposable testing, never real-user delivery.
+    email_delivery_mode: Literal["disabled", "memory"] = "disabled"
+    public_frontend_url: str = "http://localhost:5173"
+    auth_rate_limit_enabled: bool = False
+    auth_rate_limit_secret: SecretStr | None = None
+    auth_login_ip_max: int = Field(default=60, ge=1, le=10000)
+    auth_login_account_max: int = Field(default=12, ge=1, le=10000)
+    auth_register_ip_max: int = Field(default=10, ge=1, le=10000)
+    auth_limit_window_seconds: int = Field(default=900, ge=60, le=86400)
 
     @field_validator("log_level", mode="before")
     @classmethod
@@ -84,6 +97,23 @@ class Settings(BaseSettings):
             raise ValueError("CORS_ORIGINS must not contain '*' when APP_ENV=production")
         if self.app_env is AppEnv.PRODUCTION and self.allow_legacy_local_user:
             raise ValueError("ALLOW_LEGACY_LOCAL_USER is forbidden in production")
+        if self.app_env is AppEnv.PRODUCTION and self.email_delivery_mode != "disabled":
+            raise ValueError("Memory mail is forbidden in production; real provider not integrated")
+        if self.identity_lifecycle_enabled and self.email_delivery_mode == "disabled":
+            raise ValueError("Identity lifecycle needs a verified email-delivery integration")
+        if self.identity_lifecycle_enabled and not self.public_frontend_url.startswith(
+            "https://" if self.app_env is AppEnv.PRODUCTION else "http"
+        ):
+            raise ValueError("Invalid public frontend origin for identity links")
+        if self.app_env is AppEnv.PRODUCTION and not self.registration_privacy_enabled:
+            raise ValueError("REGISTRATION_PRIVACY_ENABLED must be true in production")
+        if self.app_env is AppEnv.PRODUCTION and not self.auth_rate_limit_enabled:
+            raise ValueError("AUTH_RATE_LIMIT_ENABLED must be true in production")
+        if self.auth_rate_limit_enabled and (
+            self.auth_rate_limit_secret is None
+            or len(self.auth_rate_limit_secret.get_secret_value()) < 32
+        ):
+            raise ValueError("AUTH_RATE_LIMIT_SECRET must have at least 32 characters")
         return self
 
     @property

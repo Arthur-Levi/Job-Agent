@@ -2,9 +2,10 @@
 
 Opaque bearer tokens are returned once, never persisted in plaintext.
 """
-from datetime import datetime, timedelta, timezone
+
 import hashlib
 import secrets
+from datetime import UTC, datetime, timedelta
 
 from argon2 import PasswordHasher
 from argon2.exceptions import VerificationError
@@ -17,6 +18,8 @@ from app.repositories.user import UserRepository
 
 PASSWORD_HASHER = PasswordHasher(time_cost=3, memory_cost=65536, parallelism=2)
 SESSION_TTL = timedelta(hours=12)
+# Always verify one Argon2 hash to reduce timing differences for unknown accounts.
+_DUMMY_PASSWORD_HASH = PASSWORD_HASHER.hash(secrets.token_urlsafe(32))
 
 
 class DuplicateAccount(Exception):
@@ -28,7 +31,7 @@ class InvalidCredentials(Exception):
 
 
 def now_utc() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 def digest(token: str) -> str:
@@ -55,17 +58,28 @@ def register(session: Session, *, name: str, email: str, password: str) -> User:
         raise
 
 
-def login(session: Session, *, email: str, password: str) -> str:
+def login(session: Session, *, email: str, password: str, require_verified: bool = False) -> str:
     user = UserRepository(session).get_by_email(email.strip())
     credential = session.get(AuthCredential, user.id) if user else None
+    candidate_hash = credential.password_hash if credential else _DUMMY_PASSWORD_HASH
+    verified = False
     try:
-        accepted = bool(credential and PASSWORD_HASHER.verify(credential.password_hash, password))
+        PASSWORD_HASHER.verify(candidate_hash, password)
+        verified = True
     except (VerificationError, ValueError):
-        accepted = False
-    if not accepted:
+        pass
+    if credential is None or user is None or not verified:
+        raise InvalidCredentials
+    if require_verified and user.email_verified_at is None:
         raise InvalidCredentials
     token = secrets.token_urlsafe(48)
-    session.add(AuthSession(user_id=user.id, token_hash=digest(token), expires_at=now_utc() + SESSION_TTL))
+    session.add(
+        AuthSession(
+            user_id=user.id,
+            token_hash=digest(token),
+            expires_at=now_utc() + SESSION_TTL,
+        )
+    )
     session.commit()
     return token
 
@@ -80,7 +94,7 @@ def current(session: Session, token: str) -> User | None:
         return None
     expiry = record.expires_at
     if expiry.tzinfo is None:
-        expiry = expiry.replace(tzinfo=timezone.utc)
+        expiry = expiry.replace(tzinfo=UTC)
     if expiry <= now_utc():
         return None
     return session.get(User, record.user_id)

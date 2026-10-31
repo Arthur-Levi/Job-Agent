@@ -3,10 +3,11 @@
 No plaintext passwords or bearer tokens are stored. The user model remains an
 ownership model; these tables only link security state to an existing user UUID.
 """
-from datetime import datetime
-import uuid
 
-from sqlalchemy import DateTime, ForeignKey, Index, String, Uuid, func
+import uuid
+from datetime import datetime
+
+from sqlalchemy import DateTime, ForeignKey, Index, Integer, String, Uuid, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
@@ -31,15 +32,45 @@ class AuthSession(Base):
         Index("uq_auth_sessions_token_hash", "token_hash", unique=True),
     )
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4
-    )
+    id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_id: Mapped[uuid.UUID] = mapped_column(
         Uuid(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
     )
     token_hash: Mapped[str] = mapped_column(String(64), nullable=False)
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+
+class AuthRateLimit(Base):
+    """Security infrastructure counter; HMAC key is not a user identifier."""
+
+    __tablename__ = "auth_rate_limits"
+    __table_args__ = (Index("ix_auth_rate_limits_window_started_at", "window_started_at"),)
+
+    key_digest: Mapped[str] = mapped_column(String(64), primary_key=True)
+    window_started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    hits: Mapped[int] = mapped_column(Integer, nullable=False)
+
+
+class AuthActionToken(Base):
+    """Opaque verification/reset token digest, never a plaintext secret."""
+
+    __tablename__ = "auth_action_tokens"
+    __table_args__ = (
+        Index("ix_auth_action_tokens_user_purpose", "user_id", "purpose"),
+        Index("ix_auth_action_tokens_expires_at", "expires_at"),
+    )
+
+    token_hash: Mapped[str] = mapped_column(String(64), primary_key=True)
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    purpose: Mapped[str] = mapped_column(String(20), nullable=False)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    consumed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )

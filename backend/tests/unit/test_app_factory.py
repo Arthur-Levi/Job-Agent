@@ -8,7 +8,15 @@ URL = "postgresql+psycopg://u:p@localhost/x_test"
 
 
 def client_for(env: str) -> TestClient:
-    settings = Settings(_env_file=None, app_env=env, database_url=URL, log_level="WARNING")
+    settings = Settings(
+        _env_file=None,
+        app_env=env,
+        database_url=URL,
+        log_level="WARNING",
+        auth_rate_limit_enabled=(env == "production"),
+        registration_privacy_enabled=(env == "production"),
+        auth_rate_limit_secret="Synthetic-TestOnly-Security-Key-1234567890",
+    )
     return TestClient(create_app(settings))
 
 

@@ -4,46 +4,55 @@ Not a PASS claim: these tests MUST fail before auth routes and ownership are imp
 Run only against a verified, disposable React PostgreSQL test DB. The integration
 fixture recreates the public schema on first use.
 """
+
 import json
+from datetime import timedelta
 from pathlib import Path
+from typing import Any, cast
 
 from fastapi.testclient import TestClient
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.models import User
-from tests.integration.factories import make_job, make_profile
+from app.models import AuthSession
+from app.services.auth import digest, now_utc
 
-PERSONAS = json.loads(
-    (Path(__file__).with_name("d2e_personas.json")).read_text(encoding="utf-8")
-)["personas"]
+PERSONAS: list[dict[str, Any]] = cast(
+    list[dict[str, Any]],
+    json.loads((Path(__file__).with_name("d2e_personas.json")).read_text(encoding="utf-8"))[
+        "personas"
+    ],
+)
 
 
-def credentials(persona):
+def credentials(persona: dict[str, Any]) -> dict[str, str]:
     # Test-only password, never a user/production credential.
     return {"email": persona["email"], "password": f"TestOnly-D2E1-{persona['id']}-not-for-prod!"}
 
 
-def token(client, persona):
+def token(client: TestClient, persona: dict[str, Any]) -> str:
     response = client.post("/api/v1/auth/login", json=credentials(persona))
     assert response.status_code == 200, response.text
     data = response.json()
     assert isinstance(data.get("access_token"), str) and len(data["access_token"]) >= 32
     assert data.get("token_type", "").lower() == "bearer"
-    return data["access_token"]
+    return str(data["access_token"])
 
 
-def headers(token_value):
+def headers(token_value: str) -> dict[str, str]:
     return {"Authorization": f"Bearer {token_value}"}
 
 
-def test_e1_no_default_identity_and_unauthenticated_requests_blocked(auth_client: TestClient):
+def test_e1_no_default_identity_and_unauthenticated_requests_blocked(
+    auth_client: TestClient,
+) -> None:
     # The current D1 default-user route returns 200, so this intentionally starts RED.
     for path in ("/api/v1/profile", "/api/v1/jobs", "/api/v1/applications"):
         response = auth_client.get(path)
         assert response.status_code == 401, (path, response.status_code, response.text)
 
 
-def test_e1_ten_accounts_are_distinct_and_own_their_profiles(auth_client: TestClient):
+def test_e1_ten_accounts_are_distinct_and_own_their_profiles(auth_client: TestClient) -> None:
     for persona in PERSONAS:
         response = auth_client.post(
             "/api/v1/auth/register", json={**credentials(persona), "name": persona["name"]}
@@ -63,11 +72,14 @@ def test_e1_ten_accounts_are_distinct_and_own_their_profiles(auth_client: TestCl
             json={"headline": persona["target_role"]},
         )
         assert profile.status_code == 201, (persona["id"], profile.text)
-        assert auth_client.get("/api/v1/profile", headers=auth).json()["headline"] == persona["target_role"]
+        assert (
+            auth_client.get("/api/v1/profile", headers=auth).json()["headline"]
+            == persona["target_role"]
+        )
     assert len(ids) == 10
 
 
-def test_e1_cross_user_jobs_are_not_exposed(auth_client: TestClient):
+def test_e1_cross_user_jobs_are_not_exposed(auth_client: TestClient) -> None:
     # Independent from previous test: never rely on test execution order.
     identities = []
     for persona in PERSONAS:
@@ -78,7 +90,7 @@ def test_e1_cross_user_jobs_are_not_exposed(auth_client: TestClient):
         identities.append(headers(token(auth_client, persona)))
 
     job_ids = []
-    for persona, auth in zip(PERSONAS, identities):
+    for persona, auth in zip(PERSONAS, identities, strict=True):
         job = auth_client.post(
             "/api/v1/jobs",
             headers=auth,
@@ -101,7 +113,7 @@ def test_e1_cross_user_jobs_are_not_exposed(auth_client: TestClient):
                 assert foreign.status_code == 404, (i, j, foreign.status_code)
 
 
-def test_e1_logout_revokes_only_its_own_session(auth_client: TestClient):
+def test_e1_logout_revokes_only_its_own_session(auth_client: TestClient) -> None:
     first, second = PERSONAS[:2]
     for persona in (first, second):
         response = auth_client.post(
@@ -114,7 +126,9 @@ def test_e1_logout_revokes_only_its_own_session(auth_client: TestClient):
     assert auth_client.get("/api/v1/auth/me", headers=headers(b)).status_code == 200
 
 
-def test_e1_duplicate_registration_wrong_password_and_invalid_token(auth_client: TestClient):
+def test_e1_duplicate_registration_wrong_password_and_invalid_token(
+    auth_client: TestClient,
+) -> None:
     persona = PERSONAS[0]
     data = {**credentials(persona), "name": persona["name"]}
     created = auth_client.post("/api/v1/auth/register", json=data)
@@ -125,24 +139,24 @@ def test_e1_duplicate_registration_wrong_password_and_invalid_token(auth_client:
         "/api/v1/auth/login", json={**credentials(persona), "password": "wrong-password"}
     )
     assert bad.status_code == 401
-    assert auth_client.get(
-        "/api/v1/auth/me", headers=headers("bogus-auth-token-that-is-not-valid")
-    ).status_code == 401
+    assert (
+        auth_client.get(
+            "/api/v1/auth/me", headers=headers("bogus-auth-token-that-is-not-valid")
+        ).status_code
+        == 401
+    )
     correct = headers(token(auth_client, persona))
     assert auth_client.get("/api/v1/auth/me", headers=correct).status_code == 200
 
 
-def test_e1_session_expiry_revokes_access(auth_client: TestClient, db_session: Session):
-    from datetime import timedelta
-    from sqlalchemy import select
-
-    from app.models import AuthSession
-    from app.services.auth import digest, now_utc
-
+def test_e1_session_expiry_revokes_access(auth_client: TestClient, db_session: Session) -> None:
     persona = PERSONAS[1]
-    assert auth_client.post(
-        "/api/v1/auth/register", json={**credentials(persona), "name": persona["name"]}
-    ).status_code == 201
+    assert (
+        auth_client.post(
+            "/api/v1/auth/register", json={**credentials(persona), "name": persona["name"]}
+        ).status_code
+        == 201
+    )
     bearer_token = token(auth_client, persona)
     session = db_session.execute(
         select(AuthSession).where(AuthSession.token_hash == digest(bearer_token))

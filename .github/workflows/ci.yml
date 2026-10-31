@@ -46,6 +46,15 @@ jobs:
       - run: ruff check .
       - run: ruff format --check .
       - run: mypy
+      - name: Validate D2-E1.4 guarded operational CLI (no DB access)
+        run: |
+          python -m py_compile ../scripts/d2e14_operational_gate.py
+          python ../scripts/d2e14_operational_gate.py --help
+          python ../scripts/d2e14_operational_gate.py self-test-headers
+          python -m py_compile ../scripts/d2e15_proxy_policy.py
+          python ../scripts/d2e15_proxy_policy.py --bind 127.0.0.1 --trusted-proxy 127.0.0.1 --https-origin https://app.example.com
+          python -m py_compile ../scripts/d2e151_migration_gate.py ../scripts/d2e151_operational_probe.py
+          python ../scripts/d2e151_operational_probe.py --help
       - name: Migrations (CLI path) upgrade -> downgrade -> upgrade
         env:
           DATABASE_URL: ${{ env.TEST_DATABASE_URL }}
