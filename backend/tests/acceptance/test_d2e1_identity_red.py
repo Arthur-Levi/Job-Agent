@@ -43,7 +43,9 @@ def headers(token_value: str) -> dict[str, str]:
     return {"Authorization": f"Bearer {token_value}"}
 
 
-def test_e1_no_default_identity_and_unauthenticated_requests_blocked(auth_client: TestClient) -> None:
+def test_e1_no_default_identity_and_unauthenticated_requests_blocked(
+    auth_client: TestClient,
+) -> None:
     # The current D1 default-user route returns 200, so this intentionally starts RED.
     for path in ("/api/v1/profile", "/api/v1/jobs", "/api/v1/applications"):
         response = auth_client.get(path)
@@ -124,7 +126,9 @@ def test_e1_logout_revokes_only_its_own_session(auth_client: TestClient) -> None
     assert auth_client.get("/api/v1/auth/me", headers=headers(b)).status_code == 200
 
 
-def test_e1_duplicate_registration_wrong_password_and_invalid_token(auth_client: TestClient) -> None:
+def test_e1_duplicate_registration_wrong_password_and_invalid_token(
+    auth_client: TestClient,
+) -> None:
     persona = PERSONAS[0]
     data = {**credentials(persona), "name": persona["name"]}
     created = auth_client.post("/api/v1/auth/register", json=data)
