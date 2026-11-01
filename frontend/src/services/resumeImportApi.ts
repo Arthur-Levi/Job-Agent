@@ -15,6 +15,7 @@ export interface ResumeDraftItem {
 }
 export interface ResumePreview {
   preview_id: string
+  preview_ticket: string
   format: 'txt' | 'pdf' | 'docx'
   character_count: number
   sections_detected: string[]
@@ -30,6 +31,13 @@ export interface ResumePreview {
   }
 }
 
+export interface ImportConfirmationResult {
+  import_id: string
+  created_fact_ids: string[]
+  skipped_duplicates: string[]
+  verification: "USER_DECLARED"
+}
+
 export const resumeImportApi = {
   preview(file: File): Promise<ResumePreview> {
     const form = new FormData()
@@ -37,6 +45,24 @@ export const resumeImportApi = {
     return request<ResumePreview>('POST', '/api/v1/resume-imports/preview', {
       body: form,
       timeoutMs: 30_000,
+    })
+  },
+  confirm(
+    preview: ResumePreview,
+    items: ResumeDraftItem[],
+    idempotencyKey: string,
+  ): Promise<ImportConfirmationResult> {
+    return request<ImportConfirmationResult>('POST', '/api/v1/resume-imports/confirm', {
+      headers: { 'Idempotency-Key': idempotencyKey },
+      body: {
+        preview_id: preview.preview_id,
+        preview_ticket: preview.preview_ticket,
+        confirmed: true,
+        items: items.map(({ draft_id, category, title, description, organization, start_date, end_date, source_excerpt, review_status }) => ({
+          draft_id, category, title, description, organization, start_date, end_date, source_excerpt,
+          review_status: review_status === 'rejected' ? 'rejected' : review_status === 'edited' ? 'edited' : 'confirmed',
+        })),
+      },
     })
   },
 }
