@@ -3,6 +3,7 @@
 Do not run this module on the preserved Codespaces database. The integration
 fixture DROPS the public schema and recreates migrations from scratch.
 """
+
 import uuid
 from typing import Any
 
@@ -82,8 +83,11 @@ def test_confirm_creates_owned_receipt_facts_master_profile(db_session: Session)
     key = b"synthetic-key-32chars-long-not-production"
     confirmation = _confirmation(_preview(), user, key)
     result = confirm_import(
-        db_session, user_id=user.id, confirmation=confirmation,
-        key=key, idempotency_key="test-key-first-import-001",
+        db_session,
+        user_id=user.id,
+        confirmation=confirmation,
+        key=key,
+        idempotency_key="test-key-first-import-001",
     )
     assert len(result.created_fact_ids) == 1
     assert result.verification == "USER_DECLARED"
@@ -96,9 +100,10 @@ def test_confirm_creates_owned_receipt_facts_master_profile(db_session: Session)
     profile = master_profile(db_session, user.id)
     assert len(profile["items"]) == 1
     assert profile["items"][0]["source_fact_ids"] == [str(fact.id)]
-    assert db_session.scalar(
-        select(ResumeImportRecord).where(ResumeImportRecord.user_id == user.id)
-    ) is not None
+    assert (
+        db_session.scalar(select(ResumeImportRecord).where(ResumeImportRecord.user_id == user.id))
+        is not None
+    )
 
 
 def test_idempotent_retry_does_not_duplicate_facts(db_session: Session) -> None:
@@ -107,9 +112,13 @@ def test_idempotent_retry_does_not_duplicate_facts(db_session: Session) -> None:
     confirmation = _confirmation(_preview(), user, key)
     results = [
         confirm_import(
-            db_session, user_id=user.id, confirmation=confirmation,
-            key=key, idempotency_key="test-idempotent-key-001",
-        ) for _ in range(2)
+            db_session,
+            user_id=user.id,
+            confirmation=confirmation,
+            key=key,
+            idempotency_key="test-idempotent-key-001",
+        )
+        for _ in range(2)
     ]
     assert results[0].import_id == results[1].import_id
     assert results[0].created_fact_ids == results[1].created_fact_ids
@@ -121,13 +130,19 @@ def test_new_key_exact_repeat_skips_duplicate(db_session: Session) -> None:
     key = b"synthetic-key-32chars-long-not-production"
     first = _confirmation(_preview(), user, key)
     confirm_import(
-        db_session, user_id=user.id, confirmation=first,
-        key=key, idempotency_key="test-key-unique-one-001",
+        db_session,
+        user_id=user.id,
+        confirmation=first,
+        key=key,
+        idempotency_key="test-key-unique-one-001",
     )
     second = _confirmation(_preview(), user, key)
     result = confirm_import(
-        db_session, user_id=user.id, confirmation=second,
-        key=key, idempotency_key="test-key-unique-two-002",
+        db_session,
+        user_id=user.id,
+        confirmation=second,
+        key=key,
+        idempotency_key="test-key-unique-two-002",
     )
     assert not result.created_fact_ids
     assert len(result.skipped_duplicates) == 1
@@ -139,15 +154,21 @@ def test_payload_reuse_of_key_is_conflict(db_session: Session) -> None:
     key = b"synthetic-key-32chars-long-not-production"
     first = _confirmation(_preview(), user, key)
     confirm_import(
-        db_session, user_id=user.id, confirmation=first,
-        key=key, idempotency_key="test-replay-conflict-001",
+        db_session,
+        user_id=user.id,
+        confirmation=first,
+        key=key,
+        idempotency_key="test-replay-conflict-001",
     )
     edited = first.model_copy(deep=True)
     edited.items[0].description = "Outra experiência corrigida"
     with pytest.raises(ConflictError):
         confirm_import(
-            db_session, user_id=user.id, confirmation=edited,
-            key=key, idempotency_key="test-replay-conflict-001",
+            db_session,
+            user_id=user.id,
+            confirmation=edited,
+            key=key,
+            idempotency_key="test-replay-conflict-001",
         )
 
 
@@ -158,12 +179,18 @@ def test_source_tampering_rejected_before_writes(db_session: Session) -> None:
     edited.items[0].source_excerpt = "Inventado fora do documento"
     with pytest.raises(UnprocessableError):
         confirm_import(
-            db_session, user_id=user.id, confirmation=edited,
-            key=key, idempotency_key="test-source-tampering-001",
+            db_session,
+            user_id=user.id,
+            confirmation=edited,
+            key=key,
+            idempotency_key="test-source-tampering-001",
         )
-    assert db_session.scalars(
-        select(ResumeImportRecord).where(ResumeImportRecord.user_id == user.id)
-    ).all() == []
+    assert (
+        db_session.scalars(
+            select(ResumeImportRecord).where(ResumeImportRecord.user_id == user.id)
+        ).all()
+        == []
+    )
 
 
 def test_other_user_cannot_confirm_ticket(db_session: Session) -> None:
@@ -173,8 +200,11 @@ def test_other_user_cannot_confirm_ticket(db_session: Session) -> None:
     form = _confirmation(_preview(), a, key)
     with pytest.raises(UnprocessableError):
         confirm_import(
-            db_session, user_id=b.id, confirmation=form,
-            key=key, idempotency_key="test-cross-user-block-001",
+            db_session,
+            user_id=b.id,
+            confirmation=form,
+            key=key,
+            idempotency_key="test-cross-user-block-001",
         )
     assert list_facts(db_session, b.id) == []
 
@@ -184,8 +214,11 @@ def test_correction_supersedes_and_protects_cross_user(db_session: Session) -> N
     b = _user(db_session)
     key = b"synthetic-key-32chars-long-not-production"
     created = confirm_import(
-        db_session, user_id=a.id, confirmation=_confirmation(_preview(), a, key),
-        key=key, idempotency_key="test-correction-history-001",
+        db_session,
+        user_id=a.id,
+        confirmation=_confirmation(_preview(), a, key),
+        key=key,
+        idempotency_key="test-correction-history-001",
     )
     fact_id = created.created_fact_ids[0]
     with pytest.raises(NotFoundError):
