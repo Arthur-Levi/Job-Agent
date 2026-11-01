@@ -1,3 +1,17 @@
+# ATENÇÃO — PRIORIDADES ATUAIS DO BETA 10 (2026-10-31)
+
+**Fonte de verdade para o próximo lançamento:** [BETA-10-PRIORITY-ROADMAP-ATS.md](BETA-10-PRIORITY-ROADMAP-ATS.md), com tarefas B10-C01–C11, B10-S01–S07, B10-P01–P08 e B10-L01–L06; este backlog abaixo é **histórico v14/v15** e deve ser lido como contexto, não como sequência de trabalho vigente.
+
+**P0-CORE, em ordem:** D2-E2.C upload seguro → **ATS-01 parser check** → preview React → D2-E2.D confirmação/Fact Ledger → D2-E2.E diagnóstico + **ATS-02 keyword alignment** → D2-E2.F currículo + **ATS-03 formatting/export** → D2-E2.H **ATS-04 round-trip** e jornada E2E.
+
+**P0-SAFETY, obrigatório antes de qualquer usuário real:** staging isolado, HTTPS, email real de verificação/reset, backup externo/restauração, LGPD, segurança de upload, testes live/browsers e suporte operacional.
+
+**P1-BETA:** onboarding, acessibilidade, métricas de ativação, entrevistas e liberação por convite 2→5→10. **P2-LATER:** ATS por plataforma (Greenhouse/Workday/Gupy etc.), automações, IA mais complexa, Stripe real e enterprise. Stripe real volta a P0 **antes da primeira cobrança**, mas não para piloto gratuito.
+
+**Estado verificado:** D2-E2.A e D2-E2.B com CI PASS; migration `0005` apenas em CI descartável; nenhum endpoint novo de jornada homologado. A branch D2-E2.B ainda carece de sincronização operacional confirmada no Codespaces. Preços do documento histórico (R$149/R$299) não são decisão comercial atual; R$299 plano único é hipótese de validação, não produto vendido.
+
+---
+
 # Job Agent — Backlog mestre de lançamento e valor comercial
 Atualizado: 2026-10-26. Branch: feature/d2681-railway-docker.
 
