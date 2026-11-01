@@ -17,6 +17,8 @@ EXPECTED_TABLES = {
     "candidate_projects",
     "candidate_experiences",
     "candidate_educations",
+    "career_facts",
+    "resume_import_records",
     "jobs",
     "job_requirements",
     "job_matches",
@@ -31,6 +33,8 @@ USER_OWNED = {
     "applications",
     "auth_credentials",
     "auth_sessions",
+    "career_facts",
+    "resume_import_records",
 }
 
 

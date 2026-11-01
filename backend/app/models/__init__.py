@@ -9,6 +9,7 @@ from app.models.candidate import (
     CandidateProject,
     CandidateSkill,
 )
+from app.models.career_fact import CareerFact, ResumeImportRecord
 from app.models.job import Job, JobMatch, JobRequirement
 from app.models.resume import ResumeVersion
 from app.models.user import User
@@ -20,6 +21,8 @@ __all__ = [
     "AuthRateLimit",
     "AuthSession",
     "ApplicationEvent",
+    "CareerFact",
+    "ResumeImportRecord",
     "CandidateEducation",
     "CandidateExperience",
     "CandidateProfile",
