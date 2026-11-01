@@ -79,7 +79,8 @@ def confirm_import(
         seen.add(identity)
 
     canonical = [_canonical(item) for item in confirmation.items]
-    digest = hashlib.sha256(_json({"items": canonical, "preview_id": signed["preview_id"]}).encode()).hexdigest()
+    digest_source = _json({"items": canonical, "preview_id": signed["preview_id"]})
+    digest = hashlib.sha256(digest_source.encode()).hexdigest()
     existing = db.scalar(
         select(ResumeImportRecord).where(
             ResumeImportRecord.user_id == user_id,
@@ -88,7 +89,9 @@ def confirm_import(
     )
     if existing is not None:
         if existing.content_sha256 != digest:
-            raise ConflictError("Chave de idempotência reutilizada com conteúdo diferente", code="CV_REPLAY")
+            raise ConflictError(
+                "Chave de idempotência reutilizada com conteúdo diferente", code="CV_REPLAY"
+            )
         facts = db.scalars(
             select(CareerFact).where(
                 CareerFact.user_id == user_id, CareerFact.import_id == existing.id
@@ -181,7 +184,9 @@ def confirm_import(
         db.commit()
     except IntegrityError as exc:
         db.rollback()
-        raise ConflictError("Importação concorrente; consulte fatos e tente novamente", code="CV_CONCURRENT") from exc
+        raise ConflictError(
+            "Importação concorrente; consulte fatos e tente novamente", code="CV_CONCURRENT"
+        ) from exc
     except Exception:
         db.rollback()
         raise
