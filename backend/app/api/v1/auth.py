@@ -15,7 +15,7 @@ from app.services.auth_rate_limit import (
     RateLimitUnavailable,
     consume,
 )
-from app.services.email_delivery import MemoryMailer
+from app.services.email_delivery import EmailDeliveryUnavailable, Mailer
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -86,13 +86,16 @@ def register(
         )
     if settings.identity_lifecycle_enabled:
         mailer = _mailer(request, settings)
-        lifecycle.dispatch(
-            session,
-            email=payload.email,
-            purpose=lifecycle.VERIFY,
-            mailer=mailer,
-            frontend_url=settings.public_frontend_url,
-        )
+        try:
+            lifecycle.dispatch(
+                session,
+                email=payload.email,
+                purpose=lifecycle.VERIFY,
+                mailer=mailer,
+                frontend_url=settings.public_frontend_url,
+            )
+        except EmailDeliveryUnavailable:
+            raise HTTPException(503, "Email temporarily unavailable") from None
     if settings.registration_privacy_enabled:
         return JSONResponse(
             status_code=202,
@@ -153,11 +156,11 @@ def logout(session: SessionDep, authorization: str | None = Header(default=None)
     auth.logout(session, token)
 
 
-def _mailer(request: Request, settings: SettingsDep) -> MemoryMailer:
+def _mailer(request: Request, settings: SettingsDep) -> Mailer:
     if not settings.identity_lifecycle_enabled:
         raise HTTPException(503, "Account verification not configured")
     mailer = getattr(request.app.state, "mailer", None)
-    if not isinstance(mailer, MemoryMailer):
+    if not isinstance(mailer, Mailer):
         raise HTTPException(503, "Email delivery unavailable")
     return mailer
 
@@ -195,13 +198,16 @@ def request_verification(
 ) -> MessageOut:
     mailer = _mailer(request, settings)
     _limited_email_request(database, settings, email=payload.email, purpose="verify")
-    lifecycle.dispatch(
-        session,
-        email=payload.email,
-        purpose=lifecycle.VERIFY,
-        mailer=mailer,
-        frontend_url=settings.public_frontend_url,
-    )
+    try:
+        lifecycle.dispatch(
+            session,
+            email=payload.email,
+            purpose=lifecycle.VERIFY,
+            mailer=mailer,
+            frontend_url=settings.public_frontend_url,
+        )
+    except EmailDeliveryUnavailable:
+        raise HTTPException(503, "Email temporarily unavailable") from None
     return MessageOut(message="Se existir uma conta elegível, enviaremos instruções.")
 
 
@@ -226,13 +232,16 @@ def request_password_reset(
 ) -> MessageOut:
     mailer = _mailer(request, settings)
     _limited_email_request(database, settings, email=payload.email, purpose="reset")
-    lifecycle.dispatch(
-        session,
-        email=payload.email,
-        purpose=lifecycle.RESET,
-        mailer=mailer,
-        frontend_url=settings.public_frontend_url,
-    )
+    try:
+        lifecycle.dispatch(
+            session,
+            email=payload.email,
+            purpose=lifecycle.RESET,
+            mailer=mailer,
+            frontend_url=settings.public_frontend_url,
+        )
+    except EmailDeliveryUnavailable:
+        raise HTTPException(503, "Email temporarily unavailable") from None
     return MessageOut(message="Se existir uma conta elegível, enviaremos instruções.")
 
 
