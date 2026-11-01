@@ -10,7 +10,7 @@ import time
 import urllib.error
 import urllib.request
 from dataclasses import dataclass, field
-from typing import Protocol, runtime_checkable
+from typing import ClassVar, Protocol, runtime_checkable
 
 
 class _RejectRedirect(urllib.request.HTTPRedirectHandler):
@@ -48,11 +48,11 @@ class MemoryMailer:
 
 @dataclass(frozen=True)
 class ResendMailer:
-    api_key: str
+    api_key: str = field(repr=False)
     from_address: str
     timeout_seconds: float = 5.0
     # This endpoint is fixed: callers cannot redirect bearer credentials to a host.
-    endpoint: str = "https://api.resend.com/emails"
+    endpoint: ClassVar[str] = "https://api.resend.com/emails"
 
     def send(self, recipient: str, subject: str, link: str) -> None:
         if not self.api_key or not self.from_address:
