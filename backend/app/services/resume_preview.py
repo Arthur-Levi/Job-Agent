@@ -178,6 +178,7 @@ def _explicit_role(header: str) -> tuple[str, str | None, str | None, str | None
         end = None
     return parts[1][:180], parts[0][:180], period.group(1), end
 
+
 def build_preview(filename: str, content: bytes) -> dict[str, Any]:
     fmt, text = extract_text(filename, content)
     sections: dict[str, list[str]] = {}
