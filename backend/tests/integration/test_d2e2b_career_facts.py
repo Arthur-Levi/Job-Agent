@@ -56,9 +56,12 @@ def test_one_user_can_store_confirmed_import_and_owned_fact(db_session: Session)
     db_session.add(fact)
     db_session.flush()
     assert fact.id is not None
-    assert db_session.scalar(
-        select(CareerFact).where(CareerFact.id == fact.id, CareerFact.user_id == user.id)
-    ) is fact
+    assert (
+        db_session.scalar(
+            select(CareerFact).where(CareerFact.id == fact.id, CareerFact.user_id == user.id)
+        )
+        is fact
+    )
 
 
 def test_same_import_key_in_different_users_is_allowed(db_session: Session) -> None:
@@ -124,9 +127,10 @@ def test_correction_history_can_coexist_without_mutating_prior_value(db_session:
     assert old.value == "Construção de dashboards sintéticos"
     assert updated.supersedes_id == old.id
     assert updated.user_id == old.user_id
-    assert db_session.scalars(
-        select(CareerFact).where(CareerFact.user_id == user.id)
-    ).all() == [old, updated]
+    assert db_session.scalars(select(CareerFact).where(CareerFact.user_id == user.id)).all() == [
+        old,
+        updated,
+    ]
 
 
 def test_resume_import_does_not_store_original_document(db_session: Session) -> None:
