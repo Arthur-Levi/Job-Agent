@@ -1,4 +1,5 @@
 """Authenticated Master Profile / Fact Ledger routes."""
+
 from uuid import UUID
 
 from fastapi import APIRouter
@@ -28,8 +29,7 @@ def read_facts(
 ) -> dict[str, list[FactRead]]:
     return {
         "items": [
-            FactRead.model_validate(fact)
-            for fact in list_facts(session, user.id, include_history)
+            FactRead.model_validate(fact) for fact in list_facts(session, user.id, include_history)
         ]
     }
 
