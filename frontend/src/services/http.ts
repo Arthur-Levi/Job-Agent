@@ -86,6 +86,7 @@ function toApiError(response: Response, text: string): ApiError {
 export interface RequestOptions {
   query?: Query
   body?: unknown
+  headers?: Record<string, string>
   signal?: AbortSignal
   timeoutMs?: number
 }
@@ -108,7 +109,7 @@ export async function request<T>(
   }, options.timeoutMs ?? DEFAULT_TIMEOUT_MS)
 
   try {
-    const headers: Record<string, string> = { Accept: 'application/json', [REQUEST_ID_HEADER]: requestId }
+    const headers: Record<string, string> = { Accept: 'application/json', [REQUEST_ID_HEADER]: requestId, ...options.headers }
     const token = getAccessToken()
     if (token) headers.Authorization = `Bearer ${token}`
     const init: RequestInit = { method, headers, signal: controller.signal }
