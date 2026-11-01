@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { resumeImportApi } from '../services/resumeImportApi'
 import type { ResumePreview } from '../services/resumeImportApi'
@@ -48,7 +49,7 @@ describe('ResumeImportPage', () => {
   it('previews and lets the candidate edit and discard without persistence', async () => {
     preview.mockResolvedValue(fixture)
     confirm.mockResolvedValue({import_id:'import1', created_fact_ids:['fact1'], skipped_duplicates:[], verification:'USER_DECLARED'})
-    render(<ResumeImportPage />)
+    render(<MemoryRouter><ResumeImportPage /></MemoryRouter>)
     const file = new File(['texto sintético para upload de currículo'], 'sample.txt', { type: 'text/plain' })
     fireEvent.change(screen.getByLabelText(/Arquivo PDF, DOCX ou TXT/), {
       target: { files: [file] },
@@ -71,7 +72,7 @@ describe('ResumeImportPage', () => {
   })
 
   it('blocks oversized upload before calling the API', async () => {
-    render(<ResumeImportPage />)
+    render(<MemoryRouter><ResumeImportPage /></MemoryRouter>)
     const file = new File([new Uint8Array(2_000_001)], 'large.txt', { type: 'text/plain' })
     fireEvent.change(screen.getByLabelText(/Arquivo PDF, DOCX ou TXT/), {
       target: { files: [file] },
