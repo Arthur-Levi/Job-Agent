@@ -1,0 +1,365 @@
+openapi: 3.1.0
+info:
+  title: Job Agent — D2-E2 Candidate Journey Target Contract
+  version: 0.1.0-draft
+  description: |
+    DESIGN CONTRACT ONLY. These routes are not yet implemented in backend/app.
+    Supersedes legacy production_api routes only after separate acceptance.
+servers:
+  - url: /api/v1
+security:
+  - bearerAuth: []
+tags:
+  - name: resume-imports
+  - name: career-facts
+  - name: diagnostics
+  - name: resume-versions
+paths:
+  /resume-imports/preview:
+    post:
+      tags: [resume-imports]
+      operationId: previewResume
+      description: |
+        Parse a user-supplied PDF, DOCX or TXT into untrusted review items.
+        No database writes. Enforce file size, type, decompression and parser
+        limits before processing. Do not store raw document or extracted text.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: A review preview (not proof of qualifications)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResumePreview'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '413': { description: Uploaded file too large }
+        '415': { description: Unsupported content or file type }
+        '422': { description: Cannot extract supported text safely }
+  /resume-imports/confirm:
+    post:
+      tags: [resume-imports]
+      operationId: confirmResume
+      description: |
+        Atomically confirm exactly the reviewed items. Requires explicit
+        confirmation, a stable client-generated idempotency key, and a
+        server-verifiable preview reference. Repeated requests may not
+        duplicate evidence or facts. Conflicts require manual resolution.
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema: { type: string, minLength: 16, maxLength: 128 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ImportConfirm'
+      responses:
+        '201':
+          description: Atomic confirmed import and fact projection
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImportResult'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '409': { description: Conflict or ambiguous duplicate; no partial writes }
+        '422': { description: Invalid or stale preview, unconfirmed or inconsistent items }
+  /career/profile:
+    get:
+      tags: [career-facts]
+      operationId: getMasterCareerProfile
+      responses:
+        '200':
+          description: Structured master profile owned by the bearer subject
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MasterProfile'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /career/facts:
+    get:
+      tags: [career-facts]
+      operationId: listCareerFacts
+      parameters:
+        - name: include_history
+          in: query
+          schema: { type: boolean, default: false }
+      responses:
+        '200':
+          description: Owned facts and optionally superseded history
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/CareerFact' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /career/facts/{fact_id}/corrections:
+    post:
+      tags: [career-facts]
+      operationId: correctCareerFact
+      parameters:
+        - $ref: '#/components/parameters/FactId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [value, reason]
+              properties:
+                value: { type: string, minLength: 1, maxLength: 4000 }
+                reason: { type: string, minLength: 3, maxLength: 300 }
+      responses:
+        '201':
+          description: New active revision, prior fact marked superseded
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CareerFact' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { description: Unowned or unknown fact }
+        '409': { description: Fact already superseded or conflicted }
+  /career/facts/contradictions:
+    get:
+      tags: [career-facts]
+      operationId: listCareerContradictions
+      responses:
+        '200':
+          description: Conservative conflict hints, not a judgment of truth
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      additionalProperties: false
+                      required: [fact_ids, reason]
+                      properties:
+                        fact_ids:
+                          type: array
+                          minItems: 2
+                          items: { type: string, format: uuid }
+                        reason: { type: string }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /career/diagnostics:
+    post:
+      tags: [diagnostics]
+      operationId: createCareerDiagnostic
+      description: |
+        Explain each declared match and evidence gap for a job owned by the
+        authenticated user. A score, if introduced, measures documentary
+        alignment only; hiring_probability must always be null.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [job_id]
+              properties:
+                job_id: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Explainable diagnostic
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CareerDiagnostic' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { description: Job not found or not owned }
+  /career/resumes/drafts:
+    post:
+      tags: [resume-versions]
+      operationId: createGroundedResumeDraft
+      description: |
+        Only ACTIVE facts belonging to the authenticated user are allowed.
+        No unsupported new credentials or achievements. A draft is not
+        automatically submitted and is explicitly marked unverified.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [fact_ids]
+              properties:
+                fact_ids:
+                  type: array
+                  minItems: 1
+                  maxItems: 80
+                  uniqueItems: true
+                  items: { type: string, format: uuid }
+                job_id: { type: [string, 'null'], format: uuid }
+      responses:
+        '201':
+          description: Grounded, editable saved draft with claim provenance
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/GroundedResumeDraft' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { description: Any unowned, unknown or superseded fact }
+        '422': { description: Invalid or duplicated selected facts }
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+  parameters:
+    FactId:
+      name: fact_id
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+  responses:
+    Unauthorized:
+      description: Authentication required
+  schemas:
+    ResumeDraftItem:
+      type: object
+      additionalProperties: false
+      required: [draft_id, category, title, description, source_excerpt, review_status]
+      properties:
+        draft_id: { type: string, format: uuid }
+        category: { type: string, enum: [experience, education, project, skill, certificate, language] }
+        title: { type: string, minLength: 2, maxLength: 180 }
+        organization: { type: [string, 'null'], maxLength: 180 }
+        start_date: { type: [string, 'null'], description: ISO 8601 date or partial date, if explicitly provided }
+        end_date: { type: [string, 'null'], description: ISO 8601 date or partial date, if explicitly provided }
+        description: { type: string, maxLength: 4000 }
+        source_excerpt: { type: string, maxLength: 1200, description: User-provided excerpt; never evidence of externally validated skill }
+        confidence: { type: [number, 'null'], minimum: 0, maximum: 1, description: Parser confidence only, not probability of truth }
+        review_status: { type: string, enum: [pending, edited, rejected, confirmed] }
+        warnings:
+          type: array
+          items: { type: string }
+    ResumePreview:
+      type: object
+      additionalProperties: false
+      required: [preview_id, expires_at, format, items, limitations]
+      properties:
+        preview_id: { type: string, format: uuid }
+        expires_at: { type: string, format: date-time }
+        format: { type: string, enum: [pdf, docx, txt] }
+        items:
+          type: array
+          maxItems: 40
+          items: { $ref: '#/components/schemas/ResumeDraftItem' }
+        limitations:
+          type: array
+          items: { type: string }
+    ImportConfirm:
+      type: object
+      additionalProperties: false
+      required: [preview_id, confirmed, items]
+      properties:
+        preview_id: { type: string, format: uuid }
+        confirmed: { type: boolean, const: true }
+        items:
+          type: array
+          maxItems: 40
+          items: { $ref: '#/components/schemas/ResumeDraftItem' }
+    ImportResult:
+      type: object
+      additionalProperties: false
+      required: [import_id, created_fact_ids, skipped_duplicates, verification]
+      properties:
+        import_id: { type: string, format: uuid }
+        created_fact_ids:
+          type: array
+          items: { type: string, format: uuid }
+        skipped_duplicates:
+          type: array
+          items: { type: string, format: uuid }
+        verification: { type: string, const: USER_DECLARED }
+    CareerFact:
+      type: object
+      additionalProperties: false
+      required: [id, subject, predicate, value, status, verification, source_reference, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        subject: { type: string }
+        predicate: { type: string }
+        value: { type: string }
+        status: { type: string, enum: [ACTIVE, SUPERSEDED, REJECTED] }
+        verification: { type: string, enum: [USER_DECLARED, EXTERNALLY_VERIFIED] }
+        source_reference: { type: string }
+        source_excerpt: { type: [string, 'null'] }
+        supersedes_id: { type: [string, 'null'], format: uuid }
+        created_at: { type: string, format: date-time }
+    MasterProfile:
+      type: object
+      additionalProperties: false
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            type: object
+            required: [id, category, title, source_fact_ids]
+            properties:
+              id: { type: string, format: uuid }
+              category: { type: string }
+              title: { type: string }
+              source_fact_ids:
+                type: array
+                items: { type: string, format: uuid }
+    CareerDiagnostic:
+      type: object
+      additionalProperties: false
+      required: [job_id, requirements, actions, limitations, hiring_probability]
+      properties:
+        job_id: { type: string, format: uuid }
+        requirements:
+          type: array
+          items:
+            type: object
+            required: [requirement, supporting_fact_ids, interpretation]
+            properties:
+              requirement: { type: string }
+              supporting_fact_ids:
+                type: array
+                items: { type: string, format: uuid }
+              interpretation: { type: string, enum: [mentioned, unsupported, ambiguous] }
+        actions:
+          type: array
+          items: { type: string }
+        limitations:
+          type: array
+          items: { type: string }
+        hiring_probability: { type: 'null' }
+    GroundedResumeDraft:
+      type: object
+      additionalProperties: false
+      required: [resume_version_id, text, claims, status]
+      properties:
+        resume_version_id: { type: string, format: uuid }
+        text: { type: string }
+        status: { type: string, const: DRAFT }
+        claims:
+          type: array
+          items:
+            type: object
+            required: [fact_id, text]
+            properties:
+              fact_id: { type: string, format: uuid }
+              text: { type: string }
