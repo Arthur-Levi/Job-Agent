@@ -19,7 +19,7 @@ from app.core.middleware import (
 )
 from app.core.request_context import REQUEST_ID_HEADER
 from app.db.session import Database
-from app.services.email_delivery import MemoryMailer
+from app.services.email_delivery import MemoryMailer, ResendMailer
 
 logger = logging.getLogger(__name__)
 
@@ -53,7 +53,17 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     )
     app.state.settings = settings
     app.state.database = database
-    app.state.mailer = MemoryMailer() if settings.email_delivery_mode == "memory" else None
+    if settings.email_delivery_mode == "memory":
+        app.state.mailer = MemoryMailer()
+    elif settings.email_delivery_mode == "resend":
+        assert settings.resend_api_key is not None
+        assert settings.email_from_address is not None
+        app.state.mailer = ResendMailer(
+            api_key=settings.resend_api_key.get_secret_value(),
+            from_address=settings.email_from_address,
+        )
+    else:
+        app.state.mailer = None
 
     # Ordem: o último adicionado é o mais externo.
     # CORS (externo) -> RequestId -> AuthRateLimit -> BodySizeLimit -> app
