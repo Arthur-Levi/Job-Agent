@@ -4,7 +4,6 @@ Do not run this module on the preserved Codespaces database. The integration
 fixture DROPS the public schema and recreates migrations from scratch.
 """
 import uuid
-from datetime import datetime, timezone
 from typing import Any
 
 import pytest
