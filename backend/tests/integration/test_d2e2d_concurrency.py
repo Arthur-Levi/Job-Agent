@@ -9,11 +9,11 @@ from concurrent.futures import ThreadPoolExecutor
 from threading import Barrier
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session
 
-from app.models import CareerFact, User
+from app.models import CandidateProfile, CareerFact, ResumeImportRecord, User
 from app.services.career_import import confirm_import
 from tests.integration.test_d2e2d_confirmation import _confirmation, _preview
 
@@ -53,12 +53,24 @@ def test_two_distinct_keys_same_user_do_not_duplicate_facts(migrated_engine: Eng
         b = pool.submit(attempt, "race-concurrent-key-0002")
         outcomes = [a.result(timeout=25), b.result(timeout=25)]
 
-    assert sorted(outcomes) == [(0, 1), (1, 0)]
-    with Session(migrated_engine) as db:
-        facts = db.scalars(
-            select(CareerFact).where(
-                CareerFact.user_id == user_id,
-                CareerFact.status == "ACTIVE",
+    try:
+        assert sorted(outcomes) == [(0, 1), (1, 0)]
+        with Session(migrated_engine) as db:
+            facts = db.scalars(
+                select(CareerFact).where(
+                    CareerFact.user_id == user_id,
+                    CareerFact.status == "ACTIVE",
+                )
+            ).all()
+            assert len(facts) == 1
+    finally:
+        # This test uses committed independent sessions. Remove its synthetic
+        # rows so other CI tests which count users are not contaminated.
+        with Session(migrated_engine) as cleanup:
+            cleanup.execute(delete(CareerFact).where(CareerFact.user_id == user_id))
+            cleanup.execute(
+                delete(ResumeImportRecord).where(ResumeImportRecord.user_id == user_id)
             )
-        ).all()
-        assert len(facts) == 1
+            cleanup.execute(delete(CandidateProfile).where(CandidateProfile.user_id == user_id))
+            cleanup.execute(delete(User).where(User.id == user_id))
+            cleanup.commit()
