@@ -68,9 +68,7 @@ def test_two_distinct_keys_same_user_do_not_duplicate_facts(migrated_engine: Eng
         # rows so other CI tests which count users are not contaminated.
         with Session(migrated_engine) as cleanup:
             cleanup.execute(delete(CareerFact).where(CareerFact.user_id == user_id))
-            cleanup.execute(
-                delete(ResumeImportRecord).where(ResumeImportRecord.user_id == user_id)
-            )
+            cleanup.execute(delete(ResumeImportRecord).where(ResumeImportRecord.user_id == user_id))
             cleanup.execute(delete(CandidateProfile).where(CandidateProfile.user_id == user_id))
             cleanup.execute(delete(User).where(User.id == user_id))
             cleanup.commit()
