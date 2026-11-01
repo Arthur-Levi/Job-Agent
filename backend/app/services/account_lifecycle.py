@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session
 from app.models import AuthActionToken, AuthCredential, AuthSession, User
 from app.repositories.user import UserRepository
 from app.services import auth
-from app.services.email_delivery import MemoryMailer
+from app.services.email_delivery import EmailDeliveryUnavailable, Mailer
 
 VERIFY = "verify"
 RESET = "reset"
@@ -55,7 +55,7 @@ def dispatch(
     *,
     email: str,
     purpose: str,
-    mailer: MemoryMailer,
+    mailer: Mailer,
     frontend_url: str,
 ) -> None:
     user = UserRepository(session).get_by_email(email.strip())
@@ -71,7 +71,17 @@ def dispatch(
     route = "verify-email" if purpose == VERIFY else "reset-password"
     link = f"{frontend_url.rstrip('/')}/{route}#token={quote(raw)}"
     subject = "Confirme seu email" if purpose == VERIFY else "Redefina sua senha"
-    mailer.send(user.email, subject, link)
+    try:
+        mailer.send(user.email, subject, link)
+    except EmailDeliveryUnavailable:
+        # Never leave a valid recovery/verification link after unsuccessful delivery.
+        session.execute(
+            update(AuthActionToken)
+            .where(AuthActionToken.token_hash == auth.digest(raw))
+            .values(consumed_at=auth.now_utc())
+        )
+        session.commit()
+        raise
 
 
 def consume(session: Session, *, token: str, purpose: str, new_password: str | None = None) -> None:
