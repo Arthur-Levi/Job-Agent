@@ -4,6 +4,8 @@ These tests are expressly xfail(strict=True). They never open a database and
 do not alter established CI acceptance. Remove xfail incrementally in D2-E2.B+.
 """
 
+from typing import Any, cast
+
 import pytest
 
 from app.core.config import Settings
@@ -23,11 +25,11 @@ TARGET_ROUTES = (
 )
 
 
-def _openapi_paths() -> dict[str, object]:
+def _openapi_paths() -> dict[str, dict[str, Any]]:
     app = create_app(
         Settings(_env_file=None, database_url=_DB, app_env="test", log_level="WARNING")
     )
-    return app.openapi()["paths"]
+    return cast(dict[str, dict[str, Any]], app.openapi()["paths"])
 
 
 @pytest.mark.parametrize(("method", "path"), TARGET_ROUTES)
