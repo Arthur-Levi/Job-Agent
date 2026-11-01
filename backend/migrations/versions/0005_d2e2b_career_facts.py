@@ -26,7 +26,9 @@ def upgrade() -> None:
         sa.Column("source_format", sa.String(8), nullable=False),
         sa.Column("id", sa.Uuid(), server_default=sa.text("gen_random_uuid()"), nullable=False),
         sa.Column(
-            "created_at", sa.DateTime(timezone=True), server_default=sa.text("now()"),
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.text("now()"),
             nullable=False,
         ),
         sa.CheckConstraint(
@@ -38,19 +40,19 @@ def upgrade() -> None:
             name=op.f("ck_resume_import_records_resume_import_digest_length"),
         ),
         sa.ForeignKeyConstraint(
-            ["user_id"], ["users.id"],
+            ["user_id"],
+            ["users.id"],
             name=op.f("fk_resume_import_records_user_id_users"),
             ondelete="RESTRICT",
         ),
         sa.PrimaryKeyConstraint("id", name=op.f("pk_resume_import_records")),
-        sa.UniqueConstraint(
-            "user_id", "idempotency_key", name="uq_resume_import_user_key"
-        ),
+        sa.UniqueConstraint("user_id", "idempotency_key", name="uq_resume_import_user_key"),
         sa.UniqueConstraint("user_id", "id", name="uq_resume_import_user_id"),
     )
     op.create_index(
         op.f("ix_resume_import_records_user_id"),
-        "resume_import_records", ["user_id"],
+        "resume_import_records",
+        ["user_id"],
     )
     op.create_table(
         "career_facts",
@@ -66,7 +68,9 @@ def upgrade() -> None:
         sa.Column("supersedes_id", sa.Uuid(), nullable=True),
         sa.Column("id", sa.Uuid(), server_default=sa.text("gen_random_uuid()"), nullable=False),
         sa.Column(
-            "created_at", sa.DateTime(timezone=True), server_default=sa.text("now()"),
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.text("now()"),
             nullable=False,
         ),
         sa.CheckConstraint(
@@ -95,7 +99,8 @@ def upgrade() -> None:
             name=op.f("ck_career_facts_career_fact_import_source"),
         ),
         sa.ForeignKeyConstraint(
-            ["user_id"], ["users.id"],
+            ["user_id"],
+            ["users.id"],
             name=op.f("fk_career_facts_user_id_users"),
             ondelete="RESTRICT",
         ),
@@ -115,12 +120,11 @@ def upgrade() -> None:
         sa.UniqueConstraint("user_id", "id", name="uq_career_facts_user_id"),
     )
     op.create_index(op.f("ix_career_facts_user_id"), "career_facts", ["user_id"])
-    op.create_index(
-        "ix_career_facts_user_status", "career_facts", ["user_id", "status"]
-    )
+    op.create_index("ix_career_facts_user_status", "career_facts", ["user_id", "status"])
     op.create_index(
         "ix_career_facts_user_subject",
-        "career_facts", ["user_id", "subject", "predicate"],
+        "career_facts",
+        ["user_id", "subject", "predicate"],
     )
 
 
