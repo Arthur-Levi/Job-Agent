@@ -52,7 +52,9 @@ class Settings(BaseSettings):
     registration_privacy_enabled: bool = False
     identity_lifecycle_enabled: bool = False
     # Memory mail exists exclusively for disposable testing, never real-user delivery.
-    email_delivery_mode: Literal["disabled", "memory"] = "disabled"
+    email_delivery_mode: Literal["disabled", "memory", "resend"] = "disabled"
+    resend_api_key: SecretStr | None = None
+    email_from_address: str | None = None
     public_frontend_url: str = "http://localhost:5173"
     auth_rate_limit_enabled: bool = False
     auth_rate_limit_secret: SecretStr | None = None
@@ -97,8 +99,15 @@ class Settings(BaseSettings):
             raise ValueError("CORS_ORIGINS must not contain '*' when APP_ENV=production")
         if self.app_env is AppEnv.PRODUCTION and self.allow_legacy_local_user:
             raise ValueError("ALLOW_LEGACY_LOCAL_USER is forbidden in production")
-        if self.app_env is AppEnv.PRODUCTION and self.email_delivery_mode != "disabled":
-            raise ValueError("Memory mail is forbidden in production; real provider not integrated")
+        if self.app_env is AppEnv.PRODUCTION and self.email_delivery_mode == "memory":
+            raise ValueError("Memory mail is forbidden in production")
+        if self.email_delivery_mode == "resend" and (
+            self.resend_api_key is None
+            or not self.resend_api_key.get_secret_value().strip()
+            or not self.email_from_address
+            or "@" not in self.email_from_address
+        ):
+            raise ValueError("Resend requires RESEND_API_KEY and EMAIL_FROM_ADDRESS")
         if self.identity_lifecycle_enabled and self.email_delivery_mode == "disabled":
             raise ValueError("Identity lifecycle needs a verified email-delivery integration")
         if self.identity_lifecycle_enabled and not self.public_frontend_url.startswith(
