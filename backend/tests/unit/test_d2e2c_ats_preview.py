@@ -160,3 +160,31 @@ def test_chunked_body_size_limit_checked_before_parser() -> None:
             files={"file": ("resume.txt", b"x" * (2_150_000 + 1), "text/plain")},
         )
     assert response.status_code == 413
+
+
+def test_production_preview_fails_closed_until_real_document_sandbox() -> None:
+    app = create_app(
+        Settings(
+            _env_file=None,
+            app_env="production",
+            database_url="postgresql+psycopg://synthetic@localhost/demo_test",
+            registration_privacy_enabled=True,
+            auth_rate_limit_enabled=True,
+            auth_rate_limit_secret="synthetic-only-secret-value-with-40-characters",
+            resume_preview_signing_secret="synthetic-preview-signing-key-with-40-chars",
+        )
+    )
+    app.dependency_overrides[get_current_user] = lambda: Mock(id="synthetic-user")
+    with TestClient(app) as client:
+        response = client.post(
+            "/api/v1/resume-imports/preview",
+            files={
+                "file": (
+                    "resume.txt",
+                    b"Experiencia profissional\\nEmpresa teste | Cargo | 2023-2024\\n",
+                    "text/plain",
+                )
+            },
+        )
+    assert response.status_code == 503
+    assert response.json()["error"]["code"] == "CV_SANDBOX_REQUIRED"
