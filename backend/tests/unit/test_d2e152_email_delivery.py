@@ -2,7 +2,10 @@
 
 import io
 import json
+import time
 import urllib.error
+import urllib.request
+from email.message import Message
 from typing import Any
 
 import pytest
@@ -10,7 +13,6 @@ from pydantic import ValidationError
 
 from app.core.config import Settings
 from app.main import create_app
-from app.services import email_delivery
 from app.services.email_delivery import EmailDeliveryUnavailable, ResendMailer
 
 DB = "postgresql+psycopg://u:p@localhost/test_db"
@@ -46,7 +48,7 @@ class FakeOpener:
                 "https://api.resend.com/emails",
                 int(failure),
                 "Synthetic provider rejection",
-                {},
+                Message(),
                 io.BytesIO(b"DO NOT LOG TOKEN OR API_KEY"),
             )
         return Response()
@@ -54,8 +56,8 @@ class FakeOpener:
 
 def _capture(monkeypatch: pytest.MonkeyPatch, failures: list[int | str]) -> FakeOpener:
     opener = FakeOpener(failures)
-    monkeypatch.setattr(email_delivery.urllib.request, "build_opener", lambda *args: opener)
-    monkeypatch.setattr(email_delivery.time, "sleep", lambda seconds: None)
+    monkeypatch.setattr(urllib.request, "build_opener", lambda *args: opener)
+    monkeypatch.setattr(time, "sleep", lambda seconds: None)
     return opener
 
 
