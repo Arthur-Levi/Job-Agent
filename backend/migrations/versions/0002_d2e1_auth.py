@@ -4,6 +4,7 @@ Revision ID: 0002
 Revises: 0001
 Create Date: 2026-10-31
 """
+
 from collections.abc import Sequence
 
 import sqlalchemy as sa
@@ -21,12 +22,16 @@ def upgrade() -> None:
         sa.Column("user_id", sa.Uuid(), nullable=False),
         sa.Column("password_hash", sa.String(length=255), nullable=False),
         sa.Column(
-            "created_at", sa.DateTime(timezone=True),
-            server_default=sa.text("now()"), nullable=False,
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.text("now()"),
+            nullable=False,
         ),
         sa.ForeignKeyConstraint(
-            ["user_id"], ["users.id"],
-            name=op.f("fk_auth_credentials_user_id_users"), ondelete="CASCADE",
+            ["user_id"],
+            ["users.id"],
+            name=op.f("fk_auth_credentials_user_id_users"),
+            ondelete="CASCADE",
         ),
         sa.PrimaryKeyConstraint("user_id", name=op.f("pk_auth_credentials")),
     )
@@ -39,12 +44,16 @@ def upgrade() -> None:
         sa.Column("expires_at", sa.DateTime(timezone=True), nullable=False),
         sa.Column("revoked_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column(
-            "created_at", sa.DateTime(timezone=True),
-            server_default=sa.text("now()"), nullable=False,
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.text("now()"),
+            nullable=False,
         ),
         sa.ForeignKeyConstraint(
-            ["user_id"], ["users.id"],
-            name=op.f("fk_auth_sessions_user_id_users"), ondelete="CASCADE",
+            ["user_id"],
+            ["users.id"],
+            name=op.f("fk_auth_sessions_user_id_users"),
+            ondelete="CASCADE",
         ),
         sa.PrimaryKeyConstraint("id", name=op.f("pk_auth_sessions")),
     )

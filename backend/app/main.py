@@ -11,9 +11,15 @@ from app.api.v1.router import api_router
 from app.core.config import Settings
 from app.core.errors import register_exception_handlers
 from app.core.logging import configure_logging
-from app.core.middleware import BodySizeLimitMiddleware, RequestIdMiddleware
+from app.core.middleware import (
+    AuthRateLimitMiddleware,
+    BodySizeLimitMiddleware,
+    RequestIdMiddleware,
+    SecurityResponseHeadersMiddleware,
+)
 from app.core.request_context import REQUEST_ID_HEADER
 from app.db.session import Database
+from app.services.email_delivery import MemoryMailer, ResendMailer
 
 logger = logging.getLogger(__name__)
 
@@ -47,11 +53,24 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     )
     app.state.settings = settings
     app.state.database = database
+    if settings.email_delivery_mode == "memory":
+        app.state.mailer = MemoryMailer()
+    elif settings.email_delivery_mode == "resend":
+        assert settings.resend_api_key is not None
+        assert settings.email_from_address is not None
+        app.state.mailer = ResendMailer(
+            api_key=settings.resend_api_key.get_secret_value(),
+            from_address=settings.email_from_address,
+        )
+    else:
+        app.state.mailer = None
 
     # Ordem: o último adicionado é o mais externo.
-    # CORS (externo) -> RequestId -> BodySizeLimit -> app
+    # CORS (externo) -> RequestId -> AuthRateLimit -> BodySizeLimit -> app
     app.add_middleware(BodySizeLimitMiddleware, max_bytes=settings.max_request_bytes)
+    app.add_middleware(AuthRateLimitMiddleware, database=database, settings=settings)
     app.add_middleware(RequestIdMiddleware)
+    app.add_middleware(SecurityResponseHeadersMiddleware, production=settings.is_production)
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.cors_origins,

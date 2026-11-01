@@ -12,12 +12,12 @@ from app.repositories.application import ApplicationRepository
 from app.repositories.candidate_profile import CandidateProfileRepository
 from app.repositories.job import JobRepository
 from app.repositories.user import UserRepository
+from app.services import auth
 from app.services.application import ApplicationService
 from app.services.candidate_profile import CandidateProfileService
 from app.services.job import JobService
 from app.services.readiness import ReadinessService
 from app.services.user import UserService
-from app.services import auth
 
 
 def get_settings(request: Request) -> Settings:

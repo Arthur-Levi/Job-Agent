@@ -1,4 +1,11 @@
-import { getAccessToken } from './authSession'
+import { clearAccessToken, getAccessToken } from './authSession'
+
+const unauthorizedListeners = new Set<() => void>()
+
+export function onUnauthorized(listener: () => void): () => void {
+  unauthorizedListeners.add(listener)
+  return () => { unauthorizedListeners.delete(listener) }
+}
 
 export type Query = Record<string, string | number | boolean | null | undefined>
 
@@ -112,7 +119,13 @@ export async function request<T>(
 
     const response = await fetch(buildUrl(path, options.query), init)
     const text = response.status === 204 ? '' : await response.text()
-    if (!response.ok) throw toApiError(response, text)
+    if (!response.ok) {
+      if (response.status === 401 && token && getAccessToken() === token) {
+        clearAccessToken()
+        for (const listener of unauthorizedListeners) listener()
+      }
+      throw toApiError(response, text)
+    }
     return (text ? JSON.parse(text) : undefined) as T
   } catch (error) {
     if (error instanceof ApiError) throw error

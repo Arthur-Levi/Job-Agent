@@ -3,15 +3,23 @@ import re
 import time
 from uuid import uuid4
 
+from starlette.concurrency import run_in_threadpool
 from starlette.datastructures import Headers, MutableHeaders
 from starlette.responses import JSONResponse
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
+from app.core.config import Settings
 from app.core.errors import error_payload
 from app.core.request_context import (
     REQUEST_ID_HEADER,
     reset_request_id,
     set_request_id,
+)
+from app.db.session import Database
+from app.services.auth_rate_limit import (
+    RateLimitExceeded,
+    RateLimitUnavailable,
+    consume,
 )
 
 logger = logging.getLogger("app.request")
@@ -99,3 +107,98 @@ class BodySizeLimitMiddleware:
                     await response(scope, receive, send)
                     return
         await self.app(scope, receive, send)
+
+
+class AuthRateLimitMiddleware:
+    """Throttle auth POSTs before Pydantic parsing, including malformed bodies.
+
+    Reads only ASGI client peer address. Trust proxy headers exclusively through
+    Uvicorn's explicit --forwarded-allow-ips, never directly here.
+    """
+
+    def __init__(self, app: ASGIApp, *, database: Database, settings: Settings) -> None:
+        self.app = app
+        self.database = database
+        self.settings = settings
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if not self.settings.auth_rate_limit_enabled or scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+        path = scope.get("path")
+        if scope.get("method") != "POST" or path not in (
+            "/api/v1/auth/login",
+            "/api/v1/auth/register",
+            "/api/v1/auth/request-verification",
+            "/api/v1/auth/verify-email",
+            "/api/v1/auth/request-password-reset",
+            "/api/v1/auth/reset-password",
+        ):
+            await self.app(scope, receive, send)
+            return
+
+        peer = scope.get("client")
+        identity = peer[0] if peer and peer[0] else "unknown"
+        kind = "login_ip" if path == "/api/v1/auth/login" else "register_ip"
+        maximum = (
+            self.settings.auth_login_ip_max
+            if kind == "login_ip"
+            else self.settings.auth_register_ip_max
+        )
+        try:
+            await run_in_threadpool(
+                consume,
+                self.database,
+                self.settings,
+                kind=kind,
+                identity=identity,
+                maximum=maximum,
+            )
+        except RateLimitExceeded as exc:
+            response = JSONResponse(
+                error_payload("RATE_LIMITED", "Too many requests. Try again later."),
+                status_code=429,
+                headers={"Retry-After": str(exc.retry_after)},
+            )
+            await response(scope, receive, send)
+            return
+        except RateLimitUnavailable:
+            response = JSONResponse(
+                error_payload("AUTH_PROTECTION_UNAVAILABLE", "Service temporarily unavailable"),
+                status_code=503,
+            )
+            await response(scope, receive, send)
+            return
+        await self.app(scope, receive, send)
+
+
+class SecurityResponseHeadersMiddleware:
+    """Protect API responses and prevent auth/session HTTP caching."""
+
+    def __init__(self, app: ASGIApp, *, production: bool) -> None:
+        self.app = app
+        self.production = production
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+
+        async def secured_send(message: Message) -> None:
+            if message["type"] == "http.response.start":
+                headers = MutableHeaders(scope=message)
+                headers["X-Content-Type-Options"] = "nosniff"
+                headers["Referrer-Policy"] = "no-referrer"
+                headers["X-Frame-Options"] = "DENY"
+                if scope.get("path", "").startswith("/api/v1/auth/"):
+                    headers["Cache-Control"] = "no-store"
+                    headers["Pragma"] = "no-cache"
+                if self.production:
+                    headers["Content-Security-Policy"] = (
+                        "default-src 'none'; frame-ancestors 'none'"
+                    )
+                    # HSTS on an API only after TLS termination and public HTTPS are verified.
+                    # Set Strict-Transport-Security at the trusted HTTPS ingress, not here.
+            await send(message)
+
+        await self.app(scope, receive, secured_send)

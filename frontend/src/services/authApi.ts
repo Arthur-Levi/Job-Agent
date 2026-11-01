@@ -22,8 +22,22 @@ interface TokenResponse {
 }
 
 export const authApi = {
-  register: (payload: RegisterInput): Promise<AuthUser> =>
+  register: (payload: RegisterInput): Promise<AuthUser | { message: string }> =>
     request<AuthUser>('POST', '/api/v1/auth/register', { body: payload }),
+
+  requestVerification: (email: string): Promise<{ message: string }> =>
+    request('POST', '/api/v1/auth/request-verification', { body: { email } }),
+
+  verifyEmail: (token: string): Promise<void> =>
+    request('POST', '/api/v1/auth/verify-email', { body: { token } }),
+
+  requestPasswordReset: (email: string): Promise<{ message: string }> =>
+    request('POST', '/api/v1/auth/request-password-reset', { body: { email } }),
+
+  resetPassword: (token: string, newPassword: string): Promise<void> =>
+    request('POST', '/api/v1/auth/reset-password', {
+      body: { token, new_password: newPassword },
+    }),
 
   async login(payload: AuthInput): Promise<AuthUser> {
     // Clear prior identity before switching accounts.
