@@ -1,4 +1,5 @@
 """D2-E2.C bounded parser tests, no DB or personal resumes."""
+
 from io import BytesIO
 from unittest.mock import Mock
 
@@ -36,9 +37,11 @@ def test_ats_preview_separates_three_roles_including_same_employer() -> None:
     result = build_preview("resume.txt", SYNTHETIC_CV.encode())
     roles = [i for i in result["items"] if i["category"] == "experience"]
     assert len(roles) == 3
-    assert [
-        item["title"].split("|")[1].strip() for item in roles
-    ] == ["Auxiliar Administrativo", "Analista de Dados", "Assistente"]
+    assert [item["title"].split("|")[1].strip() for item in roles] == [
+        "Auxiliar Administrativo",
+        "Analista de Dados",
+        "Assistente",
+    ]
     assert result["fields_detected"] == {"email": True, "phone": True}
     assert result["ats_check"]["text_extractable"] is True
     assert all(item["review_status"] == "pending" for item in roles)
@@ -102,8 +105,11 @@ def test_pdf_text_extraction_and_scanned_pdf_failure() -> None:
 
 def test_preview_endpoint_requires_auth_without_db() -> None:
     app = create_app(
-        Settings(_env_file=None, app_env="test",
-                 database_url="postgresql+psycopg://synthetic@localhost/demo_test")
+        Settings(
+            _env_file=None,
+            app_env="test",
+            database_url="postgresql+psycopg://synthetic@localhost/demo_test",
+        )
     )
     with TestClient(app) as client:
         response = client.post(
@@ -115,8 +121,11 @@ def test_preview_endpoint_requires_auth_without_db() -> None:
 
 def test_preview_endpoint_with_mock_user_does_not_commit_or_store_cv() -> None:
     app = create_app(
-        Settings(_env_file=None, app_env="test",
-                 database_url="postgresql+psycopg://synthetic@localhost/demo_test")
+        Settings(
+            _env_file=None,
+            app_env="test",
+            database_url="postgresql+psycopg://synthetic@localhost/demo_test",
+        )
     )
     app.dependency_overrides[get_current_user] = lambda: Mock(id="synthetic-user")
     with TestClient(app) as client:
@@ -132,8 +141,11 @@ def test_preview_endpoint_with_mock_user_does_not_commit_or_store_cv() -> None:
 def test_chunked_body_size_limit_checked_before_parser() -> None:
     # The ASGI upload gate is exercised through the normal TestClient request path.
     app = create_app(
-        Settings(_env_file=None, app_env="test",
-                 database_url="postgresql+psycopg://synthetic@localhost/demo_test")
+        Settings(
+            _env_file=None,
+            app_env="test",
+            database_url="postgresql+psycopg://synthetic@localhost/demo_test",
+        )
     )
     app.dependency_overrides[get_current_user] = lambda: Mock(id="synthetic-user")
     with TestClient(app) as client:
