@@ -14,10 +14,6 @@ from app.main import create_app
 _DB = "postgresql+psycopg://synthetic:synthetic@localhost/jobagent_contract_test"
 
 TARGET_ROUTES = (
-    ("POST", "/api/v1/resume-imports/confirm"),
-    ("GET", "/api/v1/career/profile"),
-    ("GET", "/api/v1/career/facts"),
-    ("POST", "/api/v1/career/facts/{fact_id}/corrections"),
     ("GET", "/api/v1/career/facts/contradictions"),
     ("POST", "/api/v1/career/diagnostics"),
     ("POST", "/api/v1/career/resumes/drafts"),
@@ -50,6 +46,10 @@ def test_d2_e2a_targets_are_not_accidentally_live_yet() -> None:
     paths = _openapi_paths()
     assert all(path not in paths for _, path in TARGET_ROUTES)
     assert "/api/v1/resume-imports/preview" in paths
+    assert "/api/v1/resume-imports/confirm" in paths
+    assert "/api/v1/career/profile" in paths
+    assert "/api/v1/career/facts" in paths
+    assert "/api/v1/career/facts/{fact_id}/corrections" in paths
     assert "/api/v1/profile" in paths
     assert "/api/v1/jobs" in paths
     assert "/api/v1/applications" in paths

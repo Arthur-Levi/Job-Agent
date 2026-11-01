@@ -1,4 +1,5 @@
 import logging
+import secrets
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
@@ -52,6 +53,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         openapi_url=None if settings.is_production else "/openapi.json",
     )
     app.state.settings = settings
+    app.state.resume_preview_key = (
+        settings.resume_preview_signing_secret.get_secret_value().encode()
+        if settings.resume_preview_signing_secret is not None
+        else secrets.token_bytes(32)
+    )
     app.state.database = database
     if settings.email_delivery_mode == "memory":
         app.state.mailer = MemoryMailer()
