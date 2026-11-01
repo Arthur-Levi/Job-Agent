@@ -224,7 +224,7 @@ class SecurityResponseHeadersMiddleware:
                 headers["X-Content-Type-Options"] = "nosniff"
                 headers["Referrer-Policy"] = "no-referrer"
                 headers["X-Frame-Options"] = "DENY"
-                if scope.get("path", "").startswith("/api/v1/auth/"):
+                if scope.get("path", "").startswith(("/api/v1/auth/", "/api/v1/resume-imports/")):
                     headers["Cache-Control"] = "no-store"
                     headers["Pragma"] = "no-cache"
                 if self.production:
