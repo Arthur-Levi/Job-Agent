@@ -1,4 +1,5 @@
 """Isolated parser worker entrypoint; no network or application database access."""
+
 import base64
 import json
 import sys
