@@ -3,6 +3,7 @@
 These tests are expressly xfail(strict=True). They never open a database and
 do not alter established CI acceptance. Remove xfail incrementally in D2-E2.B+.
 """
+
 import pytest
 
 from app.core.config import Settings
