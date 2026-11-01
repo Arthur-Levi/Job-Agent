@@ -45,7 +45,8 @@ def sign_preview(
         "items": original_items,
     }
     body = _encode(json.dumps(payload, sort_keys=True, separators=(",", ":")).encode())
-    digest = _encode(hmac.new(key, b"job-agent-preview-v1." + body.encode(), hashlib.sha256).digest())
+    signature_bytes = hmac.new(key, b"job-agent-preview-v1." + body.encode(), hashlib.sha256)
+    digest = _encode(signature_bytes.digest())
     token = body + "." + digest
     if len(token) > MAX_TOKEN_LENGTH:
         raise UnprocessableError("Prévia excede limite seguro", code="CV_PREVIEW_LIMIT")
