@@ -36,6 +36,12 @@ async def preview_resume(
     settings: SettingsDep,
 ) -> dict[str, object]:
     """Preview only. Parser runs in a bounded external process."""
+    if settings.is_production:
+        # External beta gate: local Linux rlimits alone are not an OS sandbox.
+        raise ServiceUnavailableError(
+            "Sandbox de documentos externo ainda não homologado",
+            code="CV_SANDBOX_REQUIRED",
+        )
     key = preview_key(request, settings)
     if file.size is not None and file.size > MAX_FILE_BYTES:
         raise UnprocessableError("Arquivo acima de 2 MB", code="CV_SIZE")
