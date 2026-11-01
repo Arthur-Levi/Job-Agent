@@ -10,7 +10,7 @@ import json
 import os
 import subprocess
 import sys
-from typing import Any
+from typing import Any, cast
 
 from app.core.errors import UnprocessableError
 
@@ -46,7 +46,7 @@ def parse_in_worker(filename: str, raw: bytes) -> dict[str, Any]:
     try:
         response: dict[str, Any] = json.loads(process.stdout)
         if response.get("ok") is True and isinstance(response.get("preview"), dict):
-            return response["preview"]
+            return cast(dict[str, Any], response["preview"])
         error = response.get("error", "CV_PARSE")
         if error not in {"CV_PARSE", "CV_SIZE", "CV_FORMAT", "CV_TEXT", "CV_PREVIEW_LIMIT"}:
             error = "CV_PARSE"
