@@ -3,6 +3,7 @@
 Only explicit text is used. No network, OCR, AI-inferred credentials or
 persistence. Review items are local drafts, NOT confirmed career facts.
 """
+
 from __future__ import annotations
 
 import re
@@ -193,18 +194,20 @@ def build_preview(filename: str, content: bytes) -> dict[str, Any]:
                 warnings.append("Datas não identificadas; revise cargo, empresa e período")
             if category == "experience" and len(group) > 4:
                 warnings.append("Agrupamento heurístico: pode conter mais de uma experiência")
-            items.append({
-                "draft_id": str(uuid4()),
-                "category": category,
-                "title": title,
-                "description": "\n".join(group)[:4000],
-                "organization": None,
-                "start_date": None,
-                "end_date": None,
-                "source_excerpt": excerpt,
-                "review_status": "pending",
-                "warnings": warnings,
-            })
+            items.append(
+                {
+                    "draft_id": str(uuid4()),
+                    "category": category,
+                    "title": title,
+                    "description": "\n".join(group)[:4000],
+                    "organization": None,
+                    "start_date": None,
+                    "end_date": None,
+                    "source_excerpt": excerpt,
+                    "review_status": "pending",
+                    "warnings": warnings,
+                }
+            )
 
     found = sorted(sections)
     detected = {"email": bool(MAIL.search(text)), "phone": bool(PHONE.search(text))}
@@ -233,8 +236,7 @@ def build_preview(filename: str, content: bytes) -> dict[str, Any]:
             "sections_detected": found,
             "unrecognized_fields": [k for k, value in detected.items() if not value],
             "notice": (
-                "Compatibilidade documental preliminar, "
-                "não pontuação ou teste de ATS externo"
+                "Compatibilidade documental preliminar, não pontuação ou teste de ATS externo"
             ),
         },
     }
