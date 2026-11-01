@@ -50,3 +50,17 @@ O `downgrade` remove exclusivamente as duas tabelas novas, **somente para CI ef�
 - Como homologar no **novo** PostgreSQL D2-E2 descartável, em worktree própria e sem tocar na `55435`.
 
 **Nota:** mesmo após CI PASS, D2-E2.B não é um fluxo operacional completo. As rotas do contrato OpenAPI continuam ausentes, e ninguém deve apontar o aplicativo público para esta migration sem concluir os demais gates.
+
+## Evidência final de CI — 2026-10-31 (America/Sao_Paulo)
+
+[GitHub Actions #41261829641](https://github.com/Arthur-Levi/Job-Agent/actions/runs/41261829641) executado sobre commit `96e47915`:
+
+- **Backend PASS:** 256 testes aprovados, 9 `xfail` esperados do contrato ainda não implementado, 1 warning. Ruff check/format PASS (110 arquivos formatados); MyPy PASS (104 arquivos).
+- **Alembic PASS** em PostgreSQL CI `job_agent_test` efêmero: upgrade/downgrade/upgrade `head` incluindo revision `0005`; teste de drift entre metadata e schema passou.
+- **Frontend PASS:** lint, build, 85 testes aprovados; 5 live tests skipped.
+- **Audit job PASS**, mas o workflow é informativo e não certifica ausência de vulnerabilidades.
+- Testes novos PASS para idempotência por conta, isolamento de imports e supersession, controles de origem, preservação de histórico e ausência de arquivo bruto no recibo.
+
+**Aceite: D2-E2.B DATA MODEL + MIGRATION DESIGN + CI PASS.** Não equivale a Codespaces operational PASS. Migration 0005 nunca foi aplicada no banco preservado. Os endpoints D2-E2 continuam ausentes (9 xfail esperados); a integração funcional começa na D2-E2.C/D.
+
+**Risco remanescente:** o modelo impõe ownership em FKs, mas não impõe sozinho histórico append-only nem políticas de verificações externas; gates de serviço/segurança ainda são obrigatórios.
