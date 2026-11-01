@@ -4,8 +4,8 @@ from datetime import timedelta
 from typing import cast
 from uuid import uuid4
 
-from fastapi import FastAPI
 import pytest
+from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from sqlalchemy import select
 from sqlalchemy.orm import Session
