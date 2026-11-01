@@ -53,6 +53,7 @@ class Settings(BaseSettings):
     identity_lifecycle_enabled: bool = False
     # Memory mail exists exclusively for disposable testing, never real-user delivery.
     email_delivery_mode: Literal["disabled", "memory", "resend"] = "disabled"
+    resume_preview_signing_secret: SecretStr | None = None
     resend_api_key: SecretStr | None = None
     email_from_address: str | None = None
     public_frontend_url: str = "http://localhost:5173"
