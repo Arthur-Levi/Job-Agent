@@ -158,8 +158,10 @@ def test_failed_delivery_invalidates_secret_and_keeps_generic_response(
 
         user = UserRepository(db_session).get_by_email(email)
         assert user is not None
-        tokens = db_session.execute(
-            select(AuthActionToken).where(AuthActionToken.user_id == user.id)
-        ).scalars().all()
+        tokens = (
+            db_session.execute(select(AuthActionToken).where(AuthActionToken.user_id == user.id))
+            .scalars()
+            .all()
+        )
         assert len(tokens) == 2
         assert all(item.consumed_at is not None for item in tokens)
