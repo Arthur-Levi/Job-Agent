@@ -1,5 +1,6 @@
 """D2-E1 real user identity API. All payloads synthetic in acceptance tests."""
 
+import logging
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Request
@@ -17,6 +18,7 @@ from app.services.auth_rate_limit import (
 )
 from app.services.email_delivery import EmailDeliveryUnavailable, Mailer
 
+logger = logging.getLogger("app.auth.mail")
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
@@ -95,7 +97,7 @@ def register(
                 frontend_url=settings.public_frontend_url,
             )
         except EmailDeliveryUnavailable:
-            raise HTTPException(503, "Email temporarily unavailable") from None
+            logger.warning("identity verification email delivery failed")
     if settings.registration_privacy_enabled:
         return JSONResponse(
             status_code=202,
@@ -207,7 +209,7 @@ def request_verification(
             frontend_url=settings.public_frontend_url,
         )
     except EmailDeliveryUnavailable:
-        raise HTTPException(503, "Email temporarily unavailable") from None
+        logger.warning("identity action email delivery failed")
     return MessageOut(message="Se existir uma conta elegível, enviaremos instruções.")
 
 
