@@ -1,4 +1,5 @@
 """D2-E2.C: auth-protected, non-persistent CV preview."""
+
 from typing import Annotated
 
 from fastapi import APIRouter, File, UploadFile
