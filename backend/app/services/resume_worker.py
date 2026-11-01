@@ -37,7 +37,9 @@ def parse_in_worker(filename: str, raw: bytes) -> dict[str, Any]:
             check=False,
         )
     except subprocess.TimeoutExpired:
-        raise UnprocessableError("Processamento excedeu o tempo permitido", code="CV_TIMEOUT") from None
+        raise UnprocessableError(
+            "Processamento excedeu o tempo permitido", code="CV_TIMEOUT"
+        ) from None
     if process.returncode != 0 or len(process.stdout) > MAX_WORKER_OUTPUT:
         raise UnprocessableError("Não foi possível processar o currículo", code="CV_WORKER")
     try:
