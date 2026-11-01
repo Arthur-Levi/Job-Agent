@@ -24,14 +24,29 @@ SANDBOX_IMAGE = "job-agent-resume-parser:d2e2d1"
 def _container_command(name: str) -> list[str]:
     """No host mounts, network, ambient credentials or privileged capabilities."""
     return [
-        "docker", "run", "--rm", "--pull=never", "--name", name,
-        "--network=none", "--read-only", "--cap-drop=ALL",
-        "--security-opt=no-new-privileges", "--pids-limit=32",
-        "--memory=1g", "--memory-swap=1g", "--cpus=1",
-        "--user=65532:65532", "--tmpfs=/tmp:rw,noexec,nosuid,nodev,size=16m",
-        "--env=PYTHONDONTWRITEBYTECODE=1", "--env=PYTHONIOENCODING=utf-8",
-        "--entrypoint=python", "-i", SANDBOX_IMAGE,
-        "-m", "app.workers.resume_parser",
+        "docker",
+        "run",
+        "--rm",
+        "--pull=never",
+        "--name",
+        name,
+        "--network=none",
+        "--read-only",
+        "--cap-drop=ALL",
+        "--security-opt=no-new-privileges",
+        "--pids-limit=32",
+        "--memory=1g",
+        "--memory-swap=1g",
+        "--cpus=1",
+        "--user=65532:65532",
+        "--tmpfs=/tmp:rw,noexec,nosuid,nodev,size=16m",
+        "--env=PYTHONDONTWRITEBYTECODE=1",
+        "--env=PYTHONIOENCODING=utf-8",
+        "--entrypoint=python",
+        "-i",
+        SANDBOX_IMAGE,
+        "-m",
+        "app.workers.resume_parser",
     ]
 
 
