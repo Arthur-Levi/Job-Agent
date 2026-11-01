@@ -19,7 +19,7 @@ No execution of malicious samples or untrusted documents is authorized in the Co
 
 ## Remaining security gates
 - Verify default seccomp/AppArmor and runtime isolation; prohibit privileged Docker daemon access from public API.
-- Add application-level admission control/concurrency throttling (per-user and global).
+- An initial process-local bound of two concurrent parsers now rejects overload with `CV_PARSER_BUSY` before spawning. This is **not** a global, distributed or per-user quota: API replicas each have their own capacity. A centralized admission-control layer with per-user limits is required before beta.
 - Parent currently captures entire child stdout before checking `MAX_WORKER_OUTPUT`: enforce a streaming output cap before production.
 - Test timeout/kill/cleanup, denied outbound network and inability to read host files via safe probes *inside a disposable container*.
 - Ensure no personally identifying information in logs, analytics or exception reports.
