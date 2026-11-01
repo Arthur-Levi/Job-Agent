@@ -93,6 +93,8 @@ class CareerFact(UUIDPrimaryKeyMixin, Base):
             "(source_type <> 'resume_import' AND import_id IS NULL)",
             name="career_fact_import_source",
         ),
+        Index("ix_career_facts_user_import", "user_id", "import_id"),
+        Index("ix_career_facts_user_supersedes", "user_id", "supersedes_id"),
         Index("ix_career_facts_user_status", "user_id", "status"),
         Index("ix_career_facts_user_subject", "user_id", "subject", "predicate"),
     )
