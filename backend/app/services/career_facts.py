@@ -8,7 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.errors import ConflictError, NotFoundError
-from app.models import CandidateProfile, CareerFact
+from app.models import CandidateProfile, CareerFact, User
 
 
 def list_facts(db: Session, user_id: UUID, include_history: bool = False) -> list[CareerFact]:
@@ -19,6 +19,9 @@ def list_facts(db: Session, user_id: UUID, include_history: bool = False) -> lis
 
 
 def correct_fact(db: Session, user_id: UUID, fact_id: UUID, value: str, reason: str) -> CareerFact:
+    # Same per-user lock order as confirm_import; prevents an import from
+    # reading a stale active fact while its correction is being committed.
+    db.execute(select(User.id).where(User.id == user_id).with_for_update()).one()
     old = db.scalar(
         select(CareerFact)
         .where(CareerFact.user_id == user_id, CareerFact.id == fact_id)
