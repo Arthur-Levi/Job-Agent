@@ -54,8 +54,10 @@ def _cleanup_container(name: str) -> None:
     with contextlib.suppress(OSError, subprocess.TimeoutExpired):
         subprocess.run(
             ["docker", "rm", "-f", name],
-            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-            timeout=5, check=False,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            timeout=5,
+            check=False,
         )
 
 
