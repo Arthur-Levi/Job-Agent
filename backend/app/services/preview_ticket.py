@@ -4,6 +4,7 @@ Signed payload contains ORIGINAL parser fields. The client may edit only
 editable fields, never origin/category. Tokens are integrity protected, NOT
 encrypted: do not log, place in URLs, or expose to third parties.
 """
+
 import base64
 import hashlib
 import hmac
