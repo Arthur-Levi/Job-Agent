@@ -1,11 +1,12 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import type { ChangeEvent } from 'react'
 import { Button } from '../components/Button'
 import { Card } from '../components/Card'
 import { PageHeader } from '../components/PageHeader'
-import { ApiError } from '../services/http'
+import { ApiError, newRequestId } from '../services/http'
 import { resumeImportApi } from '../services/resumeImportApi'
-import type { ResumeDraftItem, ResumePreview } from '../services/resumeImportApi'
+import type { ImportConfirmationResult, ResumeDraftItem, ResumePreview } from '../services/resumeImportApi'
 
 const MAX_BYTES = 2_000_000
 
@@ -16,10 +17,14 @@ export function ResumeImportPage() {
   const [working, setWorking] = useState(false)
   const [error, setError] = useState('')
   const [acknowledged, setAcknowledged] = useState(false)
+  const [receipt, setReceipt] = useState<ImportConfirmationResult | null>(null)
+  const [confirmationKey, setConfirmationKey] = useState(newRequestId)
 
   function onFile(event: ChangeEvent<HTMLInputElement>) {
     const selected = event.target.files?.[0] ?? null
     setFile(selected)
+    setReceipt(null)
+    setConfirmationKey(newRequestId())
     setPreview(null)
     setItems([])
     setAcknowledged(false)
@@ -33,6 +38,8 @@ export function ResumeImportPage() {
     setPreview(null)
     setItems([])
     setAcknowledged(false)
+    setReceipt(null)
+    setConfirmationKey(newRequestId())
     try {
       const next = await resumeImportApi.preview(file)
       setPreview(next)
@@ -56,9 +63,23 @@ export function ResumeImportPage() {
       ? { ...item, review_status: rejected ? 'rejected' : 'pending' } : item))
   }
 
+  async function confirm() {
+    if (!preview || !acknowledged || working || receipt || !items.some((item) => item.review_status !== 'rejected')) return
+    setWorking(true)
+    setError('')
+    try {
+      const saved = await resumeImportApi.confirm(preview, items, confirmationKey)
+      setReceipt(saved)
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : 'Não foi possível confirmar o currículo.')
+    } finally {
+      setWorking(false)
+    }
+  }
+
   return (
     <>
-      <PageHeader title="Importar currículo" subtitle="Prévia de leitura ATS e revisão humana — nenhuma informação é salva nesta etapa." />
+      <PageHeader title="Importar currículo" subtitle="Prévia ATS, revisão humana e confirmação explícita no Fact Ledger." />
       <Card className="mb-5">
         <div className="flex flex-col gap-3">
           <label htmlFor="resume-file" className="text-sm font-medium text-slate-200">Arquivo PDF, DOCX ou TXT (até 2 MB)</label>
@@ -94,14 +115,14 @@ export function ResumeImportPage() {
               <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
                 <h3 className="font-medium text-slate-100">Item {index + 1} · {item.category}</h3>
                 <label className="flex items-center gap-2 text-sm text-slate-300">
-                  <input type="checkbox" checked={item.review_status === 'rejected'} onChange={(e) => mark(item.draft_id, e.target.checked)} />
+                  <input type="checkbox" disabled={Boolean(receipt)} checked={item.review_status === 'rejected'} onChange={(e) => mark(item.draft_id, e.target.checked)} />
                   Descartar item
                 </label>
               </div>
               {item.warnings.map((warning) => <p key={warning} className="mb-1 text-xs text-amber-200">{warning}</p>)}
               <div className="grid gap-3 md:grid-cols-2">
                 <label className="text-sm text-slate-300">Título / cargo
-                  <input disabled={item.review_status === 'rejected'} value={item.title} onChange={(e) => change(item.draft_id, 'title', e.target.value)} className="mt-1 w-full rounded border border-slate-700 bg-slate-950 p-2" />
+                  <input disabled={item.review_status === 'rejected' || Boolean(receipt)} value={item.title} onChange={(e) => change(item.draft_id, 'title', e.target.value)} className="mt-1 w-full rounded border border-slate-700 bg-slate-950 p-2" />
                 </label>
                 <label className="text-sm text-slate-300">Empresa / instituição (não inferida)
                   <input disabled={item.review_status === 'rejected'} value={item.organization ?? ''} onChange={(e) => change(item.draft_id, 'organization', e.target.value)} className="mt-1 w-full rounded border border-slate-700 bg-slate-950 p-2" />
@@ -121,14 +142,27 @@ export function ResumeImportPage() {
           ))}
           <Card>
             <label className="flex items-start gap-2 text-sm text-slate-200">
-              <input type="checkbox" checked={acknowledged} onChange={(e) => setAcknowledged(e.target.checked)} />
+              <input type="checkbox" disabled={Boolean(receipt)} checked={acknowledged} onChange={(e) => setAcknowledged(e.target.checked)} />
               Revisei as sugestões e entendo que são declarações não verificadas.
             </label>
-            <p role="status" className="mt-2 text-sm text-amber-200">
-              {acknowledged
-                ? 'Revisão local concluída. A gravação e confirmação segura no Fact Ledger serão implementadas na D2-E2.D. Nada foi salvo.'
-                : 'Edite ou descarte os itens. Esta prévia fica apenas na memória do navegador; ao sair, as alterações serão perdidas.'}
-            </p>
+            {receipt ? (
+              <div role="status" className="mt-3 space-y-2 text-sm text-emerald-300">
+                <p>Confirmação salva! {receipt.created_fact_ids.length} fatos registrados; {receipt.skipped_duplicates.length} duplicatas ignoradas.</p>
+                <Link to="/career" className="underline">Consultar Fact Ledger e Master Profile</Link>
+              </div>
+            ) : (
+              <>
+                <p role="status" className="mt-2 text-sm text-amber-200">
+                  Revise os campos e confirme apenas suas próprias informações. A gravação só ocorre ao clicar em confirmar.
+                </p>
+                <div className="mt-3">
+                  <Button disabled={!acknowledged || working || !items.some((item) => item.review_status !== 'rejected')} onClick={() => { void confirm() }}>
+                    {working ? 'Confirmando…' : 'Confirmar e salvar fatos no perfil'}
+                  </Button>
+                </div>
+                {error && <p role="alert" className="mt-2 text-sm text-rose-300">{error}</p>}
+              </>
+            )}
           </Card>
         </div>
       )}
