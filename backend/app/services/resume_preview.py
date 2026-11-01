@@ -21,11 +21,26 @@ MAX_DOCX_UNCOMPRESSED = 10_000_000
 MAX_DOCX_ENTRIES = 150
 
 HEADINGS = {
-    "experience": r"(?:experi[eê]ncias?(?: profissionais?| de trabalho)?|hist[oó]rico profissional|employment|work experience|professional experience)",
-    "education": r"(?:forma[cç][aã]o(?: acad[eê]mica)?|educa[cç][aã]o|education|academic background|escolaridade)",
-    "project": r"(?:projetos?(?: pessoais| profissionais| relevantes)?|projects|portfolio|portf[oó]lio)",
-    "skill": r"(?:habilidades|compet[eê]ncias(?: t[eé]cnicas)?|tecnologias|skills|technical skills)",
-    "summary": r"(?:resumo(?: profissional)?|perfil profissional|sobre mim|professional summary|about me)",
+    "experience": (
+        r"(?:experi[eê]ncias?(?: profissionais?| de trabalho)?|"
+        r"hist[oó]rico profissional|employment|work experience|professional experience)"
+    ),
+    "education": (
+        r"(?:forma[cç][aã]o(?: acad[eê]mica)?|educa[cç][aã]o|"
+        r"education|academic background|escolaridade)"
+    ),
+    "project": (
+        r"(?:projetos?(?: pessoais| profissionais| relevantes)?|"
+        r"projects|portfolio|portf[oó]lio)"
+    ),
+    "skill": (
+        r"(?:habilidades|compet[eê]ncias(?: t[eé]cnicas)?|"
+        r"tecnologias|skills|technical skills)"
+    ),
+    "summary": (
+        r"(?:resumo(?: profissional)?|perfil profissional|"
+        r"sobre mim|professional summary|about me)"
+    ),
     "objective": r"(?:objetivo(?: profissional)?|cargo desejado|career objective|objective)",
 }
 DATE = re.compile(
@@ -110,7 +125,9 @@ def extract_text(filename: str, content: bytes) -> tuple[str, str]:
         raise UnprocessableError(str(exc), code="CV_PARSE") from None
     except Exception as exc:
         # Avoid reflecting attacker-controlled content and third-party parser errors.
-        raise UnprocessableError("Não foi possível extrair texto deste arquivo", code="CV_PARSE") from exc
+        raise UnprocessableError(
+            "Não foi possível extrair texto deste arquivo", code="CV_PARSE"
+        ) from exc
     text = text.strip()
     if not 30 <= len(text) <= MAX_TEXT_CHARS:
         raise UnprocessableError(
@@ -161,7 +178,7 @@ def build_preview(filename: str, content: bytes) -> dict[str, Any]:
         if category == "experience":
             groups = _split_experiences(lines)
         elif category == "skill":
-            groups = [[l] for l in lines if l.strip()][:20]
+            groups = [[line] for line in lines if line.strip()][:20]
         else:
             groups = _split_experiences(lines)
         for group in groups:
@@ -192,7 +209,8 @@ def build_preview(filename: str, content: bytes) -> dict[str, Any]:
     found = sorted(sections)
     detected = {"email": bool(MAIL.search(text)), "phone": bool(PHONE.search(text))}
     warnings = [
-        "Prévia não salva no banco. Corrija os campos localmente; confirmação será liberada em D2-E2.D.",
+        "Prévia não salva no banco. Corrija os campos localmente; "
+        "confirmação será liberada em D2-E2.D.",
         "Detecção de menções não confirma competências nem garante leitura por ATS de terceiros.",
     ]
     if "experience" not in sections:
@@ -214,6 +232,9 @@ def build_preview(filename: str, content: bytes) -> dict[str, Any]:
             "text_extractable": True,
             "sections_detected": found,
             "unrecognized_fields": [k for k, value in detected.items() if not value],
-            "notice": "Compatibilidade documental preliminar, não pontuação ou teste de ATS externo",
+            "notice": (
+                "Compatibilidade documental preliminar, "
+                "não pontuação ou teste de ATS externo"
+            ),
         },
     }
