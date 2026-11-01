@@ -5,15 +5,18 @@ from typing import cast
 from uuid import uuid4
 
 from fastapi import FastAPI
+import pytest
 from fastapi.testclient import TestClient
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_session
 from app.core.config import Settings
 from app.main import create_app
 from app.models import AuthActionToken
+from app.repositories.user import UserRepository
 from app.services.auth import digest, now_utc
-from app.services.email_delivery import MemoryMailer
+from app.services.email_delivery import EmailDeliveryUnavailable, MemoryMailer
 
 
 def lifecycle_client(database_url: str, session: Session) -> TestClient:
@@ -125,3 +128,38 @@ def test_expiry_and_unknown_email_do_not_disclose(
         count = len(mailer_for(client).messages)
         assert post_status(client, "request-password-reset", {"email": unknown}) == 202
         assert len(mailer_for(client).messages) == count
+
+
+def test_failed_delivery_invalidates_secret_and_keeps_generic_response(
+    test_database_url: str, db_session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    with lifecycle_client(test_database_url, db_session) as client:
+        email = f"d2e152-delivery-{uuid4().hex}@example.com"
+        registration_payload = {
+            "name": "Synthetic Mail Failure",
+            "email": email,
+            "password": "TestOnly-FailureFlow-123456!",
+        }
+        assert post_status(client, "register", registration_payload) == 202
+        original_token = last_token(client)
+
+        def unavailable(recipient: str, subject: str, link: str) -> None:
+            raise EmailDeliveryUnavailable("Synthetic unavailable")
+
+        monkeypatch.setattr(mailer_for(client), "send", unavailable)
+        known = client.post("/api/v1/auth/request-verification", json={"email": email})
+        unknown = client.post(
+            "/api/v1/auth/request-verification",
+            json={"email": f"d2e152-nonexistent-{uuid4().hex}@example.com"},
+        )
+        assert known.status_code == unknown.status_code == 202
+        assert known.json() == unknown.json()
+        assert post_status(client, "verify-email", {"token": original_token}) == 400
+
+        user = UserRepository(db_session).get_by_email(email)
+        assert user is not None
+        tokens = db_session.execute(
+            select(AuthActionToken).where(AuthActionToken.user_id == user.id)
+        ).scalars().all()
+        assert len(tokens) == 2
+        assert all(item.consumed_at is not None for item in tokens)
