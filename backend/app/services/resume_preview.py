@@ -161,6 +161,23 @@ def _split_experiences(lines: list[str]) -> list[list[str]]:
     return groups[:25]
 
 
+def _explicit_role(header: str) -> tuple[str, str | None, str | None, str | None]:
+    """Extract only unambiguous Company | Role | YYYY-YYYY headers."""
+    parts = [part.strip() for part in header.split("|")]
+    if len(parts) != 3 or not parts[0] or not parts[1]:
+        return header[:180], None, None, None
+    period = re.fullmatch(
+        r"((?:19|20)\d{2})\s*[-–—]\s*((?:19|20)\d{2}|atual|presente|current|present)",
+        parts[2],
+        flags=re.IGNORECASE,
+    )
+    if period is None:
+        return header[:180], None, None, None
+    end = period.group(2)
+    if not re.fullmatch(r"(?:19|20)\d{2}", end):
+        end = None
+    return parts[1][:180], parts[0][:180], period.group(1), end
+
 def build_preview(filename: str, content: bytes) -> dict[str, Any]:
     fmt, text = extract_text(filename, content)
     sections: dict[str, list[str]] = {}
@@ -186,7 +203,11 @@ def build_preview(filename: str, content: bytes) -> dict[str, Any]:
             if not group:
                 continue
             excerpt = "\n".join(group)[:1200]
-            title = group[0][:180]
+            title, organization, start_date, end_date = (
+                _explicit_role(group[0])
+                if category == "experience"
+                else (group[0][:180], None, None, None)
+            )
             if len(title) < 2:
                 continue
             warnings = []
@@ -200,9 +221,9 @@ def build_preview(filename: str, content: bytes) -> dict[str, Any]:
                     "category": category,
                     "title": title,
                     "description": "\n".join(group)[:4000],
-                    "organization": None,
-                    "start_date": None,
-                    "end_date": None,
+                    "organization": organization,
+                    "start_date": start_date,
+                    "end_date": end_date,
                     "source_excerpt": excerpt,
                     "review_status": "pending",
                     "warnings": warnings,
