@@ -1,4 +1,5 @@
 """D2-E2.C/D: authenticated CV preview and explicit confirmation."""
+
 from typing import Annotated
 
 from fastapi import APIRouter, File, Header, Request, UploadFile
@@ -48,7 +49,9 @@ async def preview_resume(
 
 
 @router.post(
-    "/confirm", response_model=ConfirmResult, status_code=201,
+    "/confirm",
+    response_model=ConfirmResult,
+    status_code=201,
     responses=error_responses(401, 409, 422, 503),
 )
 def confirm_resume(
