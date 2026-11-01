@@ -34,9 +34,11 @@ def test_container_parser_fails_closed_when_runtime_is_unavailable(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setenv("RESUME_PARSER_MODE", "container")
-    with patch("app.services.resume_worker.subprocess.run", side_effect=OSError("no docker")):
-        with pytest.raises(ServiceUnavailableError) as exc:
-            parse_in_worker("sample.txt", b"Synthetic resume only")
+    with (
+        patch("app.services.resume_worker.subprocess.run", side_effect=OSError("no docker")),
+        pytest.raises(ServiceUnavailableError) as exc,
+    ):
+        parse_in_worker("sample.txt", b"Synthetic resume only")
     assert exc.value.code == "CV_SANDBOX_REQUIRED"
 
 
@@ -44,12 +46,17 @@ def test_container_parser_handles_nonzero_exit_without_leaking_details(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setenv("RESUME_PARSER_MODE", "container")
-    with patch(
-        "app.services.resume_worker.subprocess.run",
-        side_effect=[Mock(returncode=125, stdout=b"internal privileged details"), Mock(returncode=0)],
+    with (
+        patch(
+            "app.services.resume_worker.subprocess.run",
+            side_effect=[
+                Mock(returncode=125, stdout=b"internal privileged details"),
+                Mock(returncode=0),
+            ],
+        ),
+        pytest.raises(ServiceUnavailableError) as exc,
     ):
-        with pytest.raises(ServiceUnavailableError) as exc:
-            parse_in_worker("sample.txt", b"Synthetic resume only")
+        parse_in_worker("sample.txt", b"Synthetic resume only")
     assert exc.value.code == "CV_SANDBOX_REQUIRED"
 
 
@@ -68,10 +75,12 @@ def test_local_worker_timeout_is_mapped_to_error(
     import subprocess
 
     monkeypatch.setenv("RESUME_PARSER_MODE", "subprocess")
-    with patch(
-        "app.services.resume_worker.subprocess.run",
-        side_effect=subprocess.TimeoutExpired(cmd="synthetic", timeout=10),
+    with (
+        patch(
+            "app.services.resume_worker.subprocess.run",
+            side_effect=subprocess.TimeoutExpired(cmd="synthetic", timeout=10),
+        ),
+        pytest.raises(UnprocessableError) as exc,
     ):
-        with pytest.raises(UnprocessableError) as exc:
-            parse_in_worker("sample.txt", b"Synthetic resume only")
+        parse_in_worker("sample.txt", b"Synthetic resume only")
     assert exc.value.code == "CV_TIMEOUT"
