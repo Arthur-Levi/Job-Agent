@@ -6,6 +6,7 @@ import { useAuth } from './authContext'
 const NAV = [
   { to: '/dashboard', label: 'Dashboard' },
   { to: '/profile', label: 'Profile' },
+  { to: '/resume-import', label: 'Importar currículo' },
   { to: '/jobs', label: 'Jobs' },
   { to: '/applications', label: 'Applications' },
 ]

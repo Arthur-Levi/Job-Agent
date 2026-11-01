@@ -40,7 +40,7 @@ class Settings(BaseSettings):
     cors_origins: Annotated[list[str], NoDecode] = Field(
         default_factory=lambda: ["http://localhost:5173"]
     )
-    max_request_bytes: int = Field(default=1_048_576, ge=1024)
+    max_request_bytes: int = Field(default=2_150_000, ge=1024)
     db_connect_timeout_seconds: int = Field(default=5, ge=1)
     # Usuário único do D1: resolvido por e-mail e criado na primeira requisição (ver docs).
     default_user_email: str = Field(default="local@jobagent.local", min_length=3, max_length=320)
