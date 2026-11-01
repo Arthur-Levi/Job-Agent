@@ -1,0 +1,12 @@
+# Isolated document parser only. No API server, database or credentials.
+FROM python:3.12-slim
+ENV PYTHONPATH=/opt/parser PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
+WORKDIR /opt/parser
+RUN pip install --no-cache-dir "fastapi>=0.115,<1" "pydantic>=2.7,<3" "pypdf>=5,<7" "python-docx>=1.1,<2"
+RUN mkdir -p app/core app/services app/workers && \
+    touch app/__init__.py app/core/__init__.py app/services/__init__.py app/workers/__init__.py
+COPY app/core/errors.py app/core/request_context.py app/core/
+COPY app/services/resume_preview.py app/services/
+COPY app/workers/resume_parser.py app/workers/
+USER 65532:65532
+ENTRYPOINT ["python", "-m", "app.workers.resume_parser"]
