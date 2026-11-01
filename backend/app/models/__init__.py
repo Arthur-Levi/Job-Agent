@@ -2,7 +2,6 @@
 
 from app.models.application import Application, ApplicationEvent
 from app.models.auth import AuthActionToken, AuthCredential, AuthRateLimit, AuthSession
-from app.models.career_fact import CareerFact, ResumeImportRecord
 from app.models.candidate import (
     CandidateEducation,
     CandidateExperience,
@@ -10,6 +9,7 @@ from app.models.candidate import (
     CandidateProject,
     CandidateSkill,
 )
+from app.models.career_fact import CareerFact, ResumeImportRecord
 from app.models.job import Job, JobMatch, JobRequirement
 from app.models.resume import ResumeVersion
 from app.models.user import User
