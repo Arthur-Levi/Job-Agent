@@ -3,7 +3,6 @@ from uuid import UUID
 
 from fastapi import APIRouter
 from pydantic import BaseModel, Field
-from sqlalchemy.orm import Session
 
 from app.api.deps import CurrentUserDep, SessionDep
 from app.core.errors import error_responses
