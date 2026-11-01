@@ -11,7 +11,9 @@ router = APIRouter(prefix="/resume-imports", tags=["resume-imports"])
 
 
 @router.post("/preview", responses=error_responses(401, 413, 422))
-async def preview_resume(user: CurrentUserDep, file: Annotated[UploadFile, File()]) -> dict[str, object]:
+async def preview_resume(
+    user: CurrentUserDep, file: Annotated[UploadFile, File()]
+) -> dict[str, object]:
     """No database writes or raw-document persistence. user dependency gates access."""
     _ = user.id
     if file.size is not None and file.size > MAX_FILE_BYTES:
