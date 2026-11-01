@@ -120,6 +120,8 @@ def upgrade() -> None:
         sa.UniqueConstraint("user_id", "id", name="uq_career_facts_user_id"),
     )
     op.create_index(op.f("ix_career_facts_user_id"), "career_facts", ["user_id"])
+    op.create_index("ix_career_facts_user_import", "career_facts", ["user_id", "import_id"])
+    op.create_index("ix_career_facts_user_supersedes", "career_facts", ["user_id", "supersedes_id"])
     op.create_index("ix_career_facts_user_status", "career_facts", ["user_id", "status"])
     op.create_index(
         "ix_career_facts_user_subject",
@@ -132,6 +134,8 @@ def downgrade() -> None:
     # ONLY in ephemeral CI DB; never on Codespaces preserved DB.
     op.drop_index("ix_career_facts_user_subject", table_name="career_facts")
     op.drop_index("ix_career_facts_user_status", table_name="career_facts")
+    op.drop_index("ix_career_facts_user_supersedes", table_name="career_facts")
+    op.drop_index("ix_career_facts_user_import", table_name="career_facts")
     op.drop_index(op.f("ix_career_facts_user_id"), table_name="career_facts")
     op.drop_table("career_facts")
     op.drop_index(op.f("ix_resume_import_records_user_id"), table_name="resume_import_records")
