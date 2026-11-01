@@ -62,6 +62,7 @@ describe('ResumeImportPage', () => {
     expect(screen.getByDisplayValue('Analista de BI')).toBeInTheDocument()
     fireEvent.click(screen.getByLabelText('Descartar item'))
     expect(screen.getByLabelText('Título / cargo')).toBeDisabled()
+    fireEvent.click(screen.getByLabelText('Descartar item'))
     fireEvent.click(screen.getByLabelText('Revisei as sugestões e entendo que são declarações não verificadas.'))
     fireEvent.click(screen.getByRole('button', { name: 'Confirmar e salvar fatos no perfil' }))
     expect(await screen.findByText(/Confirmação salva/)).toBeInTheDocument()
