@@ -2,6 +2,7 @@
 
 from app.models.application import Application, ApplicationEvent
 from app.models.auth import AuthActionToken, AuthCredential, AuthRateLimit, AuthSession
+from app.models.career_fact import CareerFact, ResumeImportRecord
 from app.models.candidate import (
     CandidateEducation,
     CandidateExperience,
@@ -20,6 +21,8 @@ __all__ = [
     "AuthRateLimit",
     "AuthSession",
     "ApplicationEvent",
+    "CareerFact",
+    "ResumeImportRecord",
     "CandidateEducation",
     "CandidateExperience",
     "CandidateProfile",
