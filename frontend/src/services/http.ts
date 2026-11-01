@@ -113,8 +113,12 @@ export async function request<T>(
     if (token) headers.Authorization = `Bearer ${token}`
     const init: RequestInit = { method, headers, signal: controller.signal }
     if (options.body !== undefined) {
-      headers['Content-Type'] = 'application/json'
-      init.body = JSON.stringify(options.body)
+      if (options.body instanceof FormData) {
+        init.body = options.body
+      } else {
+        headers['Content-Type'] = 'application/json'
+        init.body = JSON.stringify(options.body)
+      }
     }
 
     const response = await fetch(buildUrl(path, options.query), init)
