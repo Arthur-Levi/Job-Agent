@@ -61,7 +61,7 @@ Os endereços são placeholders, nunca destinatários reais. `DATABASE_URL` é o
 - [x] Segredo fora dos logs e da representação do objeto
 - [x] Transporte de memória mantido apenas para testes
 - [x] Falha de envio invalida o token e resposta pública permanece genérica
-- [ ] CI para esta mudança concluído e verificado (registrar run e contagens após execução)
+- [x] CI para esta mudança concluído e verificado — run 41257303290: 247 backend PASS / 85 frontend PASS
 - [ ] Credencial staging real sob controle do operador
 - [ ] Domínio remetente verificado, com DNS confirmado
 - [ ] Staging TLS e proxy seguros com email real recebido
@@ -69,3 +69,13 @@ Os endereços são placeholders, nunca destinatários reais. `DATABASE_URL` é o
 - [ ] Aprovação de exposição pública
 
 **Continuar apenas na feature branch** `feature/d2-e1-react-auth-ui`; manter branch de checkpoint `checkpoint/d2-e151-identity-2026-10-31` e PR #3 sem merge.
+
+## Registro de evidência — CI PASS
+
+Em 2026-10-31 (horário do usuário, America/Sao_Paulo), [GitHub Actions #41257303290](https://github.com/Arthur-Levi/Job-Agent/actions/runs/41257303290) concluiu **backend, frontend e audit em success**.
+
+- Backend: Ruff lint e formatter PASS (106 arquivos formatados); MyPy PASS (101 arquivos); Alembic upgrade/downgrade/upgrade na base CI descartável PASS; **247 testes PASS, 1 warning (14,37 s)**. Inclui os testes de erros de envio e invalidação de tokens.
+- Frontend: lint/build PASS; **85 testes PASS**, **5 live tests skipped**.
+- Auditoria de dependências: job PASS, porém é **informativo** (`continue-on-error: true`), não substitui análise independente.
+
+**Checkpoint D2-E1.5.2 IMPLEMENTATION + CI PASS.** Nenhuma credencial real de email foi informada, nenhum email real foi enviado, nenhum dado no Codespaces foi migrado/recriado e nenhuma homologação da entrega externa foi executada. **OPERATIONAL EMAIL DELIVERY continua PENDENTE.**
