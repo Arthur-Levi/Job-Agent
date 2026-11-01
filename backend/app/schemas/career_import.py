@@ -1,4 +1,5 @@
 """Pydantic contract for reviewed CV confirmation and Fact Ledger reads."""
+
 from typing import Literal
 from uuid import UUID
 
