@@ -96,12 +96,14 @@ def test_transient_errors_retry_using_same_idempotency_key(
 
 @pytest.mark.parametrize("error", [400, 401, 403, 409, 422, 302])
 def test_nonretryable_resend_errors_fail_closed(
-    monkeypatch: pytest.MonkeyPatch, error: int,
+    monkeypatch: pytest.MonkeyPatch,
+    error: int,
 ) -> None:
     opener = _capture(monkeypatch, [error])
     with pytest.raises(EmailDeliveryUnavailable) as caught:
         ResendMailer(api_key=API_KEY, from_address="sender@example.com").send(
-            "synthetic@example.com", "Confirmacao",
+            "synthetic@example.com",
+            "Confirmacao",
             "https://app.example.com/#token=TOP_SECRET_TEST_ONLY",
         )
     assert len(opener.requests) == 1
@@ -121,12 +123,17 @@ def test_network_retry_is_bounded(monkeypatch: pytest.MonkeyPatch) -> None:
 def test_configuration_fails_closed_without_secrets() -> None:
     with pytest.raises(ValidationError):
         Settings(
-            _env_file=None, database_url=DB, app_env="test",
-            email_delivery_mode="resend", identity_lifecycle_enabled=True,
+            _env_file=None,
+            database_url=DB,
+            app_env="test",
+            email_delivery_mode="resend",
+            identity_lifecycle_enabled=True,
         )
     with pytest.raises(ValidationError):
         Settings(
-            _env_file=None, database_url=DB, app_env="production",
+            _env_file=None,
+            database_url=DB,
+            app_env="production",
             email_delivery_mode="memory",
             registration_privacy_enabled=True,
             auth_rate_limit_enabled=True,
@@ -136,7 +143,9 @@ def test_configuration_fails_closed_without_secrets() -> None:
 
 def test_resend_can_be_enabled_without_calling_network() -> None:
     settings = Settings(
-        _env_file=None, database_url=DB, app_env="test",
+        _env_file=None,
+        database_url=DB,
+        app_env="test",
         identity_lifecycle_enabled=True,
         email_delivery_mode="resend",
         resend_api_key=API_KEY,
