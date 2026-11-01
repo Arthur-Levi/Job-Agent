@@ -13,11 +13,7 @@ from sqlalchemy.orm import Session
 
 from app.core.errors import ConflictError, UnprocessableError
 from app.models import (
-    CandidateEducation,
-    CandidateExperience,
     CandidateProfile,
-    CandidateProject,
-    CandidateSkill,
     CareerFact,
     ResumeImportRecord,
 )
@@ -51,56 +47,6 @@ def _fact_value(item: Any) -> str:
         "start_date": item.start_date,
         "end_date": item.end_date,
     })
-
-
-def _project(db: Session, profile_id: UUID, item: Any) -> None:
-    """Projection from a confirmed fact; original year precision retained in fact JSON.
-
-    CandidateExperience uses full dates, therefore partial dates are not falsely
-    expanded to January 1 or December 31; fields remain NULL until user supplies
-    exact dates in a dedicated editor.
-    """
-    if item.category == "experience" and item.organization:
-        db.add(
-            CandidateExperience(
-                candidate_profile_id=profile_id,
-                company=item.organization,
-                title=item.title,
-                description=item.description,
-                start_date=None,
-                end_date=None,
-                current=item.end_date is not None and item.end_date.lower() in ("atual", "presente"),
-            )
-        )
-    elif item.category == "education" and item.organization:
-        db.add(
-            CandidateEducation(
-                candidate_profile_id=profile_id,
-                institution=item.organization,
-                course=item.title,
-                degree=None,
-                start_date=None,
-                end_date=None,
-            )
-        )
-    elif item.category == "project":
-        db.add(
-            CandidateProject(
-                candidate_profile_id=profile_id,
-                name=item.title,
-                description=item.description,
-                url=None,
-            )
-        )
-    elif item.category == "skill" and len(item.title) <= 100:
-        existing = db.scalar(
-            select(CandidateSkill).where(
-                CandidateSkill.candidate_profile_id == profile_id,
-                CandidateSkill.name.ilike(item.title),
-            )
-        )
-        if existing is None:
-            db.add(CandidateSkill(candidate_profile_id=profile_id, name=item.title))
 
 
 def confirm_import(
@@ -178,12 +124,15 @@ def confirm_import(
 
     # Validate conflicts BEFORE adding any rows; all other writes share one DB transaction.
     new_items: list[Any] = []
+    pending_signatures: set[tuple[str, str, str]] = set()
     skipped: list[UUID] = []
     for item in accepted:
         value = _fact_value(item)
         signature = (item.category, item.title.casefold(), value)
         if signature in signatures:
             skipped.append(signatures[signature].id)
+            continue
+        if signature in pending_signatures:
             continue
         identity = (
             item.category, item.title.casefold(), (item.organization or "").casefold(),
@@ -194,6 +143,7 @@ def confirm_import(
                 "Experiência ou formação semelhante exige resolução manual", code="CV_CONFLICT"
             )
         identities[identity] = value
+        pending_signatures.add(signature)
         new_items.append(item)
 
     receipt = ResumeImportRecord(
@@ -226,7 +176,8 @@ def confirm_import(
             db.add(fact)
             db.flush()
             created.append(fact.id)
-            _project(db, profile.id, item)
+            # Master Profile projects ACTIVE ledger facts dynamically.
+            # Do not write stale unlinked nested Candidate* rows until provenance FK exists.
         db.commit()
     except IntegrityError as exc:
         db.rollback()
