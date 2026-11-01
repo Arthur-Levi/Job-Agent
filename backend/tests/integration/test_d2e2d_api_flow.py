@@ -1,4 +1,5 @@
 """End-to-end HTTP contract for reviewed CV with isolated PostgreSQL only."""
+
 from uuid import uuid4
 
 from fastapi import FastAPI
@@ -9,9 +10,7 @@ from app.api.deps import get_current_user
 from app.models import User
 
 
-def test_http_preview_confirm_and_read_fact(
-    api_client: TestClient, db_session: Session
-) -> None:
+def test_http_preview_confirm_and_read_fact(api_client: TestClient, db_session: Session) -> None:
     candidate = User(name="Synthetic CV", email=f"candidate-{uuid4()}@example.invalid")
     db_session.add(candidate)
     db_session.flush()
@@ -43,8 +42,14 @@ def test_http_preview_confirm_and_read_fact(
                 **{
                     key: item[key]
                     for key in (
-                        "draft_id", "category", "title", "description",
-                        "organization", "start_date", "end_date", "source_excerpt",
+                        "draft_id",
+                        "category",
+                        "title",
+                        "description",
+                        "organization",
+                        "start_date",
+                        "end_date",
+                        "source_excerpt",
                     )
                 },
                 "review_status": "confirmed",
