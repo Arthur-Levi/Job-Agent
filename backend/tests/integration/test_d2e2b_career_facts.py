@@ -1,7 +1,7 @@
 """D2-E2.B ownership and integrity on the ephemeral CI *_test PostgreSQL only."""
 
 import hashlib
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import pytest
 from sqlalchemy import select
@@ -33,7 +33,11 @@ def make_import(
 
 
 def make_fact(
-    user: User, *, import_id=None, source_type="user_statement", supersedes_id=None
+    user: User,
+    *,
+    import_id: UUID | None = None,
+    source_type: str = "user_statement",
+    supersedes_id: UUID | None = None,
 ) -> CareerFact:
     return CareerFact(
         user_id=user.id,
