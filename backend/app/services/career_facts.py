@@ -1,4 +1,7 @@
 """D2-E2.D: authenticated career facts with auditable corrections."""
+
+import hashlib
+from typing import Any
 from uuid import UUID
 
 from sqlalchemy import select
@@ -34,7 +37,7 @@ def correct_fact(db: Session, user_id: UUID, fact_id: UUID, value: str, reason: 
         predicate=old.predicate,
         value=value,
         source_type="user_statement",
-        source_reference=f"user-correction:{old.id}:reason:{reason[:80]}",
+        source_reference=f"user-correction:{old.id}:reason-sha256:{hashlib.sha256(reason.encode()).hexdigest()}",
         verification="USER_DECLARED",
         status="ACTIVE",
         supersedes_id=old.id,
@@ -49,7 +52,7 @@ def correct_fact(db: Session, user_id: UUID, fact_id: UUID, value: str, reason: 
     return replacement
 
 
-def master_profile(db: Session, user_id: UUID) -> dict[str, object]:
+def master_profile(db: Session, user_id: UUID) -> dict[str, Any]:
     profile = db.scalar(select(CandidateProfile).where(CandidateProfile.user_id == user_id))
     # Master Profile view is grounded in the active ledger; absent facts remain absent.
     facts = list_facts(db, user_id)
