@@ -13,6 +13,13 @@ from dataclasses import dataclass, field
 from typing import Protocol, runtime_checkable
 
 
+class _RejectRedirect(urllib.request.HTTPRedirectHandler):
+    """Never forward the provider authorization header to a redirected host."""
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):  # type: ignore[no-untyped-def]
+        return None
+
+
 class EmailDeliveryUnavailable(Exception):
     """Generic failure: deliberately never contains response bodies or credentials."""
 
@@ -67,6 +74,7 @@ class ResendMailer:
         ).encode("utf-8")
         # Same payload and token => same key within Resend's idempotency window.
         key = "jobagent-" + hashlib.sha256(payload).hexdigest()
+        opener = urllib.request.build_opener(_RejectRedirect())
         for attempt in range(3):
             request = urllib.request.Request(
                 self.endpoint,
@@ -80,7 +88,7 @@ class ResendMailer:
                 },
             )
             try:
-                with urllib.request.urlopen(request, timeout=self.timeout_seconds) as response:
+                with opener.open(request, timeout=self.timeout_seconds) as response:
                     if response.status != 200:
                         raise EmailDeliveryUnavailable("Email provider rejected request")
                     result = json.loads(response.read(16_384))
