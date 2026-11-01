@@ -23,7 +23,7 @@ MAX_DOCX_ENTRIES = 150
 
 HEADINGS = {
     "experience": (
-        r"(?:experi[eê]ncias?(?: profissionais?| de trabalho)?|"
+        r"(?:experi[eê]ncias?(?: profissional| profissionais| de trabalho)?|"
         r"hist[oó]rico profissional|employment|work experience|professional experience)"
     ),
     "education": (
