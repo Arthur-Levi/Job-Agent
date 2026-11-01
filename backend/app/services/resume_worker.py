@@ -10,12 +10,39 @@ import json
 import os
 import subprocess
 import sys
+from uuid import uuid4
 from typing import Any, cast
 
-from app.core.errors import UnprocessableError
+from app.core.errors import ServiceUnavailableError, UnprocessableError
 
 MAX_WORKER_SECONDS = 10
 MAX_WORKER_OUTPUT = 130_000
+SANDBOX_IMAGE = "job-agent-resume-parser:d2e2d1"
+
+
+def _container_command(name: str) -> list[str]:
+    """No host mounts, network, ambient credentials or privileged capabilities."""
+    return [
+        "docker", "run", "--rm", "--pull=never", "--name", name,
+        "--network=none", "--read-only", "--cap-drop=ALL",
+        "--security-opt=no-new-privileges", "--pids-limit=32",
+        "--memory=1g", "--memory-swap=1g", "--cpus=1",
+        "--user=65532:65532", "--tmpfs=/tmp:rw,noexec,nosuid,nodev,size=16m",
+        "--env=PYTHONDONTWRITEBYTECODE=1", "--env=PYTHONIOENCODING=utf-8",
+        "--entrypoint=python", "-i", SANDBOX_IMAGE,
+        "-m", "app.workers.resume_parser",
+    ]
+
+
+def _cleanup_container(name: str) -> None:
+    try:
+        subprocess.run(
+            ["docker", "rm", "-f", name],
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+            timeout=5, check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        pass
 
 
 def parse_in_worker(filename: str, raw: bytes) -> dict[str, Any]:
@@ -27,9 +54,18 @@ def parse_in_worker(filename: str, raw: bytes) -> dict[str, Any]:
         "PYTHONIOENCODING": "utf-8",
         "HOME": "/nonexistent",
     }
+    mode = os.environ.get("RESUME_PARSER_MODE", "subprocess")
+    if mode not in {"subprocess", "container"}:
+        raise ServiceUnavailableError("Parser não configurado", code="CV_SANDBOX_REQUIRED")
+    container_name = f"jobagent-cv-{uuid4().hex}" if mode == "container" else None
+    command = (
+        _container_command(container_name)
+        if container_name is not None
+        else [sys.executable, "-m", "app.workers.resume_parser"]
+    )
     try:
         process = subprocess.run(
-            [sys.executable, "-m", "app.workers.resume_parser"],
+            command,
             input=request.encode(),
             stdout=subprocess.PIPE,
             stderr=subprocess.DEVNULL,
@@ -38,9 +74,20 @@ def parse_in_worker(filename: str, raw: bytes) -> dict[str, Any]:
             check=False,
         )
     except subprocess.TimeoutExpired:
+        if container_name is not None:
+            _cleanup_container(container_name)
         raise UnprocessableError(
             "Processamento excedeu o tempo permitido", code="CV_TIMEOUT"
         ) from None
+    except OSError:
+        raise ServiceUnavailableError(
+            "Worker de currículo indisponível", code="CV_SANDBOX_REQUIRED"
+        ) from None
+    finally:
+        if container_name is not None:
+            _cleanup_container(container_name)
+    if process.returncode != 0 and mode == "container":
+        raise ServiceUnavailableError("Sandbox indisponível", code="CV_SANDBOX_REQUIRED")
     if process.returncode != 0 or len(process.stdout) > MAX_WORKER_OUTPUT:
         raise UnprocessableError("Não foi possível processar o currículo", code="CV_WORKER")
     try:
