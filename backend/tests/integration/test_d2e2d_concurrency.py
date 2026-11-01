@@ -4,6 +4,7 @@ The migrated_engine fixture DROPS the public schema at setup. Never point
 TEST_DATABASE_URL at a preserved or shared database.
 """
 
+import uuid
 from concurrent.futures import ThreadPoolExecutor
 from threading import Barrier
 from uuid import UUID
@@ -22,7 +23,10 @@ SIGNING_KEY = b"synthetic-key-32chars-long-not-production"
 def test_two_distinct_keys_same_user_do_not_duplicate_facts(migrated_engine: Engine) -> None:
     # The user must be committed so other DB connections can see/lock its row.
     with Session(migrated_engine) as setup:
-        user = User(name="Concurrency Synthetic", email="race-" + __import__("uuid").uuid4().hex + "@example.invalid")
+        user = User(
+            name="Concurrency Synthetic",
+            email=f"race-{uuid.uuid4().hex}@example.invalid",
+        )
         setup.add(user)
         setup.commit()
         user_id: UUID = user.id
