@@ -68,16 +68,16 @@ def confirm_import(
         raise UnprocessableError("Itens ausentes ou repetidos", code="CV_ITEMS")
     seen: set[str] = set()
     for item in confirmation.items:
-        identity = str(item.draft_id)
-        source = original.get(identity)
+        draft_identity = str(item.draft_id)
+        source = original.get(draft_identity)
         if (
             source is None
-            or identity in seen
+            or draft_identity in seen
             or item.category != source["category"]
             or item.source_excerpt != source["source_excerpt"]
         ):
             raise UnprocessableError("Origem ou identidade alterada", code="CV_ITEMS")
-        seen.add(identity)
+        seen.add(draft_identity)
 
     canonical = [_canonical(item) for item in confirmation.items]
     digest_source = _json({"items": canonical, "preview_id": signed["preview_id"]})
