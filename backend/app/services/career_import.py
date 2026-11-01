@@ -2,6 +2,7 @@
 
 No LLM claims, no externally verified status, no automatic job application.
 """
+
 import hashlib
 import json
 from typing import Any
@@ -40,13 +41,15 @@ def _canonical(item: Any) -> dict[str, Any]:
 
 
 def _fact_value(item: Any) -> str:
-    return _json({
-        "title": item.title,
-        "description": item.description,
-        "organization": item.organization,
-        "start_date": item.start_date,
-        "end_date": item.end_date,
-    })
+    return _json(
+        {
+            "title": item.title,
+            "description": item.description,
+            "organization": item.organization,
+            "start_date": item.start_date,
+            "end_date": item.end_date,
+        }
+    )
 
 
 def confirm_import(
@@ -60,9 +63,7 @@ def confirm_import(
     signed = verify_preview(confirmation.preview_ticket, user_id=str(user_id), key=key)
     if str(confirmation.preview_id) != signed["preview_id"]:
         raise UnprocessableError("Referência da prévia não corresponde", code="CV_PREVIEW")
-    original: dict[str, dict[str, Any]] = {
-        item["draft_id"]: item for item in signed["items"]
-    }
+    original: dict[str, dict[str, Any]] = {item["draft_id"]: item for item in signed["items"]}
     if len(original) != len(signed["items"]) or len(confirmation.items) != len(original):
         raise UnprocessableError("Itens ausentes ou repetidos", code="CV_ITEMS")
     seen: set[str] = set()
@@ -113,9 +114,11 @@ def confirm_import(
         try:
             value = json.loads(fact.value)
             identity = (
-                fact.predicate, fact.subject.casefold(),
+                fact.predicate,
+                fact.subject.casefold(),
                 (value.get("organization") or "").casefold(),
-                value.get("start_date") or "", value.get("end_date") or "",
+                value.get("start_date") or "",
+                value.get("end_date") or "",
             )
             identities[identity] = fact.value
         except (ValueError, AttributeError):
@@ -138,8 +141,11 @@ def confirm_import(
         if signature in pending_signatures:
             continue
         identity = (
-            item.category, item.title.casefold(), (item.organization or "").casefold(),
-            item.start_date or "", item.end_date or "",
+            item.category,
+            item.title.casefold(),
+            (item.organization or "").casefold(),
+            item.start_date or "",
+            item.end_date or "",
         )
         if identity in identities and identities[identity] != value:
             raise ConflictError(
@@ -190,6 +196,4 @@ def confirm_import(
     except Exception:
         db.rollback()
         raise
-    return ConfirmResult(
-        import_id=receipt.id, created_fact_ids=created, skipped_duplicates=skipped
-    )
+    return ConfirmResult(import_id=receipt.id, created_fact_ids=created, skipped_duplicates=skipped)
