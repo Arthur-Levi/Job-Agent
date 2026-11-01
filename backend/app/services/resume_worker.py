@@ -11,6 +11,7 @@ import json
 import os
 import subprocess
 import sys
+import threading
 from typing import Any, cast
 from uuid import uuid4
 
@@ -19,6 +20,8 @@ from app.core.errors import ServiceUnavailableError, UnprocessableError
 MAX_WORKER_SECONDS = 10
 MAX_WORKER_OUTPUT = 130_000
 SANDBOX_IMAGE = "job-agent-resume-parser:d2e2d1"
+# Per-API-process admission control, not a distributed quota.
+_PARSER_SLOTS = threading.BoundedSemaphore(value=2)
 
 
 def _container_command(name: str) -> list[str]:
@@ -62,6 +65,18 @@ def _cleanup_container(name: str) -> None:
 
 
 def parse_in_worker(filename: str, raw: bytes) -> dict[str, Any]:
+    # Reject bursts before allocating encoded requests or starting a parser.
+    if not _PARSER_SLOTS.acquire(blocking=False):
+        raise ServiceUnavailableError(
+            "Limite temporário de processamento de currículos", code="CV_PARSER_BUSY"
+        )
+    try:
+        return _parse_with_slot(filename, raw)
+    finally:
+        _PARSER_SLOTS.release()
+
+
+def _parse_with_slot(filename: str, raw: bytes) -> dict[str, Any]:
     request = json.dumps({"filename": filename, "content": base64.b64encode(raw).decode()})
     # Restrict environment to prevent exposing DB credentials and tokens to parser libraries.
     safe_env = {
