@@ -84,3 +84,39 @@ def test_local_worker_timeout_is_mapped_to_error(
     ):
         parse_in_worker("sample.txt", b"Synthetic resume only")
     assert exc.value.code == "CV_TIMEOUT"
+
+
+def test_parser_rejects_over_capacity_without_spawning(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from app.services import resume_worker
+
+    monkeypatch.setenv("RESUME_PARSER_MODE", "container")
+    acquired = [resume_worker._PARSER_SLOTS.acquire(blocking=False) for _ in range(2)]
+    assert acquired == [True, True]
+    try:
+        with (
+            patch("app.services.resume_worker.subprocess.run") as run,
+            pytest.raises(ServiceUnavailableError) as exc,
+        ):
+            parse_in_worker("synthetic.txt", b"Synthetic resume only")
+        assert exc.value.code == "CV_PARSER_BUSY"
+        run.assert_not_called()
+    finally:
+        for _ in range(2):
+            resume_worker._PARSER_SLOTS.release()
+
+
+def test_parser_slot_released_after_worker_failure(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from app.services import resume_worker
+
+    monkeypatch.setenv("RESUME_PARSER_MODE", "container")
+    with (
+        patch("app.services.resume_worker.subprocess.run", side_effect=OSError("no docker")),
+        pytest.raises(ServiceUnavailableError),
+    ):
+        parse_in_worker("synthetic.txt", b"Synthetic resume only")
+    assert resume_worker._PARSER_SLOTS.acquire(blocking=False)
+    resume_worker._PARSER_SLOTS.release()
