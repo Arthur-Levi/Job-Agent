@@ -6,12 +6,13 @@ non-root UID, seccomp/AppArmor, read-only filesystem, no secrets and quotas.
 """
 
 import base64
+import contextlib
 import json
 import os
 import subprocess
 import sys
-from uuid import uuid4
 from typing import Any, cast
+from uuid import uuid4
 
 from app.core.errors import ServiceUnavailableError, UnprocessableError
 
@@ -35,14 +36,12 @@ def _container_command(name: str) -> list[str]:
 
 
 def _cleanup_container(name: str) -> None:
-    try:
+    with contextlib.suppress(OSError, subprocess.TimeoutExpired):
         subprocess.run(
             ["docker", "rm", "-f", name],
             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
             timeout=5, check=False,
         )
-    except (OSError, subprocess.TimeoutExpired):
-        pass
 
 
 def parse_in_worker(filename: str, raw: bytes) -> dict[str, Any]:
