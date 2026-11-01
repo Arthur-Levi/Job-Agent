@@ -106,6 +106,40 @@ class BodySizeLimitMiddleware:
                     )
                     await response(scope, receive, send)
                     return
+        # Multipart uploads must be capped even when Content-Length is omitted
+        # or falsified. Buffer only this bounded endpoint, then replay its body.
+        if scope.get("path") == "/api/v1/resume-imports/preview":
+            messages: list[Message] = []
+            received_bytes = 0
+            while True:
+                message = await receive()
+                if message["type"] == "http.disconnect":
+                    return
+                if message["type"] != "http.request":
+                    continue
+                received_bytes += len(message.get("body", b""))
+                if received_bytes > self.max_bytes:
+                    response = JSONResponse(
+                        error_payload("PAYLOAD_TOO_LARGE", "Request body too large"),
+                        status_code=413,
+                    )
+                    await response(scope, receive, send)
+                    return
+                messages.append(message)
+                if not message.get("more_body", False):
+                    break
+            index = 0
+
+            async def replay() -> Message:
+                nonlocal index
+                if index < len(messages):
+                    message = messages[index]
+                    index += 1
+                    return message
+                return {"type": "http.request", "body": b"", "more_body": False}
+
+            await self.app(scope, replay, send)
+            return
         await self.app(scope, receive, send)
 
 
