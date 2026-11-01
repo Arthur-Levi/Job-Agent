@@ -5,13 +5,15 @@ import type { ResumePreview } from '../services/resumeImportApi'
 import { ResumeImportPage } from './ResumeImportPage'
 
 vi.mock('../services/resumeImportApi', () => ({
-  resumeImportApi: { preview: vi.fn() },
+  resumeImportApi: { preview: vi.fn(), confirm: vi.fn() },
 }))
 
 const preview = vi.mocked(resumeImportApi.preview)
+const confirm = vi.mocked(resumeImportApi.confirm)
 
 const fixture: ResumePreview = {
   preview_id: 'synthetic-uuid',
+  preview_ticket: 'synthetic-signed-ticket',
   format: 'txt',
   character_count: 142,
   sections_detected: ['experience'],
@@ -45,6 +47,7 @@ beforeEach(() => {
 describe('ResumeImportPage', () => {
   it('previews and lets the candidate edit and discard without persistence', async () => {
     preview.mockResolvedValue(fixture)
+    confirm.mockResolvedValue({import_id:'import1', created_fact_ids:['fact1'], skipped_duplicates:[], verification:'USER_DECLARED'})
     render(<ResumeImportPage />)
     const file = new File(['texto sintético para upload de currículo'], 'sample.txt', { type: 'text/plain' })
     fireEvent.change(screen.getByLabelText(/Arquivo PDF, DOCX ou TXT/), {
@@ -60,7 +63,9 @@ describe('ResumeImportPage', () => {
     fireEvent.click(screen.getByLabelText('Descartar item'))
     expect(screen.getByLabelText('Título / cargo')).toBeDisabled()
     fireEvent.click(screen.getByLabelText('Revisei as sugestões e entendo que são declarações não verificadas.'))
-    expect(screen.getByRole('status')).toHaveTextContent('Nada foi salvo')
+    fireEvent.click(screen.getByRole('button', { name: 'Confirmar e salvar fatos no perfil' }))
+    expect(await screen.findByText(/Confirmação salva/)).toBeInTheDocument()
+    expect(confirm).toHaveBeenCalledTimes(1)
     expect(preview).toHaveBeenCalledTimes(1)
   })
 
