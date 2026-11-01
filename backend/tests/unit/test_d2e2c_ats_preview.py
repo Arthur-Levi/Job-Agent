@@ -37,11 +37,17 @@ def test_ats_preview_separates_three_roles_including_same_employer() -> None:
     result = build_preview("resume.txt", SYNTHETIC_CV.encode())
     roles = [i for i in result["items"] if i["category"] == "experience"]
     assert len(roles) == 3
-    assert [item["title"].split("|")[1].strip() for item in roles] == [
+    assert [item["title"] for item in roles] == [
         "Auxiliar Administrativo",
         "Analista de Dados",
         "Assistente",
     ]
+    assert [item["organization"] for item in roles] == [
+        "Empresa Aurora",
+        "Empresa Aurora",
+        "Empresa Horizonte",
+    ]
+    assert [item["start_date"] for item in roles] == ["2022", "2023", "2024"]
     assert result["fields_detected"] == {"email": True, "phone": True}
     assert result["ats_check"]["text_extractable"] is True
     assert all(item["review_status"] == "pending" for item in roles)
