@@ -1,0 +1,11 @@
+# Restrict Docker build context: never transmit API source, configs or .env files.
+*
+!Dockerfile.resume-parser
+!app/
+!app/core/
+!app/core/errors.py
+!app/core/request_context.py
+!app/services/
+!app/services/resume_preview.py
+!app/workers/
+!app/workers/resume_parser.py
