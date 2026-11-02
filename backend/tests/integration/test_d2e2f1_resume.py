@@ -14,18 +14,27 @@ def test_resume_draft_excludes_history_and_other_account(db_session: Session) ->
     a = _user(db_session)
     b = _user(db_session)
     active = _fact(
-        db_session, a, title="Analista de Dados", category="experience",
+        db_session,
+        a,
+        title="Analista de Dados",
+        category="experience",
         value='{"title":"Analista de Dados","description":"Criou painéis de teste",'
         '"organization":"Empresa Exemplo","start_date":"2023","end_date":"2024"}',
     )
     _fact(
-        db_session, a, title="Trabalho antigo", category="experience",
+        db_session,
+        a,
+        title="Trabalho antigo",
+        category="experience",
         value='{"title":"Trabalho antigo","description":"Não mostrar",'
         '"organization":"Empresa Antiga","start_date":"2020","end_date":"2021"}',
         status="SUPERSEDED",
     )
     _fact(
-        db_session, b, title="Competência secreta", category="skill",
+        db_session,
+        b,
+        title="Competência secreta",
+        category="skill",
         value='{"title":"Competência secreta","description":"Não mostrar"}',
     )
     result = resume_draft(db_session, a.id)
@@ -49,12 +58,18 @@ def test_resume_draft_omits_unstructured_or_unsupported_without_invention(
         db_session, user, title="Título sem estrutura", category="experience", value="Texto livre"
     )
     _fact(
-        db_session, user, title="Projeto sintético", category="project",
+        db_session,
+        user,
+        title="Projeto sintético",
+        category="project",
         value='{"title":"Projeto sintético","description":"Aplicação de exemplo",'
         '"organization":null,"start_date":null,"end_date":null}',
     )
     _fact(
-        db_session, user, title="Dado fora do escopo", category="other",
+        db_session,
+        user,
+        title="Dado fora do escopo",
+        category="other",
         value='{"title":"Dado fora do escopo"}',
     )
     app = api_client.app
@@ -70,7 +85,8 @@ def test_resume_draft_omits_unstructured_or_unsupported_without_invention(
     assert projects[0]["end_date"] is None
     assert projects[0]["description"] == "Aplicação de exemplo"
     assert sorted(item["reason"] for item in body["omitted"]) == [
-        "unstructured_fact", "unsupported_category"
+        "unstructured_fact",
+        "unsupported_category",
     ]
     assert "Título sem estrutura" not in str(projects)
     assert "Dado fora do escopo" not in str(projects)
