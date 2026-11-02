@@ -45,13 +45,28 @@ def main() -> None:
     with sync_playwright() as pw:
         browser = pw.chromium.launch(headless=True)
         page = browser.new_page()
+        page.on(
+            "response",
+            lambda response: print(
+                "E2E HTTP",
+                response.request.method,
+                response.url.split("/api/v1/")[-1],
+                response.status,
+            )
+            if "/api/v1/" in response.url
+            else None,
+        )
         try:
             page.goto(FRONTEND + "/register")
             page.get_by_label("Nome").fill("Pessoa Sintetica")
             page.get_by_label("Email").fill(email)
             page.get_by_label("Senha (12 a 128 caracteres)").fill(password)
             page.get_by_role("button", name="Criar conta").click()
-            page.get_by_role("link", name="Ir para login").wait_for(timeout=15000)
+            try:
+                page.get_by_role("link", name="Ir para login").wait_for(timeout=15000)
+            except Exception:
+                print("E2E registration UI status:", page.locator("main").inner_text()[:600])
+                raise
             page.get_by_role("link", name="Ir para login").click()
             login(page, email, password)
 
