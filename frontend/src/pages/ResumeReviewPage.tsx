@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Button } from '../components/Button'
 import { Card } from '../components/Card'
@@ -30,14 +30,6 @@ export function ResumeReviewPage() {
   const entries = query.state.status === 'success'
     ? query.state.data.sections.reduce((sum, section) => sum + section.entries.length, 0)
     : 0
-
-  // A successful preview refresh always invalidates the previous human approval,
-  // even if a cached response is displayed during loading.
-  const visibleDigest = query.state.status === 'success' && !query.refreshing ? digest : null
-  useEffect(() => {
-    setApprovedDigest(null)
-    setNotice('')
-  }, [visibleDigest])
 
   async function download(format: ExportFormat) {
     if (!approved || !digest || busy) return
