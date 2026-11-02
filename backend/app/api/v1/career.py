@@ -83,8 +83,11 @@ class ResumeExportApproval(BaseModel):
 
 
 @router.get("/resume-export/preview")
-def review_resume_export(user: CurrentUserDep, session: SessionDep) -> dict[str, object]:
+def review_resume_export(
+    user: CurrentUserDep, session: SessionDep, response: Response
+) -> dict[str, object]:
     """Review live ledger snapshot and approval digest before any file is created."""
+    response.headers["Cache-Control"] = "no-store, private"
     return export_preview(session, user)
 
 
