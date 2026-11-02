@@ -95,9 +95,7 @@ def export_reviewed_resume(
     user: CurrentUserDep,
     session: SessionDep,
 ) -> Response:
-    payload = approved_export(
-        session, user, format_name, data.approved, data.approval_sha256
-    )
+    payload = approved_export(session, user, format_name, data.approved, data.approval_sha256)
     media_type = (
         "application/pdf"
         if format_name == "pdf"
