@@ -1,11 +1,10 @@
 """Authenticated Master Profile / Fact Ledger routes."""
 
-from uuid import UUID
 from typing import Literal
-
-from fastapi.responses import Response
+from uuid import UUID
 
 from fastapi import APIRouter
+from fastapi.responses import Response
 from pydantic import BaseModel, Field
 
 from app.api.deps import CurrentUserDep, SessionDep
