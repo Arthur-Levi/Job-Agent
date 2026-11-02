@@ -72,7 +72,9 @@ def vacancy_match(db: Session, user_id: UUID, vacancy: VacancyMatchRequest) -> d
                 evidence = modes[known_mode]
                 if known_mode == item.name:
                     state = DOCUMENTED
-                    explanation = "Modalidade declarada coincide exatamente com o requisito informado."
+                    explanation = (
+                        "Modalidade declarada coincide exatamente com o requisito informado."
+                    )
                     next_step = "Confirme se a declaração ainda representa sua disponibilidade."
                 else:
                     state = CONFLICT
