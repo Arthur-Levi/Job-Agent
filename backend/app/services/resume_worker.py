@@ -10,6 +10,8 @@ import contextlib
 import json
 import os
 import selectors
+import socket
+import struct
 import subprocess
 import sys
 import threading
@@ -22,6 +24,7 @@ from app.core.errors import ServiceUnavailableError, UnprocessableError
 MAX_WORKER_SECONDS = 10
 MAX_WORKER_OUTPUT = 130_000
 SANDBOX_IMAGE = "job-agent-resume-parser:d2e2d1"
+MAX_BROKER_REQUEST = 3_000_000
 # Per-API-process admission control, not a distributed quota.
 _PARSER_SLOTS = threading.BoundedSemaphore(value=2)
 
@@ -130,6 +133,43 @@ def _run_bounded(
         writer.join(timeout=1)
 
 
+def _read_exact(sock: socket.socket, length: int) -> bytes:
+    data = bytearray()
+    while len(data) < length:
+        chunk = sock.recv(min(65536, length - len(data)))
+        if not chunk:
+            raise OSError("Broker disconnected")
+        data.extend(chunk)
+    return bytes(data)
+
+
+def _broker_request(request: bytes) -> subprocess.CompletedProcess[bytes]:
+    """Private UNIX socket protocol; API never accesses container runtime.
+
+    This is intentionally local-only and does not enable production preview.
+    Socket filesystem permissions are part of the broker deployment contract.
+    """
+    path = os.environ.get("RESUME_BROKER_SOCKET", "")
+    if not path.startswith("/") or len(path) > 100 or len(request) > MAX_BROKER_REQUEST:
+        raise ServiceUnavailableError(
+            "Executor isolado não configurado", code="CV_SANDBOX_REQUIRED"
+        )
+    try:
+        with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as sock:
+            sock.settimeout(MAX_WORKER_SECONDS + 3)
+            sock.connect(path)
+            sock.sendall(struct.pack("!I", len(request)) + request)
+            size = struct.unpack("!I", _read_exact(sock, 4))[0]
+            if size > MAX_WORKER_OUTPUT:
+                raise OSError("Oversized broker response")
+            result = _read_exact(sock, size)
+        return subprocess.CompletedProcess(["resume-broker"], 0, result)
+    except (OSError, ValueError, struct.error):
+        raise ServiceUnavailableError(
+            "Executor isolado indisponível", code="CV_SANDBOX_REQUIRED"
+        ) from None
+
+
 def parse_in_worker(filename: str, raw: bytes) -> dict[str, Any]:
     # Reject bursts before allocating encoded requests or starting a parser.
     if not _PARSER_SLOTS.acquire(blocking=False):
@@ -152,7 +192,7 @@ def _parse_with_slot(filename: str, raw: bytes) -> dict[str, Any]:
         "HOME": "/nonexistent",
     }
     mode = os.environ.get("RESUME_PARSER_MODE", "subprocess")
-    if mode not in {"subprocess", "container"}:
+    if mode not in {"subprocess", "container", "broker"}:
         raise ServiceUnavailableError("Parser não configurado", code="CV_SANDBOX_REQUIRED")
     container_name = f"jobagent-cv-{uuid4().hex}" if mode == "container" else None
     command = (
@@ -161,7 +201,11 @@ def _parse_with_slot(filename: str, raw: bytes) -> dict[str, Any]:
         else [sys.executable, "-m", "app.workers.resume_parser"]
     )
     try:
-        process = _run_bounded(command, request.encode(), safe_env)
+        process = (
+            _broker_request(request.encode())
+            if mode == "broker"
+            else _run_bounded(command, request.encode(), safe_env)
+        )
     except subprocess.TimeoutExpired:
         if container_name is not None:
             _cleanup_container(container_name)
