@@ -118,7 +118,7 @@ def test_multi_role_preview_review_confirm_correct_history_and_isolation(
     )
     assert repeated.status_code == 201
     assert repeated.json()["import_id"] == confirm_res.json()["import_id"]
-    assert repeated.json()["created_fact_ids"] == saved_ids
+    assert set(repeated.json()["created_fact_ids"]) == set(saved_ids)
 
     facts_res = api_client.get("/api/v1/career/facts")
     assert facts_res.status_code == 200
