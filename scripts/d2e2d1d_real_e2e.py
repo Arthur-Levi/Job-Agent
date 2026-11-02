@@ -40,7 +40,7 @@ def main() -> None:
     ):
         raise SystemExit("Refusing real-HTTP E2E outside ephemeral GitHub CI test environment")
 
-    email = f"browser-e2e-{uuid.uuid4().hex}@example.invalid"
+    email = f"browser-e2e-{uuid.uuid4().hex}@example.com"
     password = "Synthetic-Only-Password-2026!"
     with sync_playwright() as pw:
         browser = pw.chromium.launch(headless=True)
