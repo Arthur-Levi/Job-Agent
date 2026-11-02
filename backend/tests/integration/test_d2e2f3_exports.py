@@ -127,13 +127,13 @@ def test_empty_and_overflow_fail_closed(api_client: TestClient, db_session: Sess
     assert empty.status_code == 422
     assert empty.json()["error"]["code"] == "RESUME_EMPTY"
 
-    for i in range(10):
+    for i in range(16):
         _entry(
             db_session,
             user,
             f"Experiência longa {i}",
             "experience",
-            description="Detalhes sintéticos " * 2400,
+            description="Detalhes sintéticos " * 110,
         )
     digest = api_client.get("/api/v1/career/resume-export/preview").json()["approval_sha256"]
     for fmt in ("pdf", "docx"):
@@ -174,3 +174,20 @@ def test_docx_is_safe_zip_and_pdf_does_not_execute_markup(
         assert "[Content_Types].xml" in container.namelist()
         assert "word/document.xml" in container.namelist()
         assert not any(path.endswith("vbaProject.bin") for path in container.namelist())
+
+
+def test_long_structured_field_is_not_silently_truncated(
+    api_client: TestClient, db_session: Session
+) -> None:
+    user = _user(db_session)
+    _entry(
+        db_session,
+        user,
+        "Descrição extensa",
+        "experience",
+        description="Detalhe sintético " * 250,
+    )
+    _authenticate(api_client, user)
+    response = api_client.get("/api/v1/career/resume-export/preview")
+    assert response.status_code == 422
+    assert response.json()["error"]["code"] == "RESUME_FIELD_TOO_LONG"
