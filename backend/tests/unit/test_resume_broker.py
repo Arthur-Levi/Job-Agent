@@ -79,5 +79,3 @@ def test_broker_denies_missing_socket(monkeypatch: pytest.MonkeyPatch) -> None:
     with pytest.raises(ServiceUnavailableError) as exc:
         parse_in_worker("synthetic.txt", b"Synthetic CV")
     assert exc.value.code == "CV_SANDBOX_REQUIRED"
-
-
