@@ -143,7 +143,7 @@ def main() -> None:
         page.route("**/api/v1/**", api)
         try:
             page.goto(APP_URL + "/resume-import")
-            assert page.get_by_role("heading", name="Entrar na sua conta").is_visible()
+            page.get_by_role("heading", name="Entrar na sua conta").wait_for(timeout=10000)
             page.get_by_label("Email").fill("browser@example.invalid")
             page.get_by_label("Senha").fill("synthetic-password")
             page.get_by_role("button", name="Entrar").click()
