@@ -1,6 +1,8 @@
 # D2-E2.F.2 — Matching explicável fundamentado no Fact Ledger
 
-**Status:** implementação em avaliação por CI. **Produção / beta: NO-GO.**
+**Status:** PASS TÉCNICO CONDICIONAL. **Produção / beta: NO-GO.**
+
+**Evidência CI:** commit `56225e118355eecc6b9508bd731bc9969d7e98c0`, https://github.com/Arthur-Levi/Job-Agent/actions/runs/41493227541. **312 passed, 3 xfailed, 1 warning** no backend; frontend, browser-smoke, real-browser-postgres-e2e, sandbox-smoke e audit concluíram com SUCCESS. O job audit continua advisory/não bloqueante. A regressão Chromium exercita a jornada anterior de importação e diagnóstico; **não** testa uma interface React de matching (ainda inexistente).
 
 ## Contrato de API
 
