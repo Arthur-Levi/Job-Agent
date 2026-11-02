@@ -1,6 +1,8 @@
 # D2-E2.F.4 — React: revisão do currículo, aprovação e matching fundamentado
 
-**Status:** implementação em PR Draft, aguardando CI completo. **Produção e beta: NO-GO.**
+**Status:** **PASS TÉCNICO CONDICIONAL**. Produção e beta: **NO-GO**.
+
+**CI comprovado:** commit `fca898a4b5c8dd293cb92cae022dc20458bcd186`; https://github.com/Arthur-Levi/Job-Agent/actions/runs/41501343273. Todos os seis jobs concluíram SUCCESS. Backend **317 passed, 3 xfailed, 1 warning**; frontend Vitest **17 arquivos aprovados, 1 skipped**, lint e build PASS. Chromium + API real + PostgreSQL efêmero comprovou download de PDF e DOCX após revisão e resposta `not_documented` no matching de uma competência ausente. Esses testes não autorizam uso de currículos reais em produção.
 
 ## Jornadas
 
