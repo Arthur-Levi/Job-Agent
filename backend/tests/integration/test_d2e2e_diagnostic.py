@@ -91,4 +91,6 @@ def test_diagnostic_cites_only_active_facts_and_reviewable_fields(
         for action in data["review_actions"]
     )
     assert len(data["limitations"]) >= 3
-    assert db_session.get(CareerFact, active.id).status == "ACTIVE"
+    reloaded = db_session.get(CareerFact, active.id)
+    assert reloaded is not None
+    assert reloaded.status == "ACTIVE"
