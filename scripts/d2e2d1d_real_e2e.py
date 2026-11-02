@@ -102,7 +102,7 @@ def main() -> None:
             page.get_by_text("Corrigida no browser com API real", exact=False).wait_for(
                 timeout=15000
             )
-            page.get_by_role("link", name="Diagnóstico").click()
+            page.get_by_role("link", name="Diagnóstico", exact=True).click()
             page.get_by_role("heading", name="Diagnóstico de carreira").wait_for(timeout=15000)
             page.get_by_role("heading", name="Experiências profissionais").wait_for()
             page.get_by_role("heading", name="Formação").wait_for()
