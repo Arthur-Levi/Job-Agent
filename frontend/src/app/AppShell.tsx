@@ -9,6 +9,8 @@ const NAV = [
   { to: '/resume-import', label: 'Importar currículo' },
   { to: '/career', label: 'Master Profile' },
   { to: '/career/diagnostic', label: 'Diagnóstico' },
+  { to: '/career/resume-review', label: 'Exportar currículo' },
+  { to: '/career/vacancy-match', label: 'Matching de vagas' },
   { to: '/jobs', label: 'Jobs' },
   { to: '/applications', label: 'Applications' },
 ]

@@ -9,6 +9,8 @@ import { JobsPage } from '../pages/JobsPage'
 import { LoginPage } from '../pages/LoginPage'
 import { NotFoundPage } from '../pages/NotFoundPage'
 import { ResumeImportPage } from '../pages/ResumeImportPage'
+import { ResumeReviewPage } from '../pages/ResumeReviewPage'
+import { VacancyMatchingPage } from '../pages/VacancyMatchingPage'
 import { ProfilePage } from '../pages/ProfilePage'
 import { RegisterPage } from '../pages/RegisterPage'
 import { AuthProvider } from './AuthProvider'
@@ -40,6 +42,8 @@ function AppRoutes() {
           <Route path="resume-import" element={<ResumeImportPage />} />
           <Route path="career" element={<CareerPage />} />
           <Route path="career/diagnostic" element={<CareerDiagnosticPage />} />
+          <Route path="career/resume-review" element={<ResumeReviewPage />} />
+          <Route path="career/vacancy-match" element={<VacancyMatchingPage />} />
           <Route path="jobs" element={<JobsPage />} />
           <Route path="jobs/:jobId" element={<JobDetailPage />} />
           <Route path="applications" element={<ApplicationsPage />} />
