@@ -35,7 +35,7 @@ def test_container_parser_fails_closed_when_runtime_is_unavailable(
 ) -> None:
     monkeypatch.setenv("RESUME_PARSER_MODE", "container")
     with (
-        patch("app.services.resume_worker.subprocess.run", side_effect=OSError("no docker")),
+        patch("app.services.resume_worker._run_bounded", side_effect=OSError("no docker")),
         pytest.raises(ServiceUnavailableError) as exc,
     ):
         parse_in_worker("sample.txt", b"Synthetic resume only")
@@ -48,11 +48,8 @@ def test_container_parser_handles_nonzero_exit_without_leaking_details(
     monkeypatch.setenv("RESUME_PARSER_MODE", "container")
     with (
         patch(
-            "app.services.resume_worker.subprocess.run",
-            side_effect=[
-                Mock(returncode=125, stdout=b"internal privileged details"),
-                Mock(returncode=0),
-            ],
+            "app.services.resume_worker._run_bounded",
+            return_value=Mock(returncode=125, stdout=b"internal privileged details"),
         ),
         pytest.raises(ServiceUnavailableError) as exc,
     ):
@@ -77,7 +74,7 @@ def test_local_worker_timeout_is_mapped_to_error(
     monkeypatch.setenv("RESUME_PARSER_MODE", "subprocess")
     with (
         patch(
-            "app.services.resume_worker.subprocess.run",
+            "app.services.resume_worker._run_bounded",
             side_effect=subprocess.TimeoutExpired(cmd="synthetic", timeout=10),
         ),
         pytest.raises(UnprocessableError) as exc,
@@ -96,7 +93,7 @@ def test_parser_rejects_over_capacity_without_spawning(
     assert acquired == [True, True]
     try:
         with (
-            patch("app.services.resume_worker.subprocess.run") as run,
+            patch("app.services.resume_worker._run_bounded") as run,
             pytest.raises(ServiceUnavailableError) as exc,
         ):
             parse_in_worker("synthetic.txt", b"Synthetic resume only")
@@ -120,3 +117,32 @@ def test_parser_slot_released_after_worker_failure(
         parse_in_worker("synthetic.txt", b"Synthetic resume only")
     assert resume_worker._PARSER_SLOTS.acquire(blocking=False)
     resume_worker._PARSER_SLOTS.release()
+
+
+def test_worker_output_is_rejected_before_full_capture() -> None:
+    import sys
+
+    from app.services.resume_worker import MAX_WORKER_OUTPUT, _run_bounded
+
+    command = [
+        sys.executable,
+        "-c",
+        f"import sys; sys.stdout.buffer.write(b'x' * ({MAX_WORKER_OUTPUT} + 900000))",
+    ]
+    with pytest.raises(UnprocessableError) as exc:
+        _run_bounded(command, b"", {"PATH": "/usr/bin:/bin"})
+    assert exc.value.code == "CV_WORKER"
+
+
+def test_worker_bounded_runner_keeps_small_output() -> None:
+    import sys
+
+    from app.services.resume_worker import _run_bounded
+
+    result = _run_bounded(
+        [sys.executable, "-c", "import sys; print(sys.stdin.read().upper())"],
+        b"synthetic",
+        {"PATH": "/usr/bin:/bin"},
+    )
+    assert result.returncode == 0
+    assert result.stdout == b"SYNTHETIC\\n"
