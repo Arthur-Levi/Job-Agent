@@ -185,7 +185,7 @@ def main() -> None:
             page.get_by_role("button", name="Entrar").click()
             page.get_by_role("link", name="Master Profile").wait_for()
             page.get_by_role("link", name="Master Profile").click()
-            page.get_by_text("Analista de Dados").wait_for()
+            page.get_by_text("Analista de Dados", exact=True).wait_for()
             assert len(stored) == 1 and len(versions) == 1
             print("D2-E2.D.1-D Chromium browser journey PASS (mock HTTP)")
         finally:
