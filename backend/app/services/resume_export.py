@@ -25,7 +25,8 @@ from sqlalchemy.orm import Session
 
 from app.core.errors import ConflictError, UnprocessableError
 from app.models import User
-from app.services.evidence_resume import resume_draft
+from app.services.career_facts import list_facts
+from app.services.evidence_resume import CATEGORIES, resume_draft
 
 HEADINGS = {
     "experience": "EXPERIÊNCIA PROFISSIONAL",
@@ -53,6 +54,23 @@ def _digest(payload: dict[str, Any]) -> str:
 
 
 def export_preview(db: Session, user: User) -> dict[str, Any]:
+    # F.1's structured reader caps individual strings at 4000 chars. Refuse
+    # export rather than silently using a cropped fragment as the approved CV.
+    for fact in list_facts(db, user.id):
+        if fact.predicate not in CATEGORIES:
+            continue
+        try:
+            raw = json.loads(fact.value)
+        except (TypeError, ValueError):
+            continue
+        if isinstance(raw, dict) and any(
+            isinstance(raw.get(field), str) and len(raw[field].strip()) > 4000
+            for field in ("title", "description", "organization", "start_date", "end_date")
+        ):
+            raise UnprocessableError(
+                "Há um campo longo demais para exportação íntegra; revise o fato",
+                code="RESUME_FIELD_TOO_LONG",
+            )
     draft = resume_draft(db, user.id)
     digest = _digest(_approval_payload(user.name, draft))
     return {
