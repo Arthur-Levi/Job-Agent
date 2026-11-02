@@ -97,3 +97,18 @@ jobs:
           node-version: "22"
       - run: npm audit --omit=dev
         working-directory: frontend
+
+  sandbox-smoke:
+    # Runs ONLY on an ephemeral GitHub runner with synthetic documents.
+    # Never access a Codespaces PostgreSQL instance or a real resume.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -e backend
+      - name: Build isolated resume parser image
+        run: docker build -f backend/Dockerfile.resume-parser -t job-agent-resume-parser:d2e2d1 backend
+      - name: Verify synthetic parsing, filesystem and network denial
+        run: python scripts/d2e2d1_sandbox_smoke.py

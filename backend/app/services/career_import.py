@@ -17,6 +17,7 @@ from app.models import (
     CandidateProfile,
     CareerFact,
     ResumeImportRecord,
+    User,
 )
 from app.schemas.career_import import ConfirmResult, ImportConfirmation
 from app.services.preview_ticket import verify_preview
@@ -82,6 +83,10 @@ def confirm_import(
     canonical = [_canonical(item) for item in confirmation.items]
     digest_source = _json({"items": canonical, "preview_id": signed["preview_id"]})
     digest = hashlib.sha256(digest_source.encode()).hexdigest()
+    # Serialize every fact writer for this user before inspecting keys or active facts.
+    # Locking active facts is insufficient: the first import has no rows to lock.
+    # PostgreSQL holds this row lock until db.commit()/rollback().
+    db.execute(select(User.id).where(User.id == user_id).with_for_update()).one()
     existing = db.scalar(
         select(ResumeImportRecord).where(
             ResumeImportRecord.user_id == user_id,

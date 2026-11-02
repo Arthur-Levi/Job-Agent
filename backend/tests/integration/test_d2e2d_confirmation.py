@@ -4,6 +4,7 @@ Do not run this module on the preserved Codespaces database. The integration
 fixture DROPS the public schema and recreates migrations from scratch.
 """
 
+import json
 import uuid
 from typing import Any
 
@@ -227,6 +228,9 @@ def test_correction_supersedes_and_protects_cross_user(db_session: Session) -> N
         db_session, a.id, fact_id, "Atuei em relatórios sintéticos", "Informação imprecisa"
     )
     assert corrected.supersedes_id == fact_id
+    assert json.loads(corrected.value)["description"] == "Atuei em relatórios sintéticos"
+    assert json.loads(corrected.value)["organization"] == "Empresa Exemplo"
+    assert json.loads(corrected.value)["start_date"] == "2023"
     assert corrected.verification == "USER_DECLARED"
     assert len(list_facts(db_session, a.id)) == 1
     assert len(list_facts(db_session, a.id, include_history=True)) == 2
