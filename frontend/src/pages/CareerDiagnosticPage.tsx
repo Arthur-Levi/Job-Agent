@@ -60,6 +60,8 @@ export function CareerDiagnosticPage() {
         <div className="mt-3 flex flex-wrap gap-3">
           <Link to="/career" className="text-sm font-medium text-sky-300 underline">Abrir Fact Ledger</Link>
           <Link to="/resume-import" className="text-sm font-medium text-sky-300 underline">Importar currículo</Link>
+          <Link to="/career/resume-review" className="text-sm font-medium text-sky-300 underline">Revisar e exportar currículo</Link>
+          <Link to="/career/vacancy-match" className="text-sm font-medium text-sky-300 underline">Comparar vaga</Link>
         </div>
       </Card>
 
