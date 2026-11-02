@@ -116,7 +116,8 @@ jobs:
   browser-smoke:
     # Chromium UI proof using intercepted synthetic HTTP only; DB acceptance is
     # performed separately by backend tests on disposable PostgreSQL.
-    runs-on: ubuntu-latest
+    # Playwright 1.56 does not support the new ubuntu-26.04 GitHub runner image.
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
