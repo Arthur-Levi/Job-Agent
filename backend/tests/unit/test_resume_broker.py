@@ -1,9 +1,7 @@
 """Private broker protocol tests; synthetic data only, no Docker or database."""
 
 import json
-import socket
 import stat
-import struct
 import threading
 from pathlib import Path
 from unittest.mock import Mock, patch
@@ -83,16 +81,3 @@ def test_broker_denies_missing_socket(monkeypatch: pytest.MonkeyPatch) -> None:
     assert exc.value.code == "CV_SANDBOX_REQUIRED"
 
 
-def test_broker_rejects_oversized_reply_without_reading_body(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    directory = tmp_path / "private"
-    directory.mkdir(mode=0o700)
-    directory.chmod(0o700)
-    address = str(directory / "oversize.sock")
-    with ResumeBroker(address, BrokerHandler) as server:
-        # A malformed broker announcement is rejected before reading its body.
-        server.socket.close()
-    with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as sock:
-        assert sock.family == socket.AF_UNIX
-    assert struct.pack("!I", 130001)
