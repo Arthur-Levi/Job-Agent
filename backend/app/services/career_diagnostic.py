@@ -61,17 +61,17 @@ def career_diagnostic(db: Session, user_id: UUID) -> dict[str, Any]:
 
     coverage: list[dict[str, Any]] = []
     for category in CATEGORIES:
-        evidence = categories[category]
+        documented = categories[category]
         coverage.append(
             {
                 "category": category,
                 "title": CATEGORY_TITLES[category],
-                "state": "documented" if evidence else "not_documented",
-                "count": len(evidence),
-                "evidence": evidence,
+                "state": "documented" if documented else "not_documented",
+                "count": len(documented),
+                "evidence": documented,
             }
         )
-        if not evidence:
+        if not documented:
             review.append(
                 {
                     "kind": "verify_missing_records",
