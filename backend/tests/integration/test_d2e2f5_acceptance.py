@@ -11,7 +11,6 @@ from threading import Barrier
 
 import pytest
 from pypdf import PdfReader
-from sqlalchemy import select
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session
 
