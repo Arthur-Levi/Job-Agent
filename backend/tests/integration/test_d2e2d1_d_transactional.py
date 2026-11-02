@@ -95,12 +95,16 @@ def test_failed_fact_insert_rolls_back_receipt_and_profile(migrated_engine: Engi
         event.remove(CareerFact, "before_insert", abort_synthetic_fact)
     try:
         with Session(migrated_engine) as verify:
-            assert verify.scalar(
-                select(ResumeImportRecord).where(ResumeImportRecord.user_id == user_id)
-            ) is None
-            assert verify.scalar(
-                select(CandidateProfile).where(CandidateProfile.user_id == user_id)
-            ) is None
+            assert (
+                verify.scalar(
+                    select(ResumeImportRecord).where(ResumeImportRecord.user_id == user_id)
+                )
+                is None
+            )
+            assert (
+                verify.scalar(select(CandidateProfile).where(CandidateProfile.user_id == user_id))
+                is None
+            )
             assert list_facts(verify, user_id, include_history=True) == []
     finally:
         _cleanup(migrated_engine, user_id)
