@@ -13,9 +13,8 @@ from fastapi.testclient import TestClient
 from pypdf import PdfReader
 from sqlalchemy.orm import Session
 
-from app.models import User
-
 from app.api.deps import get_current_user
+from app.models import User
 from tests.integration.test_d2e2e_diagnostic import _fact, _user
 
 
