@@ -10,6 +10,7 @@ from app.core.errors import error_responses
 from app.schemas.career_import import FactRead
 from app.services.career_diagnostic import career_diagnostic
 from app.services.career_facts import correct_fact, list_facts, master_profile
+from app.services.evidence_resume import resume_draft
 
 router = APIRouter(prefix="/career", tags=["career-facts"])
 
@@ -55,3 +56,9 @@ def revise_fact(
 def read_career_diagnostic(user: CurrentUserDep, session: SessionDep) -> dict[str, object]:
     """Evidence-backed preview only; missing facts are not missing abilities."""
     return career_diagnostic(session, user.id)
+
+
+@router.get("/resume-draft")
+def read_resume_draft(user: CurrentUserDep, session: SessionDep) -> dict[str, object]:
+    """Candidate-review-only draft, never an unverified finalized resume."""
+    return resume_draft(session, user.id)
