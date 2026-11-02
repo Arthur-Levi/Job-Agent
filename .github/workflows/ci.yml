@@ -112,3 +112,36 @@ jobs:
         run: docker build -f backend/Dockerfile.resume-parser -t job-agent-resume-parser:d2e2d1 backend
       - name: Verify synthetic parsing, filesystem and network denial
         run: python scripts/d2e2d1_sandbox_smoke.py
+
+  browser-smoke:
+    # Chromium UI proof using intercepted synthetic HTTP only; DB acceptance is
+    # performed separately by backend tests on disposable PostgreSQL.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: npm ci
+        working-directory: frontend
+      - run: pip install playwright==1.56.0
+      - run: python -m playwright install --with-deps chromium
+      - name: Start isolated Vite frontend and exercise synthetic browser review
+        env:
+          VITE_API_URL: http://127.0.0.1:5173
+        run: |
+          set -euo pipefail
+          (cd frontend && npm run dev -- --host 127.0.0.1 > /tmp/job-agent-vite.log 2>&1) &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          for i in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:5173/ >/dev/null; then break; fi
+            sleep 1
+          done
+          curl -fsS http://127.0.0.1:5173/ >/dev/null
+          python scripts/d2e2d1d_browser_smoke.py
