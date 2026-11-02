@@ -32,7 +32,7 @@ _BROKER_ENV = {
     "HOME": "/nonexistent",
     "PYTHONIOENCODING": "utf-8",
 }
-_FAILURE = b'{"ok":false,"error":"CV_PARSE"}'
+_FAILURE = b'{"ok":false,"error":"CV_SANDBOX_REQUIRED"}'
 _BUSY = b'{"ok":false,"error":"CV_PARSER_BUSY"}'
 
 
