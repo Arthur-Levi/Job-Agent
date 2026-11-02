@@ -47,10 +47,10 @@ def vacancy_match(db: Session, user_id: UUID, vacancy: VacancyMatchRequest) -> d
                 data = json.loads(fact.value)
             except (ValueError, TypeError):
                 continue
-            if not isinstance(data, dict) or data.get("mode") not in MODES:
+            if not isinstance(data, dict):
                 continue
-            mode = data["mode"]
-            if not isinstance(mode, str):
+            mode = data.get("mode")
+            if not isinstance(mode, str) or mode not in MODES:
                 continue
             modes.setdefault(mode, []).append(evidence)
 
