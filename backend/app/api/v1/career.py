@@ -1,6 +1,9 @@
 """Authenticated Master Profile / Fact Ledger routes."""
 
 from uuid import UUID
+from typing import Literal
+
+from fastapi.responses import Response
 
 from fastapi import APIRouter
 from pydantic import BaseModel, Field
@@ -12,6 +15,7 @@ from app.schemas.vacancy_match import VacancyMatchRequest
 from app.services.career_diagnostic import career_diagnostic
 from app.services.career_facts import correct_fact, list_facts, master_profile
 from app.services.evidence_resume import resume_draft
+from app.services.resume_export import approved_export, export_preview
 from app.services.vacancy_matching import vacancy_match
 
 router = APIRouter(prefix="/career", tags=["career-facts"])
@@ -72,3 +76,40 @@ def compare_vacancy(
 ) -> dict[str, object]:
     """Read-only comparison; candidate-supplied vacancy requirements only."""
     return vacancy_match(session, user.id, data)
+
+
+class ResumeExportApproval(BaseModel):
+    approved: bool
+    approval_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+
+
+@router.get("/resume-export/preview")
+def review_resume_export(user: CurrentUserDep, session: SessionDep) -> dict[str, object]:
+    """Review live ledger snapshot and approval digest before any file is created."""
+    return export_preview(session, user)
+
+
+@router.post("/resume-export/{format_name}", responses=error_responses(401, 409, 422))
+def export_reviewed_resume(
+    format_name: Literal["pdf", "docx"],
+    data: ResumeExportApproval,
+    user: CurrentUserDep,
+    session: SessionDep,
+) -> Response:
+    payload = approved_export(
+        session, user, format_name, data.approved, data.approval_sha256
+    )
+    media_type = (
+        "application/pdf"
+        if format_name == "pdf"
+        else "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    )
+    return Response(
+        content=payload,
+        media_type=media_type,
+        headers={
+            "Content-Disposition": f'attachment; filename="job-agent-resume.{format_name}"',
+            "Cache-Control": "no-store, private",
+            "X-Content-Type-Options": "nosniff",
+        },
+    )
