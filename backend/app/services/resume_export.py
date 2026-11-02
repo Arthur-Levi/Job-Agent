@@ -72,9 +72,7 @@ def _lines(preview: dict[str, Any]) -> list[tuple[str, list[str]]]:
             parts = [entry["title"]]
             if entry.get("organization"):
                 parts.append(entry["organization"])
-            dates = [
-                entry[field] for field in ("start_date", "end_date") if entry.get(field)
-            ]
+            dates = [entry[field] for field in ("start_date", "end_date") if entry.get(field)]
             if dates:
                 parts.append(" – ".join(dates))
             items.append(" | ".join(parts))
@@ -88,24 +86,41 @@ def _lines(preview: dict[str, Any]) -> list[tuple[str, list[str]]]:
 def _pdf(name: str, sections: list[tuple[str, list[str]]]) -> bytes:
     output = io.BytesIO()
     doc = SimpleDocTemplate(
-        output, pagesize=A4, topMargin=36, bottomMargin=36,
-        leftMargin=42, rightMargin=42, title="Currículo profissional",
+        output,
+        pagesize=A4,
+        topMargin=36,
+        bottomMargin=36,
+        leftMargin=42,
+        rightMargin=42,
+        title="Currículo profissional",
         author="Job Agent — exportação aprovada pelo candidato",
         pageCompression=1,
     )
     styles = {
         "name": ParagraphStyle(
-            "Name", fontName="Helvetica-Bold", fontSize=14,
-            leading=18, alignment=TA_CENTER, spaceAfter=10,
+            "Name",
+            fontName="Helvetica-Bold",
+            fontSize=14,
+            leading=18,
+            alignment=TA_CENTER,
+            spaceAfter=10,
         ),
         "section": ParagraphStyle(
-            "Section", fontName="Helvetica-Bold", fontSize=9.5,
-            leading=12, textColor=colors.HexColor("#17324D"),
-            spaceBefore=9, spaceAfter=4,
+            "Section",
+            fontName="Helvetica-Bold",
+            fontSize=9.5,
+            leading=12,
+            textColor=colors.HexColor("#17324D"),
+            spaceBefore=9,
+            spaceAfter=4,
         ),
         "entry": ParagraphStyle(
-            "Entry", fontName="Helvetica", fontSize=8.7,
-            leading=11.4, spaceAfter=3, splitLongWords=True,
+            "Entry",
+            fontName="Helvetica",
+            fontSize=8.7,
+            leading=11.4,
+            spaceAfter=3,
+            splitLongWords=True,
         ),
     }
     story: list[Any] = [Paragraph(escape(name), styles["name"])]
@@ -154,9 +169,7 @@ def _docx(name: str, sections: list[tuple[str, list[str]]]) -> bytes:
     document.save(output)
     data = output.getvalue()
     if len(data) > MAX_BYTES:
-        raise UnprocessableError(
-            "Arquivo de currículo excedeu o limite", code="RESUME_FILE_LIMIT"
-        )
+        raise UnprocessableError("Arquivo de currículo excedeu o limite", code="RESUME_FILE_LIMIT")
     return data
 
 
