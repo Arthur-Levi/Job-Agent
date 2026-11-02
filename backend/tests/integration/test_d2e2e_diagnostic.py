@@ -19,8 +19,7 @@ def _user(db: Session) -> User:
 
 
 def _fact(
-    db: Session, user: User, *,
-    title: str, category: str, status: str = "ACTIVE", value: str = "{}"
+    db: Session, user: User, *, title: str, category: str, status: str = "ACTIVE", value: str = "{}"
 ) -> CareerFact:
     fact = CareerFact(
         user_id=user.id,
