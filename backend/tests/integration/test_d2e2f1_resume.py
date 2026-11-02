@@ -45,7 +45,9 @@ def test_resume_draft_omits_unstructured_or_unsupported_without_invention(
     db_session: Session, api_client: TestClient
 ) -> None:
     user = _user(db_session)
-    _fact(db_session, user, title="Título sem estrutura", category="experience", value="Texto livre")
+    _fact(
+        db_session, user, title="Título sem estrutura", category="experience", value="Texto livre"
+    )
     _fact(
         db_session, user, title="Projeto sintético", category="project",
         value='{"title":"Projeto sintético","description":"Aplicação de exemplo",'
