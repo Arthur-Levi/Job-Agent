@@ -203,6 +203,27 @@ def main() -> None:
             assert revoked.status == 401
             print("D2-E2.F.5 cross-account and revoked-session isolation PASS")
 
+            # Basic keyboard and accessible-name smoke (NOT a WCAG audit).
+            review_link = page.get_by_role("link", name="Exportar currículo", exact=True)
+            review_link.focus()
+            page.keyboard.press("Enter")
+            page.get_by_role("heading", name="Revisar e exportar currículo").wait_for()
+            approval_box = page.get_by_role("checkbox")
+            approval_box.focus()
+            page.keyboard.press("Space")
+            assert approval_box.is_checked()
+            assert page.get_by_role("button", name="Baixar PDF").is_enabled()
+            assert page.locator("main input").evaluate_all(
+                "(fields) => fields.every(field => field.labels && field.labels.length > 0)"
+            )
+            matching_link = page.get_by_role("link", name="Matching de vagas", exact=True)
+            matching_link.focus()
+            page.keyboard.press("Enter")
+            page.get_by_role("heading", name="Matching explicável").wait_for()
+            assert page.get_by_label("Título da vaga").is_visible()
+            print("D2-E2.F.5 keyboard navigation and form label smoke PASS")
+
+
             print("D2-E2.E.2 diagnostic React/API/PostgreSQL PASS (synthetic only)")
             print("D2-E2.D.1-D real browser/API/PostgreSQL PASS (synthetic only)")
         finally:
