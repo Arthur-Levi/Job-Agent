@@ -105,7 +105,9 @@ def test_multi_role_preview_review_confirm_correct_history_and_isolation(
     assert confirm_res.status_code == 201, confirm_res.text
     saved_ids = confirm_res.json()["created_fact_ids"]
     assert len(saved_ids) == len([x for x in review["items"] if x["review_status"] != "rejected"])
-    receipt = db_session.scalar(select(ResumeImportRecord).where(ResumeImportRecord.user_id == user.id))
+    receipt = db_session.scalar(
+        select(ResumeImportRecord).where(ResumeImportRecord.user_id == user.id)
+    )
     assert receipt is not None
 
     repeated = api_client.post(
@@ -192,4 +194,7 @@ def test_review_rejects_tampered_origin_before_writes(
         json=review,
     )
     assert rejected.status_code == 422
-    assert db_session.scalar(select(ResumeImportRecord).where(ResumeImportRecord.user_id == user.id)) is None
+    assert (
+        db_session.scalar(select(ResumeImportRecord).where(ResumeImportRecord.user_id == user.id))
+        is None
+    )
