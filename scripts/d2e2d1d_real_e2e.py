@@ -111,6 +111,29 @@ def main() -> None:
             page.get_by_text("Declaração do candidato (sem verificação externa)").first.wait_for()
             page.get_by_text("Sem registros documentados nesta categoria").first.wait_for()
             assert page.get_by_text("Nenhum fato foi criado ou alterado por esta análise.").is_visible()
+            page.get_by_role("link", name="Exportar currículo", exact=True).click()
+            page.get_by_role("heading", name="Revisar e exportar currículo").wait_for()
+            page.get_by_text("Pessoa Sintetica", exact=True).wait_for()
+            assert page.get_by_role("button", name="Baixar PDF").is_disabled()
+            page.get_by_role("checkbox").check()
+            with page.expect_download(timeout=15000) as download_info:
+                page.get_by_role("button", name="Baixar PDF").click()
+            assert download_info.value.suggested_filename == "job-agent-resume.pdf"
+            with page.expect_download(timeout=15000) as download_info:
+                page.get_by_role("button", name="Baixar DOCX").click()
+            assert download_info.value.suggested_filename == "job-agent-resume.docx"
+            print("D2-E2.F.4 real browser PDF/DOCX approval PASS (synthetic only)")
+
+            page.get_by_role("link", name="Matching de vagas", exact=True).click()
+            page.get_by_role("heading", name="Matching explicável").wait_for()
+            page.get_by_label("Título da vaga").fill("Analista de Dados")
+            page.get_by_placeholder("Escreva exatamente como no fato").fill("Analista de Dados")
+            assert page.get_by_role("button", name="Comparar com meu Fact Ledger").is_disabled()
+            page.get_by_role("checkbox").check()
+            page.get_by_role("button", name="Comparar com meu Fact Ledger").click()
+            page.get_by_text("Correspondência documentada").wait_for(timeout=15000)
+            page.get_by_text("Evidência: Analista de Dados", exact=False).wait_for()
+            print("D2-E2.F.4 real browser vacancy match PASS (synthetic only)")
             print("D2-E2.E.2 diagnostic React/API/PostgreSQL PASS (synthetic only)")
             print("D2-E2.D.1-D real browser/API/PostgreSQL PASS (synthetic only)")
         finally:
