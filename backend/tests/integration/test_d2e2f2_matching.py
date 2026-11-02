@@ -133,7 +133,10 @@ def test_competing_or_unstructured_modes_do_not_produce_false_conflicts(
         value=json.dumps({"mode": ["remote_only"]}),
     )
     request = VacancyMatchRequest.model_validate(
-        {"vacancy_title": "Vaga híbrida", "requirements": [_requirement("work_mode", "remote_only")]}
+        {
+            "vacancy_title": "Vaga híbrida",
+            "requirements": [_requirement("work_mode", "remote_only")],
+        }
     )
     data = vacancy_match(db_session, candidate.id, request)
     assert data["requirements"][0]["classification"] == "not_documented"
