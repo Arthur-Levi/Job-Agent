@@ -165,7 +165,7 @@ def main() -> None:
             page.get_by_text("Confirmação salva!", exact=False).wait_for()
             assert calls["confirm"] == 1
             page.get_by_role("link", name="Consultar Fact Ledger e Master Profile").click()
-            page.get_by_text("Analista de Dados").wait_for()
+            page.get_by_text("Analista de Dados", exact=True).wait_for()
             page.get_by_role("button", name="Corrigir fato").click()
             editor = page.get_by_label("Descrição corrigida")
             assert editor.input_value() == "Relatorios sinteticos corrigidos"
