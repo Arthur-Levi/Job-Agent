@@ -72,8 +72,10 @@ def test_exact_match_unknown_and_isolation_via_api(
     data = response.json()
     assert data["vacancy_source"] == "candidate_supplied_unverified"
     assert data["summary"] == {
-        "total": 5, "documented_match": 1,
-        "not_documented": 4, "explicit_incompatibility": 0,
+        "total": 5,
+        "documented_match": 1,
+        "not_documented": 4,
+        "explicit_incompatibility": 0,
     }
     first = data["requirements"][0]
     assert first["classification"] == "documented_match"
@@ -109,7 +111,9 @@ def test_work_mode_conflicts_only_when_an_explicit_fact_disagrees(db_session: Se
     )
     result = vacancy_match(db_session, candidate.id, request)
     assert [item["classification"] for item in result["requirements"]] == [
-        "explicit_incompatibility", "documented_match", "not_documented",
+        "explicit_incompatibility",
+        "documented_match",
+        "not_documented",
     ]
     assert result["requirements"][0]["evidence"][0]["fact_id"] == str(own_mode.id)
     assert "inelegibilidade" in result["requirements"][0]["next_step"]
@@ -121,15 +125,24 @@ def test_competing_or_unstructured_modes_do_not_produce_false_conflicts(
 ) -> None:
     candidate = _user(db_session)
     _fact(
-        db_session, candidate, title="Remoto", category="work_mode",
+        db_session,
+        candidate,
+        title="Remoto",
+        category="work_mode",
         value=json.dumps({"mode": "remote_only"}),
     )
     _fact(
-        db_session, candidate, title="Presencial", category="work_mode",
+        db_session,
+        candidate,
+        title="Presencial",
+        category="work_mode",
         value=json.dumps({"mode": "onsite_only"}),
     )
     _fact(
-        db_session, candidate, title="Modo malformado", category="work_mode",
+        db_session,
+        candidate,
+        title="Modo malformado",
+        category="work_mode",
         value=json.dumps({"mode": ["remote_only"]}),
     )
     request = VacancyMatchRequest.model_validate(
