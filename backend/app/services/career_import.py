@@ -101,7 +101,7 @@ def confirm_import(
         facts = db.scalars(
             select(CareerFact).where(
                 CareerFact.user_id == user_id, CareerFact.import_id == existing.id
-            )
+            ).order_by(CareerFact.created_at, CareerFact.id)
         ).all()
         return ConfirmResult(
             import_id=existing.id,
