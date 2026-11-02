@@ -1,6 +1,8 @@
 # D2-E2.E — Evidence-grounded Career Diagnostic (MVP)
 
-Status: implementation and integration acceptance in progress.
+Status: **MVP BACKEND PASS / BETA NO-GO**.
+
+**Evidence:** commit `2562f87f8035fa9c4c0895f6fc1a146fa3194cf3`, https://github.com/Arthur-Levi/Job-Agent/actions/runs/41453862021. Backend **304 passed, 3 xfailed, 1 warning**. Six jobs PASS, including disposable real browser/API/PostgreSQL E2E carried over from D2-E2.D.1-D. Diagnostic coverage tests are independent of browser E2E; this commit does **not** add diagnostic React UI.
 
 ## API contract
 
