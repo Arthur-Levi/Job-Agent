@@ -1,6 +1,6 @@
 # D2-E2.D.1-D — Homologação integral de importação, revisão humana e Fact Ledger
 
-**Status:** em execução. Esta branch é baseada no checkpoint imutável `c50e16dc`. Não fazer merge até obter evidências e resolver os bloqueadores.
+**Status:** PASS CONDICIONAL na primeira rodada de integração; Beta/produção: NO-GO. Esta branch é baseada no checkpoint imutável `c50e16dc`. Não fazer merge até obter evidências e resolver os bloqueadores.
 
 ## Escopo da rodada
 
@@ -9,6 +9,16 @@
 - Verificar `GET /career/profile`, `GET /career/facts?include_history=true` e correções transacionais com histórico `SUPERSEDED` e nova declaração `USER_DECLARED`.
 - Proibir que importação crie experiência inventada ou marque fatos declarados como `EXTERNALLY_VERIFIED`.
 - Validar DB real **somente** no PostgreSQL descartável do GitHub Actions `job_agent_test`. O fixture de integração executa `DROP SCHEMA public CASCADE`; não executar em DB preservado mesmo que termine em `_test`.
+
+## Evidência CI — primeira rodada aprovada
+
+- Commit técnico `a3f176792f2b18ec582cc6d98342ee860b73cc24`
+- GitHub Actions: https://github.com/Arthur-Levi/Job-Agent/actions/runs/41444233792
+- Backend: **298 passed, 3 xfailed, 1 warning**.
+- Frontend, sandbox-smoke e audit jobs: **SUCCESS**.
+- `ruff check`, `ruff format --check`, `mypy` e Alembic executados no runner descartável: SUCCESS.
+- Casos novos comprovados: múltiplos vínculos em uma prévia TXT sintética, edição/rejeição pela confirmação HTTP, idempotência com identidade dos fatos, correção e histórico, separação de usuários, rejeição de origem adulterada antes de persistir.
+- Corrigida a ordem indeterminada da leitura de fatos em retry: consulta ordenada para estabilidade entre leituras. A identidade do conjunto é a propriedade de idempotência exigida, não a ordem original do insert.
 
 ## Critérios ainda não completos
 
