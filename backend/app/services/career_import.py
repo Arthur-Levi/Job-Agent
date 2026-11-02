@@ -99,9 +99,9 @@ def confirm_import(
                 "Chave de idempotência reutilizada com conteúdo diferente", code="CV_REPLAY"
             )
         facts = db.scalars(
-            select(CareerFact).where(
-                CareerFact.user_id == user_id, CareerFact.import_id == existing.id
-            )
+            select(CareerFact)
+            .where(CareerFact.user_id == user_id, CareerFact.import_id == existing.id)
+            .order_by(CareerFact.created_at, CareerFact.id)
         ).all()
         return ConfirmResult(
             import_id=existing.id,

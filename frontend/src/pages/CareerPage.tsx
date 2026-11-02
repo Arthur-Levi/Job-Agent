@@ -21,7 +21,17 @@ export function CareerPage() {
 
   function start(fact: CareerFact) {
     setEditing(fact.id)
-    setValue(fact.value)
+    let description = fact.value
+    try {
+      const structured: unknown = JSON.parse(fact.value)
+      if (structured && typeof structured === 'object' && 'description' in structured) {
+        const field = structured.description
+        if (typeof field === 'string') description = field
+      }
+    } catch {
+      // Legacy plain-text facts remain editable as plain text.
+    }
+    setValue(description)
     setReason('')
     setError('')
   }
