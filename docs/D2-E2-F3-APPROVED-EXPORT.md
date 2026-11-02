@@ -1,6 +1,8 @@
 # D2-E2.F.3 — Exportação PDF/DOCX com revisão humana verificável
 
-**Status:** implementação técnica em PR Draft; manter beta e produção em **NO-GO** até os testes e a homologação operacional.
+**Status:** **PASS TÉCNICO CONDICIONAL** no commit `ae915cfb14d97bca4bb48c1391248f0e60cfe068`; produção e beta **NO-GO**.
+
+**CI:** https://github.com/Arthur-Levi/Job-Agent/actions/runs/41497145868 — **316 passed, 3 xfailed, 1 warning** no backend, e os seis jobs (backend, frontend, browser-smoke, real-browser-postgres-e2e, sandbox-smoke, audit) concluíram com SUCCESS. O job audit é consultivo e não bloqueante. O Chromium valida a jornada anterior de React, API e PostgreSQL descartável, **não uma interface de exportação** (ainda pendente no F.4). A exportação foi verificada por novos testes de integração PDF/DOCX com dados sintéticos e PostgreSQL descartável.
 
 ## Contratos
 
