@@ -66,8 +66,10 @@ def test_signed_ticket_rejects_wrong_user_and_tampering(db_session: Session) -> 
     ticket = sign_preview(preview, user_id=str(a.id), key=key)
     with pytest.raises(UnprocessableError):
         verify_preview(ticket, user_id=str(b.id), key=key)
+    body, signature = ticket.rsplit(".", 1)
+    altered = ("A" if signature[0] != "A" else "B") + signature[1:]
     with pytest.raises(UnprocessableError):
-        verify_preview(ticket[:-2] + "00", user_id=str(a.id), key=key)
+        verify_preview(body + "." + altered, user_id=str(a.id), key=key)
 
 
 def test_ticket_expires_and_rejects_future_time(db_session: Session) -> None:
