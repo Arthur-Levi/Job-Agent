@@ -228,6 +228,14 @@ def _parse_with_slot(filename: str, raw: bytes) -> dict[str, Any]:
         if response.get("ok") is True and isinstance(response.get("preview"), dict):
             return cast(dict[str, Any], response["preview"])
         error = response.get("error", "CV_PARSE")
+        if error == "CV_PARSER_BUSY":
+            raise ServiceUnavailableError(
+                "Limite temporário de processamento de currículos", code="CV_PARSER_BUSY"
+            )
+        if error == "CV_SANDBOX_REQUIRED":
+            raise ServiceUnavailableError(
+                "Executor isolado indisponível", code="CV_SANDBOX_REQUIRED"
+            )
         if error not in {"CV_PARSE", "CV_SIZE", "CV_FORMAT", "CV_TEXT", "CV_PREVIEW_LIMIT"}:
             error = "CV_PARSE"
         raise UnprocessableError("Currículo inválido ou sem texto extraível", code=error)
