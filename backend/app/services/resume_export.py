@@ -20,6 +20,7 @@ from reportlab.lib.enums import TA_CENTER  # type: ignore[import-untyped]
 from reportlab.lib.pagesizes import A4  # type: ignore[import-untyped]
 from reportlab.lib.styles import ParagraphStyle  # type: ignore[import-untyped]
 from reportlab.platypus import Paragraph, SimpleDocTemplate  # type: ignore[import-untyped]
+from reportlab.platypus.doctemplate import LayoutError  # type: ignore[import-untyped]
 from sqlalchemy.orm import Session
 
 from app.core.errors import ConflictError, UnprocessableError
@@ -128,7 +129,12 @@ def _pdf(name: str, sections: list[tuple[str, list[str]]]) -> bytes:
         story.append(Paragraph(escape(heading), styles["section"]))
         for line in items:
             story.append(Paragraph(escape(line), styles["entry"]))
-    doc.build(story)
+    try:
+        doc.build(story)
+    except LayoutError:
+        raise UnprocessableError(
+            "Conteúdo não pode ser organizado em uma página", code="RESUME_ONE_PAGE_LIMIT"
+        ) from None
     data = output.getvalue()
     if len(data) > MAX_BYTES or len(PdfReader(io.BytesIO(data)).pages) != 1:
         raise UnprocessableError(
