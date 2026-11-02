@@ -10,7 +10,6 @@ import io
 import json
 from html import escape
 from typing import Any, Literal
-from uuid import UUID
 
 from docx import Document
 from docx.enum.text import WD_ALIGN_PARAGRAPH
@@ -20,7 +19,7 @@ from reportlab.lib import colors
 from reportlab.lib.enums import TA_CENTER
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle
-from reportlab.platypus import KeepTogether, Paragraph, SimpleDocTemplate, Spacer
+from reportlab.platypus import Paragraph, SimpleDocTemplate
 from sqlalchemy.orm import Session
 
 from app.core.errors import ConflictError, UnprocessableError
