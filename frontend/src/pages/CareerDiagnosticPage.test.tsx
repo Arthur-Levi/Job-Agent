@@ -62,7 +62,7 @@ describe('CareerDiagnosticPage', () => {
     expect(screen.getAllByText(/fact-1/).length).toBeGreaterThan(0)
     expect(screen.getByText(/Declaração do candidato/)).toBeInTheDocument()
     expect(screen.getByText(/Campos não preenchidos: empresa ou instituição, início do período/)).toBeInTheDocument()
-    expect(screen.getByText(/Sem registros documentados nesta categoria/)).toBeInTheDocument()
+    expect(screen.getAllByText(/Sem registros documentados nesta categoria/)).toHaveLength(3)
     expect(screen.getByRole('link', { name: 'Consultar fato no Fact Ledger' })).toHaveAttribute('href', '/career')
     expect(screen.getByRole('link', { name: 'Revisar importação de currículo' })).toHaveAttribute('href', '/resume-import')
     expect(screen.queryByText(/chance de contratação/i)).not.toBeInTheDocument()
