@@ -8,6 +8,7 @@ deployment, scoped runtime identity, operational quotas and threat testing.
 """
 
 import contextlib
+import io
 import json
 import os
 import socketserver
@@ -15,7 +16,6 @@ import struct
 import subprocess
 import threading
 from pathlib import Path
-from typing import BinaryIO
 from uuid import uuid4
 
 from app.core.errors import UnprocessableError
@@ -37,7 +37,7 @@ _FAILURE = b'{"ok":false,"error":"CV_SANDBOX_REQUIRED"}'
 _BUSY = b'{"ok":false,"error":"CV_PARSER_BUSY"}'
 
 
-def _receive_exact(stream: BinaryIO, size: int) -> bytes:
+def _receive_exact(stream: io.BufferedIOBase, size: int) -> bytes:
     output = bytearray()
     while len(output) < size:
         chunk = stream.read(min(size - len(output), 65536))
