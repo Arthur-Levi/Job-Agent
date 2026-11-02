@@ -9,9 +9,11 @@ import base64
 import contextlib
 import json
 import os
+import selectors
 import subprocess
 import sys
 import threading
+import time
 from typing import Any, cast
 from uuid import uuid4
 
@@ -64,6 +66,70 @@ def _cleanup_container(name: str) -> None:
         )
 
 
+def _run_bounded(
+    command: list[str], request: bytes, env: dict[str, str]
+) -> subprocess.CompletedProcess[bytes]:
+    """Read child output incrementally; abort before retaining > MAX_WORKER_OUTPUT.
+
+    A separate writer prevents deadlocks when the parser responds before consuming
+    stdin. One monotonic deadline bounds upload, execution and output collection.
+    """
+    process = subprocess.Popen(
+        command,
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.DEVNULL,
+        env=env,
+    )
+    assert process.stdin is not None
+    assert process.stdout is not None
+    deadline = time.monotonic() + MAX_WORKER_SECONDS
+
+    def send() -> None:
+        try:
+            assert process.stdin is not None
+            process.stdin.write(request)
+            process.stdin.close()
+        except (BrokenPipeError, OSError, ValueError):
+            pass
+
+    writer = threading.Thread(target=send, name="cv-parser-input", daemon=True)
+    writer.start()
+    output = bytearray()
+    try:
+        with selectors.DefaultSelector() as selector:
+            selector.register(process.stdout, selectors.EVENT_READ)
+            while selector.get_map():
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    raise subprocess.TimeoutExpired(command, MAX_WORKER_SECONDS)
+                events = selector.select(remaining)
+                if not events:
+                    raise subprocess.TimeoutExpired(command, MAX_WORKER_SECONDS)
+                for key, _ in events:
+                    chunk = os.read(key.fd, min(65536, MAX_WORKER_OUTPUT + 1 - len(output)))
+                    if not chunk:
+                        selector.unregister(key.fileobj)
+                        continue
+                    output.extend(chunk)
+                    if len(output) > MAX_WORKER_OUTPUT:
+                        raise UnprocessableError(
+                            "Resposta do parser excedeu o limite", code="CV_WORKER"
+                        )
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            raise subprocess.TimeoutExpired(command, MAX_WORKER_SECONDS)
+        returncode = process.wait(timeout=remaining)
+        return subprocess.CompletedProcess(command, returncode, bytes(output))
+    except (subprocess.TimeoutExpired, UnprocessableError):
+        process.kill()
+        process.wait()
+        raise
+    finally:
+        process.stdout.close()
+        writer.join(timeout=1)
+
+
 def parse_in_worker(filename: str, raw: bytes) -> dict[str, Any]:
     # Reject bursts before allocating encoded requests or starting a parser.
     if not _PARSER_SLOTS.acquire(blocking=False):
@@ -95,15 +161,7 @@ def _parse_with_slot(filename: str, raw: bytes) -> dict[str, Any]:
         else [sys.executable, "-m", "app.workers.resume_parser"]
     )
     try:
-        process = subprocess.run(
-            command,
-            input=request.encode(),
-            stdout=subprocess.PIPE,
-            stderr=subprocess.DEVNULL,
-            env=safe_env,
-            timeout=MAX_WORKER_SECONDS,
-            check=False,
-        )
+        process = _run_bounded(command, request.encode(), safe_env)
     except subprocess.TimeoutExpired:
         if container_name is not None:
             _cleanup_container(container_name)
