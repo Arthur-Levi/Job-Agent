@@ -8,9 +8,11 @@ from pydantic import BaseModel, Field
 from app.api.deps import CurrentUserDep, SessionDep
 from app.core.errors import error_responses
 from app.schemas.career_import import FactRead
+from app.schemas.vacancy_match import VacancyMatchRequest
 from app.services.career_diagnostic import career_diagnostic
 from app.services.career_facts import correct_fact, list_facts, master_profile
 from app.services.evidence_resume import resume_draft
+from app.services.vacancy_matching import vacancy_match
 
 router = APIRouter(prefix="/career", tags=["career-facts"])
 
@@ -62,3 +64,11 @@ def read_career_diagnostic(user: CurrentUserDep, session: SessionDep) -> dict[st
 def read_resume_draft(user: CurrentUserDep, session: SessionDep) -> dict[str, object]:
     """Candidate-review-only draft, never an unverified finalized resume."""
     return resume_draft(session, user.id)
+
+
+@router.post("/vacancy-match")
+def compare_vacancy(
+    data: VacancyMatchRequest, user: CurrentUserDep, session: SessionDep
+) -> dict[str, object]:
+    """Read-only comparison; candidate-supplied vacancy requirements only."""
+    return vacancy_match(session, user.id, data)
