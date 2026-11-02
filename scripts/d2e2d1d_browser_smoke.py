@@ -5,11 +5,6 @@ is exercised by separate backend CI tests; do not call this a database E2E.
 """
 
 import json
-import os
-import subprocess
-import time
-import urllib.request
-from pathlib import Path
 from urllib.parse import urlparse
 
 from playwright.sync_api import Route, sync_playwright
@@ -152,7 +147,8 @@ def main() -> None:
             page.get_by_label("Email").fill("browser@example.invalid")
             page.get_by_label("Senha").fill("synthetic-password")
             page.get_by_role("button", name="Entrar").click()
-            page.goto(APP_URL + "/resume-import")
+            page.get_by_role("link", name="Importar currículo").wait_for()
+            page.get_by_role("link", name="Importar currículo").click()
             page.locator("#resume-file").set_input_files({
                 "name": "synthetic.txt",
                 "mimeType": "text/plain",
@@ -176,7 +172,7 @@ def main() -> None:
             editor.fill("Descricao corrigida no navegador")
             page.get_by_label("Motivo da correção").fill("Confirmacao sintetica")
             page.get_by_role("button", name="Salvar nova versão").click()
-            page.get_by_text("synthetic-fact-corrected").wait_for(timeout=10000)
+            page.get_by_text("Descricao corrigida no navegador", exact=False).wait_for()
             page.get_by_label("Mostrar versões substituídas e rejeitadas").check()
             page.get_by_text("SUPERSEDED", exact=False).wait_for()
             assert calls["preview"] == 1 and calls["correction"] == 1
@@ -187,7 +183,8 @@ def main() -> None:
             page.get_by_label("Email").fill("browser@example.invalid")
             page.get_by_label("Senha").fill("synthetic-password")
             page.get_by_role("button", name="Entrar").click()
-            page.goto(APP_URL + "/career")
+            page.get_by_role("link", name="Master Profile").wait_for()
+            page.get_by_role("link", name="Master Profile").click()
             page.get_by_text("Analista de Dados").wait_for()
             assert len(stored) == 1 and len(versions) == 1
             print("D2-E2.D.1-D Chromium browser journey PASS (mock HTTP)")
