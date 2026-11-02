@@ -146,3 +146,81 @@ jobs:
           done
           curl -fsS http://127.0.0.1:5173/ >/dev/null
           python scripts/d2e2d1d_browser_smoke.py
+
+  real-browser-postgres-e2e:
+    # Dedicated ephemeral CI service. NEVER point this job at a Codespaces DB.
+    runs-on: ubuntu-24.04
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: e2e
+          POSTGRES_PASSWORD: e2e-ephemeral-only
+          POSTGRES_DB: job_agent_e2e_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U e2e -d job_agent_e2e_test"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    env:
+      CI: "true"
+      E2E_DISPOSABLE_DATABASE: "1"
+      APP_ENV: test
+      DATABASE_URL: postgresql+psycopg://e2e:e2e-ephemeral-only@127.0.0.1:5432/job_agent_e2e_test
+      RESUME_PARSER_MODE: subprocess
+      CORS_ORIGINS: '["http://127.0.0.1:5173"]'
+      VITE_API_URL: http://127.0.0.1:8000
+      REGISTRATION_PRIVACY_ENABLED: "false"
+      IDENTITY_LIFECYCLE_ENABLED: "false"
+      AUTH_RATE_LIMIT_ENABLED: "false"
+      ALLOW_LEGACY_LOCAL_USER: "false"
+      RESUME_PREVIEW_SIGNING_SECRET: "synthetic-ci-only-signing-secret-32-chars"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: pip install -e backend playwright==1.56.0
+      - run: npm ci
+        working-directory: frontend
+      - run: python -m playwright install --with-deps chromium
+      - name: Reject non-ephemeral database before migrations
+        run: |
+          python - <<'PY'
+          import os
+          from sqlalchemy.engine import make_url
+          url = make_url(os.environ["DATABASE_URL"])
+          assert os.environ["CI"] == "true"
+          assert os.environ["E2E_DISPOSABLE_DATABASE"] == "1"
+          assert os.environ["APP_ENV"] == "test"
+          assert (url.host, url.port, url.database, url.username) == (
+              "127.0.0.1", 5432, "job_agent_e2e_test", "e2e"
+          ), "Refusing migrations: unexpected database"
+          print("Disposable database guard PASS")
+          PY
+      - name: Migrate isolated E2E PostgreSQL
+        working-directory: backend
+        run: alembic upgrade head
+      - name: Browser React to real API and disposable PostgreSQL
+        run: |
+          set -euo pipefail
+          (cd backend && uvicorn app.main:create_app --factory --host 127.0.0.1 --port 8000 > /tmp/job-agent-e2e-api.log 2>&1) &
+          api_pid=$!
+          (cd frontend && npm run dev -- --host 127.0.0.1 > /tmp/job-agent-e2e-vite.log 2>&1) &
+          vite_pid=$!
+          trap 'kill "$api_pid" "$vite_pid" 2>/dev/null || true' EXIT
+          for i in $(seq 1 50); do
+            if curl -fsS http://127.0.0.1:8000/ready >/dev/null &&
+               curl -fsS http://127.0.0.1:5173/ >/dev/null; then break; fi
+            sleep 1
+          done
+          curl -fsS http://127.0.0.1:8000/ready >/dev/null
+          curl -fsS http://127.0.0.1:5173/ >/dev/null
+          python scripts/d2e2d1d_real_e2e.py
