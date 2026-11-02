@@ -33,3 +33,17 @@ The API-to-Docker path remains an **opt-in development-only prototype**. The upl
 For a production candidate, run parsing behind an independently deployed, narrowly permissioned broker. The API should call only an authenticated, bounded protocol endpoint (not the Docker control API). The broker must enforce an instance-independent global concurrency quota, per-user admission, strict TTL and no ability to mount arbitrary host paths. Workload identity should be restricted to submitting parse jobs and reading their own bounded results. Infrastructure tests must demonstrate network isolation, resource ceilings and cancellation. No code in this PR enables that operational integration.
 
 Local tests added in D2-E2.D.1-C exercise bounded output, overload rejection and release of per-process slots. These are not proof of distributed quotas or production-ready isolation.
+
+## D2-E2.D.1-C — Private broker prototype (not production enabled)
+
+A local UNIX-domain socket broker is now available for **synthetic staging tests**:
+
+- API process: `RESUME_PARSER_MODE=broker`, `RESUME_BROKER_SOCKET=/path/to/private/resume.sock`.
+- Separate broker process: `python -m app.workers.resume_broker` with the same `RESUME_BROKER_SOCKET`. It is the **only component** that may access the container runtime.
+- Socket parent directory must be owner-private (mode 0700); broker creates a 0600 socket and refuses to overwrite an existing path.
+- The wire format consists exclusively of bounded, length-prefixed parser request/response objects. The API does not accept arbitrary container commands, images or arguments.
+- Broker enforces two simultaneous runs **per broker instance**; output and wall-time caps also apply. No customer document bytes are logged by the broker code.
+
+**Operational separation is mandatory:** run the broker using an independently controlled identity, preferably with rootless/container-runtime restrictions. The API identity can connect only to the dedicated broker socket and must not access Docker, host mounts or runtime credentials. The operational model still requires identity/authorization design for the broker's socket ownership and group access, rate limits per user across hosts, broker capacity coordination across replicas, lifecycle supervision, cancellation, safe deletion, logging hygiene, and runtime/seccomp verification. No release is authorized.
+
+A shared socket mounted into an API container is a sensitive capability: treat its permissions as an authorization boundary. Never expose it on a public TCP port or mount the host Docker socket. **The production preview endpoint continues returning 503 regardless of `RESUME_PARSER_MODE`.**
