@@ -28,7 +28,7 @@ def vacancy_match(db: Session, user_id: UUID, vacancy: VacancyMatchRequest) -> d
     modes: dict[str, list[dict[str, str]]] = {}
 
     for fact in facts:
-        evidence = {
+        fact_evidence = {
             "fact_id": str(fact.id),
             "title": fact.subject,
             "verification": fact.verification,
@@ -41,7 +41,7 @@ def vacancy_match(db: Session, user_id: UUID, vacancy: VacancyMatchRequest) -> d
             label = normalize_label(data["title"] or "")
             if label != normalize_label(fact.subject):
                 continue
-            structured.setdefault((fact.predicate, label), []).append(evidence)
+            structured.setdefault((fact.predicate, label), []).append(fact_evidence)
         elif fact.predicate == "work_mode":
             try:
                 data = json.loads(fact.value)
@@ -52,7 +52,7 @@ def vacancy_match(db: Session, user_id: UUID, vacancy: VacancyMatchRequest) -> d
             mode = data.get("mode")
             if not isinstance(mode, str) or mode not in MODES:
                 continue
-            modes.setdefault(mode, []).append(evidence)
+            modes.setdefault(mode, []).append(fact_evidence)
 
     # Conflicting active declarations are ambiguous, not proof of either position.
     mode_is_unambiguous = len(modes) == 1
