@@ -13,18 +13,20 @@ from fastapi.testclient import TestClient
 from pypdf import PdfReader
 from sqlalchemy.orm import Session
 
+from app.models import User
+
 from app.api.deps import get_current_user
 from tests.integration.test_d2e2e_diagnostic import _fact, _user
 
 
-def _authenticate(client: TestClient, user: object) -> None:
+def _authenticate(client: TestClient, user: User) -> None:
     app = client.app
     assert isinstance(app, FastAPI)
     app.dependency_overrides[get_current_user] = lambda: user
 
 
 def _entry(
-    db: Session, user: object, title: str, category: str,
+    db: Session, user: User, title: str, category: str,
     description: str = "Trabalho sintético com planilhas",
     status: str = "ACTIVE",
 ) -> None:
