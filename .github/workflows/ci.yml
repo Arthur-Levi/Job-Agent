@@ -191,6 +191,10 @@ jobs:
       - run: npm ci
         working-directory: frontend
       - run: python -m playwright install --with-deps chromium
+      - name: Install isolated document-rendering tools
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq --no-install-recommends libreoffice-writer poppler-utils
       - name: Reject non-ephemeral database before migrations
         run: |
           python - <<'PY'
@@ -209,6 +213,8 @@ jobs:
         working-directory: backend
         run: alembic upgrade head
       - name: Browser React to real API and disposable PostgreSQL
+        env:
+          E2E_ACCEPTANCE_ARTIFACT_DIR: /tmp/jobagent-d2e2f5-synthetic
         run: |
           set -euo pipefail
           (cd backend && uvicorn app.main:create_app --factory --host 127.0.0.1 --port 8000 > /tmp/job-agent-e2e-api.log 2>&1) &
@@ -224,3 +230,17 @@ jobs:
           curl -fsS http://127.0.0.1:8000/ready >/dev/null
           curl -fsS http://127.0.0.1:5173/ >/dev/null
           python scripts/d2e2d1d_real_e2e.py
+      - name: Verify actual PDF and LibreOffice-rendered DOCX page count
+        env:
+          E2E_ACCEPTANCE_ARTIFACT_DIR: /tmp/jobagent-d2e2f5-synthetic
+        run: python scripts/d2e2f5_document_acceptance.py
+      - name: Preserve synthetic preview images for human layout review
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: d2-e2f5-synthetic-document-previews
+          path: |
+            /tmp/jobagent-d2e2f5-synthetic/pdf-preview.png
+            /tmp/jobagent-d2e2f5-synthetic/docx-preview.png
+          if-no-files-found: ignore
+          retention-days: 3

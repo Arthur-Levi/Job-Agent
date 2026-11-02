@@ -7,6 +7,7 @@ No mocks, customer documents, Codespaces databases, or Docker daemon.
 
 import os
 import uuid
+from pathlib import Path
 
 from playwright.sync_api import sync_playwright
 
@@ -111,7 +112,9 @@ def main() -> None:
             page.get_by_text("Declaração do candidato (sem verificação externa)").first.wait_for()
             page.get_by_text("Sem registros documentados nesta categoria").first.wait_for()
             assert page.get_by_text("Nenhum fato foi criado ou alterado por esta análise.").is_visible()
-            page.get_by_role("link", name="Exportar currículo", exact=True).click()
+            with page.expect_response("**/api/v1/career/resume-export/preview") as preview_info:
+                page.get_by_role("link", name="Exportar currículo", exact=True).click()
+            approved_digest = preview_info.value.json()["approval_sha256"]
             page.get_by_role("heading", name="Revisar e exportar currículo").wait_for()
             page.get_by_text("Pessoa Sintetica", exact=True).wait_for()
             assert page.get_by_role("button", name="Baixar PDF").is_disabled()
@@ -119,9 +122,16 @@ def main() -> None:
             with page.expect_download(timeout=15000) as download_info:
                 page.get_by_role("button", name="Baixar PDF").click()
             assert download_info.value.suggested_filename == "job-agent-resume.pdf"
+            artifacts = os.getenv("E2E_ACCEPTANCE_ARTIFACT_DIR")
+            if artifacts:
+                directory = Path(artifacts)
+                directory.mkdir(parents=True, exist_ok=True)
+                download_info.value.save_as(directory / "synthetic-resume.pdf")
             with page.expect_download(timeout=15000) as download_info:
                 page.get_by_role("button", name="Baixar DOCX").click()
             assert download_info.value.suggested_filename == "job-agent-resume.docx"
+            if artifacts:
+                download_info.value.save_as(directory / "synthetic-resume.docx")
             print("D2-E2.F.4 real browser PDF/DOCX approval PASS (synthetic only)")
 
             page.get_by_role("link", name="Matching de vagas", exact=True).click()
@@ -134,6 +144,86 @@ def main() -> None:
             page.get_by_text("Não documentado", exact=True).wait_for(timeout=15000)
             page.get_by_text("Isso não comprova ausência da competência", exact=False).wait_for()
             print("D2-E2.F.4 real browser vacancy uncertainty PASS (synthetic only)")
+
+            # A completely independent account must not access the prior user's
+            # facts, diagnosis, document or inferred vacancy evidence.
+            other_email = f"browser-isolation-{uuid.uuid4().hex}@example.com"
+            registration = page.request.post(
+                BACKEND + "/api/v1/auth/register",
+                data={"name": "Outro Candidato Sintetico", "email": other_email,
+                      "password": password},
+            )
+            assert registration.status == 201
+            other_login = page.request.post(
+                BACKEND + "/api/v1/auth/login",
+                data={"email": other_email, "password": password},
+            )
+            assert other_login.status == 200
+            other_token = other_login.json()["access_token"]
+            other_headers = {"Authorization": "Bearer " + other_token}
+            other_profile = page.request.get(
+                BACKEND + "/api/v1/career/profile", headers=other_headers
+            )
+            assert other_profile.status == 200
+            assert other_profile.json()["items"] == []
+            other_ledger = page.request.get(
+                BACKEND + "/api/v1/career/facts", headers=other_headers
+            )
+            assert other_ledger.status == 200
+            assert other_ledger.json()["items"] == []
+            other_diagnostic = page.request.get(
+                BACKEND + "/api/v1/career/diagnostic", headers=other_headers
+            )
+            assert other_diagnostic.status == 200
+            assert other_diagnostic.json()["total_active_facts"] == 0
+            other_match = page.request.post(
+                BACKEND + "/api/v1/career/vacancy-match", headers=other_headers,
+                data={"vacancy_title": "Analista de Dados",
+                      "requirements": [{"category": "experience",
+                                        "name": "Analista de Dados",
+                                        "importance": "required"}]},
+            )
+            assert other_match.status == 200
+            assert other_match.json()["requirements"][0]["classification"] == "not_documented"
+            cross_export = page.request.post(
+                BACKEND + "/api/v1/career/resume-export/pdf",
+                headers=other_headers,
+                data={"approved": True, "approval_sha256": approved_digest},
+            )
+            assert cross_export.status == 409
+            unauth = page.request.get(BACKEND + "/api/v1/career/resume-export/preview")
+            assert unauth.status == 401
+            logout = page.request.post(
+                BACKEND + "/api/v1/auth/logout", headers=other_headers
+            )
+            assert logout.status == 204
+            revoked = page.request.get(
+                BACKEND + "/api/v1/career/diagnostic", headers=other_headers
+            )
+            assert revoked.status == 401
+            print("D2-E2.F.5 cross-account and revoked-session isolation PASS")
+
+            # Basic keyboard and accessible-name smoke (NOT a WCAG audit).
+            review_link = page.get_by_role("link", name="Exportar currículo", exact=True)
+            review_link.focus()
+            page.keyboard.press("Enter")
+            page.get_by_role("heading", name="Revisar e exportar currículo").wait_for()
+            approval_box = page.get_by_role("checkbox")
+            approval_box.focus()
+            page.keyboard.press("Space")
+            assert approval_box.is_checked()
+            assert page.get_by_role("button", name="Baixar PDF").is_enabled()
+            assert page.locator("main input").evaluate_all(
+                "(fields) => fields.every(field => field.labels && field.labels.length > 0)"
+            )
+            matching_link = page.get_by_role("link", name="Matching de vagas", exact=True)
+            matching_link.focus()
+            page.keyboard.press("Enter")
+            page.get_by_role("heading", name="Matching explicável").wait_for()
+            assert page.get_by_label("Título da vaga").is_visible()
+            print("D2-E2.F.5 keyboard navigation and form label smoke PASS")
+
+
             print("D2-E2.E.2 diagnostic React/API/PostgreSQL PASS (synthetic only)")
             print("D2-E2.D.1-D real browser/API/PostgreSQL PASS (synthetic only)")
         finally:
