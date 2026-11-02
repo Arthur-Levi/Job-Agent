@@ -1,5 +1,6 @@
 import { Navigate, Outlet, Route, Routes, useLocation } from 'react-router-dom'
 import { CareerPage } from '../pages/CareerPage'
+import { CareerDiagnosticPage } from '../pages/CareerDiagnosticPage'
 import { ApplicationsPage } from '../pages/ApplicationsPage'
 import { RequestAccountEmailPage, ResetPasswordPage, VerifyEmailPage } from '../pages/AccountRecoveryPages'
 import { DashboardPage } from '../pages/DashboardPage'
@@ -38,6 +39,7 @@ function AppRoutes() {
           <Route path="profile" element={<ProfilePage />} />
           <Route path="resume-import" element={<ResumeImportPage />} />
           <Route path="career" element={<CareerPage />} />
+          <Route path="career/diagnostic" element={<CareerDiagnosticPage />} />
           <Route path="jobs" element={<JobsPage />} />
           <Route path="jobs/:jobId" element={<JobDetailPage />} />
           <Route path="applications" element={<ApplicationsPage />} />

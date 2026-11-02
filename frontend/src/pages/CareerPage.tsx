@@ -1,4 +1,5 @@
 import { useCallback, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { Button } from '../components/Button'
 import { Card } from '../components/Card'
 import { PageHeader } from '../components/PageHeader'
@@ -54,6 +55,7 @@ export function CareerPage() {
   return (
     <>
       <PageHeader title="Master Profile e Fact Ledger" subtitle="Declarações confirmadas, origem e histórico de correções." />
+      <p className="mb-4 text-sm"><Link className="text-sky-300 underline" to="/career/diagnostic">Consultar diagnóstico de carreira</Link></p>
       <Card>
         <label className="flex items-center gap-2 text-sm text-slate-300">
           <input type="checkbox" checked={showHistory} onChange={(e) => setShowHistory(e.target.checked)} />

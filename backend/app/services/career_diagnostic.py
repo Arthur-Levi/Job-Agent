@@ -53,9 +53,17 @@ def career_diagnostic(db: Session, user_id: UUID) -> dict[str, Any]:
             review.append(
                 {
                     "kind": "review_documented_fact",
+                    "priority": "high",
                     "fact_id": str(fact.id),
+                    "evidence_fact_ids": [str(fact.id)],
                     "fields": missing,
                     "message": "Revise informações não preenchidas nesta experiência.",
+                    "next_step": (
+                        "Confira empresa e período em seus documentos originais. "
+                        "A edição estruturada desses campos ainda não está disponível "
+                        "na tela do Fact Ledger; não altere somente a descrição "
+                        "para tentar corrigir empresa ou datas."
+                    ),
                 }
             )
 
@@ -75,7 +83,13 @@ def career_diagnostic(db: Session, user_id: UUID) -> dict[str, Any]:
             review.append(
                 {
                     "kind": "verify_missing_records",
+                    "priority": "normal",
                     "category": category,
+                    "evidence_fact_ids": [],
+                    "next_step": (
+                        "Caso tenha registros reais desta categoria, importe um "
+                        "currículo atualizado e confirme os itens na revisão humana."
+                    ),
                     "message": (
                         "Não há registros desta categoria no Fact Ledger. "
                         "Isso não significa que você não tenha essa experiência."

@@ -102,6 +102,16 @@ def main() -> None:
             page.get_by_text("Corrigida no browser com API real", exact=False).wait_for(
                 timeout=15000
             )
+            page.get_by_role("link", name="Diagnóstico", exact=True).click()
+            page.get_by_role("heading", name="Diagnóstico de carreira").wait_for(timeout=15000)
+            page.get_by_role("heading", name="Experiências profissionais").wait_for()
+            page.get_by_role("heading", name="Formação").wait_for()
+            page.get_by_text("Analista de Dados", exact=True).wait_for()
+            page.get_by_text("Assistente Administrativo", exact=True).wait_for()
+            page.get_by_text("Declaração do candidato (sem verificação externa)").first.wait_for()
+            page.get_by_text("Sem registros documentados nesta categoria").first.wait_for()
+            assert page.get_by_text("Nenhum fato foi criado ou alterado por esta análise.").is_visible()
+            print("D2-E2.E.2 diagnostic React/API/PostgreSQL PASS (synthetic only)")
             print("D2-E2.D.1-D real browser/API/PostgreSQL PASS (synthetic only)")
         finally:
             browser.close()

@@ -8,6 +8,7 @@ const NAV = [
   { to: '/profile', label: 'Profile' },
   { to: '/resume-import', label: 'Importar currículo' },
   { to: '/career', label: 'Master Profile' },
+  { to: '/career/diagnostic', label: 'Diagnóstico' },
   { to: '/jobs', label: 'Jobs' },
   { to: '/applications', label: 'Applications' },
 ]
