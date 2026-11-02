@@ -25,21 +25,27 @@ def _prepare_fact(engine: Engine, user_id: object, title: str) -> None:
     with Session(engine) as db:
         user = db.get(User, user_id)
         assert user is not None
-        db.add(CareerFact(
-            user_id=user.id,
-            import_id=None,
-            subject=title,
-            predicate="experience",
-            value=json.dumps({
-                "title": title, "description": "Dados sinteticos de teste",
-                "organization": "Empresa Sintetica",
-                "start_date": "2023", "end_date": "2024",
-            }),
-            source_type="user_statement",
-            source_reference="synthetic-f5",
-            verification="USER_DECLARED",
-            status="ACTIVE",
-        ))
+        db.add(
+            CareerFact(
+                user_id=user.id,
+                import_id=None,
+                subject=title,
+                predicate="experience",
+                value=json.dumps(
+                    {
+                        "title": title,
+                        "description": "Dados sinteticos de teste",
+                        "organization": "Empresa Sintetica",
+                        "start_date": "2023",
+                        "end_date": "2024",
+                    }
+                ),
+                source_type="user_statement",
+                source_reference="synthetic-f5",
+                verification="USER_DECLARED",
+                status="ACTIVE",
+            )
+        )
         db.commit()
 
 
@@ -102,7 +108,8 @@ def test_old_approval_is_refused_after_committed_correction(migrated_engine: Eng
 
 
 def test_renderer_error_never_modifies_fact_ledger(
-    migrated_engine: Engine, monkeypatch: pytest.MonkeyPatch,
+    migrated_engine: Engine,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     user_id = _committed_user(migrated_engine)
     try:
