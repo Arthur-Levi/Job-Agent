@@ -25,7 +25,10 @@ def _authenticate(client: TestClient, user: User) -> None:
 
 
 def _entry(
-    db: Session, user: User, title: str, category: str,
+    db: Session,
+    user: User,
+    title: str,
+    category: str,
     description: str = "Trabalho sintético com planilhas",
     status: str = "ACTIVE",
 ) -> None:
@@ -35,13 +38,16 @@ def _entry(
         title=title,
         category=category,
         status=status,
-        value=json.dumps({
-            "title": title,
-            "description": description,
-            "organization": "Empresa Sintética",
-            "start_date": "2023",
-            "end_date": "2024",
-        }, ensure_ascii=False),
+        value=json.dumps(
+            {
+                "title": title,
+                "description": description,
+                "organization": "Empresa Sintética",
+                "start_date": "2023",
+                "end_date": "2024",
+            },
+            ensure_ascii=False,
+        ),
     )
 
 
@@ -121,10 +127,14 @@ def test_empty_and_overflow_fail_closed(api_client: TestClient, db_session: Sess
     assert empty.status_code == 422
     assert empty.json()["error"]["code"] == "RESUME_EMPTY"
 
-    _entry(
-        db_session, user, "Muito texto", "experience",
-        description="Detalhes sintéticos " * 2400,
-    )
+    for i in range(10):
+        _entry(
+            db_session,
+            user,
+            f"Experiência longa {i}",
+            "experience",
+            description="Detalhes sintéticos " * 2400,
+        )
     digest = api_client.get("/api/v1/career/resume-export/preview").json()["approval_sha256"]
     for fmt in ("pdf", "docx"):
         response = api_client.post(
@@ -140,7 +150,10 @@ def test_docx_is_safe_zip_and_pdf_does_not_execute_markup(
 ) -> None:
     user = _user(db_session)
     _entry(
-        db_session, user, "Projeto de Dados", "project",
+        db_session,
+        user,
+        "Projeto de Dados",
+        "project",
         description="<script>alert('fake')</script> & trabalho real",
     )
     _authenticate(api_client, user)
