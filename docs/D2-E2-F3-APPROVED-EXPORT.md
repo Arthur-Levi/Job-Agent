@@ -1,8 +1,8 @@
 # D2-E2.F.3 — Exportação PDF/DOCX com revisão humana verificável
 
-**Status:** **PASS TÉCNICO CONDICIONAL** no commit `ae915cfb14d97bca4bb48c1391248f0e60cfe068`; produção e beta **NO-GO**.
+**Status:** **PASS TÉCNICO CONDICIONAL** no commit `bdda5defa3de42556ba74a15e1cde7e4b404e866`; produção e beta **NO-GO**.
 
-**CI:** https://github.com/Arthur-Levi/Job-Agent/actions/runs/41497145868 — **316 passed, 3 xfailed, 1 warning** no backend, e os seis jobs (backend, frontend, browser-smoke, real-browser-postgres-e2e, sandbox-smoke, audit) concluíram com SUCCESS. O job audit é consultivo e não bloqueante. O Chromium valida a jornada anterior de React, API e PostgreSQL descartável, **não uma interface de exportação** (ainda pendente no F.4). A exportação foi verificada por novos testes de integração PDF/DOCX com dados sintéticos e PostgreSQL descartável.
+**CI:** https://github.com/Arthur-Levi/Job-Agent/actions/runs/41498548225 — **317 passed, 3 xfailed, 1 warning** no backend, e os seis jobs (backend, frontend, browser-smoke, real-browser-postgres-e2e, sandbox-smoke, audit) concluíram com SUCCESS. O job audit é consultivo e não bloqueante. O Chromium valida a jornada anterior de React, API e PostgreSQL descartável, **não uma interface de exportação** (ainda pendente no F.4). A exportação foi verificada por novos testes de integração PDF/DOCX com dados sintéticos e PostgreSQL descartável.
 
 ## Contratos
 
@@ -21,6 +21,7 @@ A exportação reconsulta o Fact Ledger ativo e recalcula o SHA-256 de **nome, s
 - Saída de uma coluna, sem tabelas, imagens ou gráficos. Nome do usuário vem do cadastro. Fatos são os do F.1. Rascunho omite registros não estruturados, apontados explicitamente no preview.
 - PDF gerado por ReportLab e checado por pypdf (máximo 1 página); DOCX gerado por python-docx sem macros. É emitido apenas depois do mesmo preflight PDF. **A paginação do DOCX depende do renderizador e ainda demanda verificação visual em LibreOffice/Word**; portanto, o limite rigorosamente verificado até aqui se aplica ao PDF.
 - Download com `Cache-Control: no-store, private`, arquivo com nome constante, sem gravar documento em disco e sem enviar conteúdo para serviços externos.
+- Campos textuais cuja fonte estruturada excede 4.000 caracteres são rejeitados com `RESUME_FIELD_TOO_LONG` antes do preview; isso impede que a limitação herdada de F.1 corte silenciosamente a informação exportada.
 - Hash de aprovação não é uma assinatura de revisão persistida nem controle de sessão; a autenticação e o `approved=true` são obrigatórios. Auditoria durável da aprovação e UI de revisão completa pertencem ao F.4/Beta Acceptance.
 
 ## Testes e limites
