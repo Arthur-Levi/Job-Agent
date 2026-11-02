@@ -60,9 +60,7 @@ def resume_draft(db: Session, user_id: UUID) -> dict[str, Any]:
             "organization": data["organization"],
             "start_date": data["start_date"],
             "end_date": data["end_date"],
-            "requires_review": any(
-                data[field] is None for field in ("description", "organization")
-            )
+            "requires_review": any(data[field] is None for field in ("description", "organization"))
             if fact.predicate == "experience"
             else False,
         }
