@@ -145,4 +145,4 @@ def test_worker_bounded_runner_keeps_small_output() -> None:
         {"PATH": "/usr/bin:/bin"},
     )
     assert result.returncode == 0
-    assert result.stdout == b"SYNTHETIC\\n"
+    assert result.stdout == b"SYNTHETIC" + bytes([10])
