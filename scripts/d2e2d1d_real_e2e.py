@@ -7,6 +7,7 @@ No mocks, customer documents, Codespaces databases, or Docker daemon.
 
 import os
 import uuid
+from pathlib import Path
 
 from playwright.sync_api import sync_playwright
 
@@ -119,9 +120,16 @@ def main() -> None:
             with page.expect_download(timeout=15000) as download_info:
                 page.get_by_role("button", name="Baixar PDF").click()
             assert download_info.value.suggested_filename == "job-agent-resume.pdf"
+            artifacts = os.getenv("E2E_ACCEPTANCE_ARTIFACT_DIR")
+            if artifacts:
+                directory = Path(artifacts)
+                directory.mkdir(parents=True, exist_ok=True)
+                download_info.value.save_as(directory / "synthetic-resume.pdf")
             with page.expect_download(timeout=15000) as download_info:
                 page.get_by_role("button", name="Baixar DOCX").click()
             assert download_info.value.suggested_filename == "job-agent-resume.docx"
+            if artifacts:
+                download_info.value.save_as(directory / "synthetic-resume.docx")
             print("D2-E2.F.4 real browser PDF/DOCX approval PASS (synthetic only)")
 
             page.get_by_role("link", name="Matching de vagas", exact=True).click()
