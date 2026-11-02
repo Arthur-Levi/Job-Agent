@@ -6,6 +6,7 @@ be provisioned as a new disposable database; never use Codespaces persistent DB.
 
 import json
 import uuid
+from typing import Any
 
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
@@ -24,7 +25,7 @@ def _user(db: Session) -> User:
     return user
 
 
-def _make_review(preview: dict[str, object]) -> dict[str, object]:
+def _make_review(preview: dict[str, Any]) -> dict[str, Any]:
     items = []
     for item in preview["items"]:
         assert isinstance(item, dict)
