@@ -130,7 +130,9 @@ def validate_job_envelope(raw: bytes) -> ValidatedJob:
             raise ProtocolValidationError("invalid envelope") from exc
         if not 0 < len(document) <= MAX_DOCUMENT_BYTES:
             raise ProtocolValidationError("invalid envelope")
-        return ValidatedJob(1, "submit", request_id, user_id, tenant_id, key, None, filename, document)
+        return ValidatedJob(
+            1, "submit", request_id, user_id, tenant_id, key, None, filename, document
+        )
 
     job_id = _uuid(envelope["job_id"])
     if operation == "status":
