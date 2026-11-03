@@ -61,5 +61,6 @@ def test_rejects_arbitrary_mode() -> None:
     store = FakeLeases()
     with pytest.raises(ValueError, match="reviewed synthetic"):
         SyntheticSupervisor(store).run(
-            lease(), synthetic_mode="not-a-command"  # type: ignore[arg-type]
+            lease(),
+            synthetic_mode="not-a-command",  # type: ignore[arg-type]
         )
