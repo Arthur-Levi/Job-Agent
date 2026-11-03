@@ -51,8 +51,9 @@ class SyntheticSupervisor:
         self._maximum = max_seconds
         self._grace = terminate_grace_seconds
 
-    def run(self, lease: WorkerLease, *, synthetic_mode: Literal["exit", "sleep"] = "exit"
-            ) -> SupervisionResult:
+    def run(
+        self, lease: WorkerLease, *, synthetic_mode: Literal["exit", "sleep"] = "exit"
+    ) -> SupervisionResult:
         if synthetic_mode not in {"exit", "sleep"}:
             raise ValueError("only reviewed synthetic work is supported")
         # Avoid spawning anything unless current lease is verified.
@@ -71,6 +72,7 @@ class SyntheticSupervisor:
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
             close_fds=True,
+            env={"PATH": os.defpath},
             start_new_session=(os.name == "posix"),
         )
         deadline = time.monotonic() + self._maximum
@@ -109,15 +111,21 @@ class SyntheticSupervisor:
     def _terminate(self, proc: subprocess.Popen[bytes]) -> None:
         if proc.poll() is not None:
             return
-        if os.name == "posix":
-            os.killpg(proc.pid, signal.SIGTERM)
-        else:
-            proc.terminate()
+        try:
+            if os.name == "posix":
+                os.killpg(proc.pid, signal.SIGTERM)
+            else:
+                proc.terminate()
+        except ProcessLookupError:
+            return
         try:
             proc.wait(timeout=self._grace)
         except subprocess.TimeoutExpired:
-            if os.name == "posix":
-                os.killpg(proc.pid, signal.SIGKILL)
-            else:
-                proc.kill()
+            try:
+                if os.name == "posix":
+                    os.killpg(proc.pid, signal.SIGKILL)
+                else:
+                    proc.kill()
+            except ProcessLookupError:
+                pass
             proc.wait(timeout=2.0)
