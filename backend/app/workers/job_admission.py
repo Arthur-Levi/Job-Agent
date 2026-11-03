@@ -12,6 +12,7 @@ import threading
 import time
 from collections.abc import Callable
 from dataclasses import dataclass
+from typing import Protocol
 from uuid import UUID, uuid4
 
 from app.workers.job_protocol import ValidatedJob, validate_job_envelope
@@ -42,6 +43,18 @@ class _JobRecord:
     owner_tenant_id: str
     fingerprint: bytes
     status: str
+
+
+
+
+class AdmissionStore(Protocol):
+    """Store contract used by synthetic admission services."""
+
+    def accept_nonce(self, service_id: str, nonce: str, now: int) -> bool: ...
+
+    def submit(self, job: ValidatedJob) -> AdmissionResult: ...
+
+    def inspect(self, job: ValidatedJob) -> AdmissionResult: ...
 
 
 class MemoryAdmissionStore:
@@ -136,7 +149,7 @@ class AdmissionService:
     def __init__(
         self,
         service_keys: dict[str, bytes],
-        store: MemoryAdmissionStore,
+        store: AdmissionStore,
         *,
         clock: Callable[[], float] = time.time,
     ) -> None:
