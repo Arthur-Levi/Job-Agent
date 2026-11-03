@@ -45,7 +45,6 @@ class _JobRecord:
     status: str
 
 
-
 class AdmissionStore(Protocol):
     """Store contract used by synthetic admission services."""
 
