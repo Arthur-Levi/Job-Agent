@@ -39,7 +39,7 @@ def dsn() -> str:
 @pytest.fixture()
 def reset_tables(dsn: str) -> str:
     with psycopg.connect(dsn, connect_timeout=3) as conn, conn.cursor() as cursor:
-        cursor.execute("TRUNCATE secops_admission.nonces, secops_admission.jobs")
+        cursor.execute("TRUNCATE secops_admission.nonces, secops_admission.leases, secops_admission.jobs")
     return dsn
 
 
