@@ -2,6 +2,7 @@
 
 import base64
 import json
+from collections.abc import Callable
 from copy import deepcopy
 from uuid import uuid4
 
@@ -72,9 +73,9 @@ def test_valid_status_and_cancel(operation: str) -> None:
         lambda d: d.update(payload={"filename": "synthetic.txt", "content_b64": ""}),
     ],
 )
-def test_rejects_invalid_submit(mutation: object) -> None:
+def test_rejects_invalid_submit(mutation: Callable[[dict[str, object]], None]) -> None:
     data = deepcopy(valid_submit())
-    mutation(data)  # type: ignore[operator]
+    mutation(data)
     with pytest.raises(ProtocolValidationError, match="invalid envelope"):
         validate_job_envelope(encode(data))
 
