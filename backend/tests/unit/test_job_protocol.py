@@ -87,7 +87,7 @@ def test_rejects_invalid_submit(mutation: Callable[[dict[str, object]], None]) -
         b"not-json",
         b"[]",
         b"null",
-        b"{\"version\":1,\"version\":1}",
+        b'{"version":1,"version":1}',
         b"\xff",
         b"x" * (MAX_ENVELOPE_BYTES + 1),
     ],
