@@ -69,12 +69,12 @@ class WorkerLeaseStore:
                 job_id = row[0]
                 cur.execute(
                     """
-                    INSERT INTO secops_admission.leases
+                    INSERT INTO secops_admission.leases AS current_lease
                         (job_id, worker_id, generation, deadline)
                     VALUES (%s, %s, 1, now() + (%s * interval '1 second'))
                     ON CONFLICT (job_id) DO UPDATE
                     SET worker_id = EXCLUDED.worker_id,
-                        generation = secops_admission.leases.generation + 1,
+                        generation = current_lease.generation + 1,
                         deadline = EXCLUDED.deadline
                     RETURNING generation
                     """,
