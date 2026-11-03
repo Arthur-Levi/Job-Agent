@@ -84,17 +84,15 @@ def test_valid_signed_submit_creates_queued_job() -> None:
 def test_invalid_identity_rejected(change: str) -> None:
     service, _ = build()
     raw = envelope()
-    options: dict[str, object] = {}
-    if change == "invalid_key":
-        options["key"] = OTHER_KEY
-    elif change == "unknown_service":
-        options["service_id"] = "unknown"
-    elif change == "old_timestamp":
-        options["timestamp"] = NOW - 61
-    else:
-        options["timestamp"] = NOW + 61
     with pytest.raises(AdmissionRejected, match="ADMISSION_UNAUTHORIZED"):
-        send(service, raw, **options)
+        if change == "invalid_key":
+            send(service, raw, key=OTHER_KEY)
+        elif change == "unknown_service":
+            send(service, raw, service_id="unknown")
+        elif change == "old_timestamp":
+            send(service, raw, timestamp=NOW - 61)
+        else:
+            send(service, raw, timestamp=NOW + 61)
 
 
 def test_unsigned_payload_tampering_rejected() -> None:
