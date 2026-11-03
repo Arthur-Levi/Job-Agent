@@ -8,6 +8,7 @@ import pytest
 
 from app.workers.job_admission import (
     AdmissionRejected,
+    AdmissionResult,
     AdmissionService,
     MemoryAdmissionStore,
 )
@@ -59,7 +60,7 @@ def send(
     timestamp: int = NOW,
     key: bytes = SERVICE_KEY,
     service_id: str = "api",
-) -> object:
+) -> AdmissionResult:
     nonce = nonce or uuid4().hex
     return service.admit(
         raw,
