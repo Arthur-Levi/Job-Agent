@@ -9,6 +9,7 @@ Schema must already be initialized using scripts/secops_admission_schema.sql.
 import base64
 import json
 import os
+import time
 from concurrent.futures import ThreadPoolExecutor
 from uuid import uuid4
 
@@ -16,7 +17,7 @@ import psycopg
 import pytest
 
 from app.workers.distributed_admission import PostgresAdmissionStore
-from app.workers.job_admission import AdmissionRejected, AdmissionService
+from app.workers.job_admission import AdmissionRejected, AdmissionResult, AdmissionService
 
 KEY = b"T" * 32
 ACK = "I_OWN_THIS_DISPOSABLE_DB"
@@ -76,8 +77,8 @@ def build(dsn: str, *, global_limit: int = 2, user_limit: int = 1) -> AdmissionS
     )
 
 
-def send(service: AdmissionService, value: bytes) -> object:
-    timestamp = int(__import__("time").time())
+def send(service: AdmissionService, value: bytes) -> AdmissionResult:
+    timestamp = int(time.time())
     nonce = uuid4().hex
     return service.admit(
         value,
@@ -94,8 +95,8 @@ def test_two_store_instances_share_idempotency(reset_tables: str) -> None:
     user = str(uuid4())
     first = send(first_service, envelope(user))
     second = send(second_service, envelope(user))
-    assert first.job_id == second.job_id  # type: ignore[attr-defined]
-    assert second.reused is True  # type: ignore[attr-defined]
+    assert first.job_id == second.job_id
+    assert second.reused is True
 
 
 def test_replay_protection_shared_between_stores(reset_tables: str) -> None:
@@ -103,7 +104,7 @@ def test_replay_protection_shared_between_stores(reset_tables: str) -> None:
     second_service = build(reset_tables)
     user = str(uuid4())
     value = envelope(user)
-    timestamp = int(__import__("time").time())
+    timestamp = int(time.time())
     nonce = uuid4().hex
     signature = AdmissionService.signature(KEY, value, timestamp, nonce)
     first_service.admit(
@@ -139,19 +140,19 @@ def test_owner_isolation_and_cancel_releases_capacity(reset_tables: str) -> None
     with pytest.raises(AdmissionRejected, match="ADMISSION_NOT_FOUND"):
         send(
             build(reset_tables),
-            envelope(other, operation="cancel", job_id=str(first.job_id)),  # type: ignore[attr-defined]
+            envelope(other, operation="cancel", job_id=str(first.job_id)),
         )
     cancelled = send(
         service,
         envelope(
             owner,
             operation="cancel",
-            job_id=str(first.job_id),  # type: ignore[attr-defined]
+            job_id=str(first.job_id),
         ),
     )
-    assert cancelled.status == "cancelled"  # type: ignore[attr-defined]
+    assert cancelled.status == "cancelled"
     next_job = send(build(reset_tables, global_limit=1), envelope(other))
-    assert next_job.status == "queued"  # type: ignore[attr-defined]
+    assert next_job.status == "queued"
 
 
 def test_idempotency_conflict_is_shared(reset_tables: str) -> None:
