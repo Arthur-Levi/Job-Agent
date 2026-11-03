@@ -33,4 +33,13 @@ CREATE TABLE IF NOT EXISTS secops_admission.leases (
 );
 CREATE INDEX IF NOT EXISTS ix_secops_leases_deadline
     ON secops_admission.leases (deadline);
+-- E2.2-E.3: only digest/size is published; no CV or payload is stored.
+CREATE TABLE IF NOT EXISTS secops_admission.publications (
+    job_id uuid PRIMARY KEY REFERENCES secops_admission.jobs(job_id) ON DELETE CASCADE,
+    worker_id uuid NOT NULL,
+    generation bigint NOT NULL CHECK (generation > 0),
+    digest bytea NOT NULL CHECK (octet_length(digest) = 32),
+    byte_count integer NOT NULL CHECK (byte_count BETWEEN 1 AND 65536),
+    published_at timestamptz NOT NULL DEFAULT now()
+);
 COMMIT;
