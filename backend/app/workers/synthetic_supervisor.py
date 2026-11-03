@@ -6,6 +6,7 @@ the real CV parser or API before SEC/OPS security acceptance.
 """
 
 import os
+from contextlib import suppress
 import signal
 import subprocess
 import sys
@@ -98,10 +99,8 @@ class SyntheticSupervisor:
                 if time.monotonic() >= deadline:
                     self._terminate(proc)
                     # Do not mark an uncertain timeout as succeeded.
-                    try:
+                    with suppress(AdmissionRejected):
                         self._store.finish(lease, succeeded=False)
-                    except AdmissionRejected:
-                        pass
                     return SupervisionResult("timeout", proc.returncode)
                 time.sleep(self._poll)
         finally:
