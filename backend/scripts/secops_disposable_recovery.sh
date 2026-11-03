@@ -74,6 +74,7 @@ echo "=== RUN CROSS-INSTANCE AND MULTIPROCESS ACCEPTANCE ==="
 cd backend
 "$python_cmd" -m pytest \
   tests/integration/test_distributed_admission.py \
-  tests/integration/test_distributed_recovery.py -v
+  tests/integration/test_distributed_recovery.py \
+  tests/integration/test_worker_lease.py -v
 
 echo "=== DISPOSABLE E2.2-D.2 ACCEPTANCE: TESTS FINISHED ==="
