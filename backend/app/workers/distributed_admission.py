@@ -10,13 +10,11 @@ import hashlib
 import hmac
 import time
 from collections.abc import Callable
-from datetime import UTC, datetime
-from uuid import UUID, uuid4
+from uuid import uuid4
 
 import psycopg
 
 from app.workers.job_admission import (
-    MAX_CLOCK_SKEW_SECONDS,
     AdmissionRejected,
     AdmissionResult,
 )
