@@ -50,9 +50,7 @@ def test_revoked_running_process_does_not_finish() -> None:
 
 def test_timeout_marks_failure_not_success() -> None:
     store = FakeLeases()
-    result = SyntheticSupervisor(store, max_seconds=0.1).run(
-        lease(), synthetic_mode="sleep"
-    )
+    result = SyntheticSupervisor(store, max_seconds=0.1).run(lease(), synthetic_mode="sleep")
     assert result.outcome == "timeout"
     assert store.completions == [False]
 
