@@ -132,7 +132,7 @@ def run_child(dsn: str, message: dict[str, object]) -> dict[str, object]:
 
 def test_separate_processes_share_idempotency_after_restart(disposable_dsn: str) -> None:
     owner = str(uuid4())
-    command = {"operation": "submit", "owner": owner, "idem": "once"}
+    command: dict[str, object] = {"operation": "submit", "owner": owner, "idem": "once"}
     first = run_child(disposable_dsn, command)
     second = run_child(disposable_dsn, command)
     assert first["outcome"] == second["outcome"] == "ADMITTED"
@@ -166,12 +166,18 @@ def test_quota_with_six_real_processes(disposable_dsn: str) -> None:
     processes = [launch(disposable_dsn) for _ in range(6)]
     try:
         commands = [
-            {"operation": "submit", "owner": str(uuid4()), "idem": f"parallel_{n}",
-             "global_limit": 1}
+            {
+                "operation": "submit",
+                "owner": str(uuid4()),
+                "idem": f"parallel_{n}",
+                "global_limit": 1,
+            }
             for n in range(6)
         ]
         with ThreadPoolExecutor(max_workers=6) as pool:
-            outputs = list(pool.map(lambda pair: collect(*pair), zip(processes, commands, strict=True)))
+            outputs = list(
+                pool.map(lambda pair: collect(*pair), zip(processes, commands, strict=True))
+            )
         assert sum(item["outcome"] == "ADMITTED" for item in outputs) == 1
         assert sum(item["outcome"] == "ADMISSION_BUSY" for item in outputs) == 5
     finally:
