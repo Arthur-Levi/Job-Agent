@@ -19,7 +19,6 @@ import psycopg
 import pytest
 
 ACK = "I_OWN_THIS_DISPOSABLE_DB"
-KEY = b"T" * 32
 ROOT = Path(__file__).resolve().parents[2]
 
 # Independent child processes: no shared in-memory Python service or semaphore.
@@ -172,7 +171,7 @@ def test_quota_with_six_real_processes(disposable_dsn: str) -> None:
             for n in range(6)
         ]
         with ThreadPoolExecutor(max_workers=6) as pool:
-            outputs = list(pool.map(lambda pair: collect(*pair), zip(processes, commands)))
+            outputs = list(pool.map(lambda pair: collect(*pair), zip(processes, commands, strict=True)))
         assert sum(item["outcome"] == "ADMITTED" for item in outputs) == 1
         assert sum(item["outcome"] == "ADMISSION_BUSY" for item in outputs) == 5
     finally:
