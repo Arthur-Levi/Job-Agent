@@ -75,6 +75,7 @@ cd backend
 "$python_cmd" -m pytest \
   tests/integration/test_distributed_admission.py \
   tests/integration/test_distributed_recovery.py \
-  tests/integration/test_worker_lease.py -v
+  tests/integration/test_worker_lease.py \
+  tests/integration/test_protected_output.py -v
 
 echo "=== DISPOSABLE E2.2-D.2 ACCEPTANCE: TESTS FINISHED ==="
