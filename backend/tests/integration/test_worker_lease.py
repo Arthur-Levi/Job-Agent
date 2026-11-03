@@ -22,7 +22,8 @@ def dsn() -> str:
         pytest.fail("Refusing a non-disposable database")
     with psycopg.connect(value, connect_timeout=3) as conn, conn.cursor() as cur:
         cur.execute(
-            "TRUNCATE secops_admission.nonces, secops_admission.leases, secops_admission.jobs"
+            "TRUNCATE secops_admission.nonces, secops_admission.publications, "
+            "secops_admission.leases, secops_admission.jobs"
         )
     return value
 
