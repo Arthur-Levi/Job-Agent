@@ -2,6 +2,8 @@
 
 from uuid import uuid4
 
+import pytest
+
 from app.workers.synthetic_supervisor import SyntheticSupervisor
 from app.workers.worker_lease import WorkerLease
 
@@ -57,11 +59,7 @@ def test_timeout_marks_failure_not_success() -> None:
 
 def test_rejects_arbitrary_mode() -> None:
     store = FakeLeases()
-    try:
+    with pytest.raises(ValueError, match="reviewed synthetic"):
         SyntheticSupervisor(store).run(
             lease(), synthetic_mode="not-a-command"  # type: ignore[arg-type]
         )
-    except ValueError:
-        pass
-    else:
-        raise AssertionError("unreviewed mode accepted")
