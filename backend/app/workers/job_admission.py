@@ -10,8 +10,8 @@ import hashlib
 import hmac
 import threading
 import time
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Callable
 from uuid import UUID, uuid4
 
 from app.workers.job_protocol import ValidatedJob, validate_job_envelope
@@ -60,9 +60,7 @@ class MemoryAdmissionStore:
     def accept_nonce(self, service_id: str, nonce: str, now: int) -> bool:
         """Atomically reject repeated nonces within the allowed timestamp window."""
         with self._lock:
-            self._nonces = {
-                key: expiry for key, expiry in self._nonces.items() if expiry >= now
-            }
+            self._nonces = {key: expiry for key, expiry in self._nonces.items() if expiry >= now}
             key = (service_id, nonce)
             if key in self._nonces:
                 return False
@@ -74,9 +72,11 @@ class MemoryAdmissionStore:
             raise AdmissionRejected("ADMISSION_INVALID")
         assert job.document is not None
         digest = hashlib.sha256(job.document).digest()
-        fingerprint = hashlib.sha256(
-            job.filename.encode("utf-8") + b"\x00" + digest
-        ).digest() if job.filename is not None else digest
+        fingerprint = (
+            hashlib.sha256(job.filename.encode("utf-8") + b"\x00" + digest).digest()
+            if job.filename is not None
+            else digest
+        )
         key = (job.tenant_id, job.user_id, job.idempotency_key)
         with self._lock:
             previous = self._idem.get(key)
@@ -91,15 +91,12 @@ class MemoryAdmissionStore:
             per_user = sum(
                 1
                 for record in active
-                if record.owner_tenant_id == job.tenant_id
-                and record.owner_user_id == job.user_id
+                if record.owner_tenant_id == job.tenant_id and record.owner_user_id == job.user_id
             )
             if per_user >= self._user_limit:
                 raise AdmissionRejected("ADMISSION_BUSY")
             job_id = uuid4()
-            self._jobs[job_id] = _JobRecord(
-                job.user_id, job.tenant_id, fingerprint, "queued"
-            )
+            self._jobs[job_id] = _JobRecord(job.user_id, job.tenant_id, fingerprint, "queued")
             self._idem[key] = job_id
             return AdmissionResult(job_id, "queued")
 
@@ -143,9 +140,7 @@ class AdmissionService:
         *,
         clock: Callable[[], float] = time.time,
     ) -> None:
-        if not service_keys or any(
-            not name or len(key) < 32 for name, key in service_keys.items()
-        ):
+        if not service_keys or any(not name or len(key) < 32 for name, key in service_keys.items()):
             raise ValueError("service keys must be at least 32 bytes")
         self._keys = service_keys.copy()
         self._store = store

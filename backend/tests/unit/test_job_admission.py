@@ -169,9 +169,12 @@ def test_owner_can_status_and_cancel() -> None:
         envelope(operation="cancel", user_id=user_id, job_id=str(first.job_id)),
     )
     assert cancelled.status == "cancelled"
-    assert send(
-        service, envelope(operation="cancel", user_id=user_id, job_id=str(first.job_id))
-    ).status == "cancelled"
+    assert (
+        send(
+            service, envelope(operation="cancel", user_id=user_id, job_id=str(first.job_id))
+        ).status
+        == "cancelled"
+    )
 
 
 @pytest.mark.parametrize("operation", ["status", "cancel"])
