@@ -24,4 +24,13 @@ CREATE INDEX IF NOT EXISTS ix_secops_jobs_active
     ON secops_admission.jobs (status, expires_at);
 CREATE INDEX IF NOT EXISTS ix_secops_jobs_owner
     ON secops_admission.jobs (tenant_id, user_id);
+-- E2.2-E: durable fenced ownership; no document body is stored.
+CREATE TABLE IF NOT EXISTS secops_admission.leases (
+    job_id uuid PRIMARY KEY REFERENCES secops_admission.jobs(job_id) ON DELETE CASCADE,
+    worker_id uuid NOT NULL,
+    generation bigint NOT NULL CHECK (generation > 0),
+    deadline timestamptz NOT NULL
+);
+CREATE INDEX IF NOT EXISTS ix_secops_leases_deadline
+    ON secops_admission.leases (deadline);
 COMMIT;
