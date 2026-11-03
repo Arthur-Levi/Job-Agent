@@ -46,7 +46,6 @@ class _JobRecord:
 
 
 
-
 class AdmissionStore(Protocol):
     """Store contract used by synthetic admission services."""
 
