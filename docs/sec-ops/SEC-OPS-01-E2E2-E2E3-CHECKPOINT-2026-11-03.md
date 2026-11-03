@@ -58,6 +58,22 @@ bash backend/scripts/secops_disposable_recovery.sh
 
 The disposable harness must use its **own** new PostgreSQL container; never point it at preserved Codespaces DBs. Review its output for **21 passed**, no skipped tests, and cleanup. Verify the GitHub CI for the checkpoint commit. If validation fails, keep E2.2-E.2/E.3 as candidates, not accepted.
 
+## E2.2-E.3 — disposable PostgreSQL acceptance evidence (user execution)
+
+The user subsequently executed `bash backend/scripts/secops_disposable_recovery.sh` and provided the terminal result:
+
+```text
+21 passed, 1 warning in 9.97s
+=== DISPOSABLE E2.2-D.2 ACCEPTANCE: TESTS FINISHED ===
+=== STOPPING OWN DISPOSABLE DATABASE ===
+```
+
+**Acceptance:** 21/21 opt-in PostgreSQL integration tests PASS (admission 6, process recovery 5, worker lease 5, protected publication 5). The cleanup trap was invoked. The single existing Starlette/httpx deprecation warning did not fail tests. This result is **functional acceptance of the experimental metadata-only implementation**, not production security acceptance.
+
+**Separate checks:** the previously reported unit run gave 47 PASS, Ruff lint PASS, full MyPy PASS (147 files). Ruff format had one failure, addressed in commit `9b99a18`; a post-fix Ruff format result is not included in the supplied 21-test output. The CI of the checkpoint commit was in progress at time of the latest check. Avoid claiming global CI or Ruff PASS without fresh evidence.
+
+**Decision remains SEC/OPS Gate 1 NO-GO**, Draft PR #24. Preserve `CV_SANDBOX_REQUIRED`. Real worker sandbox, output destination fencing, identity integration and independent security acceptance remain outstanding.
+
 ## Remaining security blockers before beta with real resumes
 
 1. Host-separated worker, least-privilege sandbox and externally reviewed isolation for untrusted files.
