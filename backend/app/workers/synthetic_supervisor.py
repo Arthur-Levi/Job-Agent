@@ -6,11 +6,11 @@ the real CV parser or API before SEC/OPS security acceptance.
 """
 
 import os
-from contextlib import suppress
 import signal
 import subprocess
 import sys
 import time
+from contextlib import suppress
 from dataclasses import dataclass
 from typing import Literal, Protocol
 
