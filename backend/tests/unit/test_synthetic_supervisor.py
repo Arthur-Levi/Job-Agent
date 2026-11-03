@@ -58,7 +58,9 @@ def test_timeout_marks_failure_not_success() -> None:
 def test_rejects_arbitrary_mode() -> None:
     store = FakeLeases()
     try:
-        SyntheticSupervisor(store).run(lease(), synthetic_mode="not-a-command")  # type: ignore[arg-type]
+        SyntheticSupervisor(store).run(
+            lease(), synthetic_mode="not-a-command"  # type: ignore[arg-type]
+        )
     except ValueError:
         pass
     else:
