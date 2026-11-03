@@ -88,7 +88,9 @@ def disposable_dsn() -> Iterator[str]:
     if not str(parsed.get("dbname", "")).startswith("secops_disposable_"):
         pytest.fail("Refusing a non-disposable database name")
     with psycopg.connect(dsn, connect_timeout=3) as conn, conn.cursor() as cur:
-        cur.execute("TRUNCATE secops_admission.nonces, secops_admission.leases, secops_admission.jobs")
+        cur.execute(
+            "TRUNCATE secops_admission.nonces, secops_admission.leases, secops_admission.jobs"
+        )
     yield dsn
 
 
