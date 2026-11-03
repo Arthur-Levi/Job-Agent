@@ -9,10 +9,10 @@ import os
 import select
 import subprocess
 import sys
-import time
 from collections.abc import Iterator
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+from typing import cast
 from uuid import uuid4
 
 import psycopg
@@ -121,7 +121,10 @@ def collect(process: subprocess.Popen[bytes], message: dict[str, object]) -> dic
         process.communicate()
         pytest.fail("Child process timed out")
     assert process.returncode == 0, stderr.decode(errors="replace")[-1500:]
-    return json.loads(stdout)
+    decoded = json.loads(stdout)
+    if not isinstance(decoded, dict):
+        pytest.fail("Unexpected child response shape")
+    return cast(dict[str, object], decoded)
 
 
 def run_child(dsn: str, message: dict[str, object]) -> dict[str, object]:
@@ -239,7 +242,8 @@ with psycopg.connect(os.environ["SECOPS_DISPOSABLE_DSN"], connect_timeout=3) as 
         assert readable, "Child did not acquire lock before deadline"
         assert process.stdout.readline().strip() == b"LOCKED"
     finally:
-        process.kill()
+        if process.poll() is None:
+            process.kill()
         process.communicate(timeout=5)
 
     with psycopg.connect(disposable_dsn, connect_timeout=3) as conn, conn.cursor() as cur:
