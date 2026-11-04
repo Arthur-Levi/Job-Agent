@@ -69,7 +69,7 @@ def test_compliant_configuration_contract() -> None:
     ],
 )
 def test_unsafe_deployment_is_rejected(field: str, unsafe: object) -> None:
-    config = replace(compliant_example(), **{field: unsafe})
+    config = replace(compliant_example(), **{field: unsafe})  # type: ignore[arg-type]
     with pytest.raises(DeploymentPreflightError, match="preflight denied"):
         check_deployment(config)
 
