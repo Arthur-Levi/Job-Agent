@@ -78,3 +78,14 @@ python -m mypy
 ```
 
 **No actual production isolation or transport approval is claimed.**
+
+## Code-level CI evidence (2026-11-04)
+
+At commit `37843c2cf0af259c208482bc27438ea6491c6c32`, [GitHub Actions run 41928660087](https://github.com/Arthur-Levi/Job-Agent/actions/runs/41928660087), backend job completed **SUCCESS**:
+- `ruff check .` PASS
+- `ruff format --check .` PASS (158 files)
+- `mypy` PASS (152 source files)
+- `pytest` **402 passed, 21 skipped, 3 xfailed, 1 warning**; log includes `tests/unit/test_gateway_identity.py ..... `.
+- Frontend/audit/sandbox-smoke completed SUCCESS; other browser/E2E jobs were still running at the last inspection.
+
+This is **unit-level authentication policy acceptance**, NOT proof of an authenticated cross-UID gateway deployment. E2.2-F.1 operational acceptance remains **PENDING/NO-GO**.
