@@ -7,6 +7,8 @@ import secrets
 import socket
 import sys
 import time
+from collections.abc import Iterator
+from contextlib import contextmanager
 from uuid import uuid4
 
 import pytest
@@ -17,6 +19,13 @@ from app.workers.job_admission import (
     AdmissionService,
     MemoryAdmissionStore,
 )
+
+
+@contextmanager
+def socket_pair() -> Iterator[tuple[socket.socket, socket.socket]]:
+    left, right = socket.socketpair()
+    with left, right:
+        yield left, right
 
 
 def envelope() -> bytes:
@@ -73,7 +82,7 @@ def test_linux_peer_credential_and_signed_envelope(
     gate: tuple[GatewayIdentityGate, bytes],
 ) -> None:
     checker, key = gate
-    with socket.socketpair() as (client, _other):
+    with socket_pair() as (client, _other):
         assert checker.peer_identity(client) == (os.getuid(), os.getgid())
         authenticate(checker, key, client)
 
@@ -81,7 +90,7 @@ def test_linux_peer_credential_and_signed_envelope(
 def test_unknown_workload_identity_is_denied(gate: tuple[GatewayIdentityGate, bytes]) -> None:
     checker, key = gate
     with (
-        socket.socketpair() as (client, _other),
+        socket_pair() as (client, _other),
         pytest.raises(AdmissionRejected, match="GATEWAY_UNAUTHORIZED"),
     ):
         authenticate(checker, key, client, service_id="fake-api")
@@ -90,7 +99,7 @@ def test_unknown_workload_identity_is_denied(gate: tuple[GatewayIdentityGate, by
 def test_invalid_signature_is_denied(gate: tuple[GatewayIdentityGate, bytes]) -> None:
     checker, key = gate
     with (
-        socket.socketpair() as (client, _other),
+        socket_pair() as (client, _other),
         pytest.raises(AdmissionRejected, match="ADMISSION_UNAUTHORIZED"),
     ):
         authenticate(checker, key, client, bad_signature=True)
@@ -108,7 +117,7 @@ def test_separate_registered_os_identity_is_required() -> None:
 
 def test_peer_uid_mismatch_is_rejected(gate: tuple[GatewayIdentityGate, bytes]) -> None:
     _checker, key = gate
-    with socket.socketpair() as (client, _other):
+    with socket_pair() as (client, _other):
         # Fake only the kernel credential response. No privilege or UID changes.
         class WrongPeer(GatewayIdentityGate):
             @staticmethod
