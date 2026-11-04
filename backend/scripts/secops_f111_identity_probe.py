@@ -1,4 +1,5 @@
 """E2.2-F.1.1: disposable Linux multi-UID Unix socket probe; no CV, DB or Docker."""
+
 import argparse
 import json
 import os
@@ -120,10 +121,15 @@ def main() -> int:
             results["BROKER_SOCKET_MODE"] = stat.S_IMODE(os.stat(br_sock).st_mode) == 0o600
             results["BROKER_DIRECTORY_MODE"] = stat.S_IMODE(os.stat(broker_dir).st_mode) == 0o700
             results["DISTINCT_SERVICE_UIDS"] = len({61001, 61002, 61003}) == 3
-            print(json.dumps({
-                "status": "PASS" if all(results.values()) else "FAIL",
-                "checks": results,
-            }, sort_keys=True))
+            print(
+                json.dumps(
+                    {
+                        "status": "PASS" if all(results.values()) else "FAIL",
+                        "checks": results,
+                    },
+                    sort_keys=True,
+                )
+            )
             return 0 if all(results.values()) else 1
         finally:
             for proc in workers:
