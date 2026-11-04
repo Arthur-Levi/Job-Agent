@@ -8,7 +8,7 @@ from io import BytesIO
 
 import pytest
 from docx import Document
-from reportlab.pdfgen.canvas import Canvas
+from reportlab.pdfgen.canvas import Canvas  # type: ignore[import-untyped]
 
 from app.core.errors import UnprocessableError
 from app.services.resume_preview import build_preview
