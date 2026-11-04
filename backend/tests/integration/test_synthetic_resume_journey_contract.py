@@ -58,9 +58,7 @@ def make_pdf() -> bytes:
         ("synthetic.pdf", make_pdf),
     ],
 )
-def test_synthetic_resume_extraction_requires_review(
-    filename: str, fixture: object
-) -> None:
+def test_synthetic_resume_extraction_requires_review(filename: str, fixture: object) -> None:
     assert callable(fixture)
     preview = build_preview(filename, fixture())
     assert preview["format"] == filename.split(".")[-1]
