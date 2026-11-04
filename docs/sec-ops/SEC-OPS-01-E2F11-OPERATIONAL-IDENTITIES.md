@@ -67,7 +67,7 @@ GitHub commit `fb8c36e0f17f4d2bf82d33af84cb42d37df92ca2`, [Actions run #41934846
 - Ruff lint PASS; Ruff format PASS (159 files).
 - MyPy PASS (152 checked source files).
 - Existing backend test suite **402 passed, 21 skipped, 3 xfailed, 1 warning**.
-- Other jobs were still running at this checkpoint; a passing backend does not certify the entire pipeline or runtime isolation.
+- The same run subsequently completed with all six jobs **SUCCESS**: backend, frontend, audit, browser-smoke, sandbox-smoke and real-browser-postgres-e2e. The existing CI sandbox-smoke is **not** a dedicated multi-UID runtime acceptance of the new opt-in F.1.1 harness.
 
 A locally run version of the same functional probe (updated for the final exception handling) returned **8/8 PASS** in an independent disposable Linux sandbox. GitHub Actions backend currently validates the Python script's code quality, **not its elevated multi-UID runtime experiment**, because it is a standalone opt-in script rather than a regular pytest test.
 
