@@ -79,12 +79,12 @@ def test_synthetic_resume_extraction_requires_review(
 
 def test_ambiguous_experience_is_never_confirmed_automatically() -> None:
     raw = (
-        "Experiencia profissional\n"
-        "Coordenacao de relatorios internos entre 2021 e 2023.\n"
-        "Equipe diversa; cargo e empregador nao confirmados.\n\n"
-        "Competencias\n"
-        "Excel\n"
-    ).encode()
+        b"Experiencia profissional\n"
+        b"Coordenacao de relatorios internos entre 2021 e 2023.\n"
+        b"Equipe diversa; cargo e empregador nao confirmados.\n\n"
+        b"Competencias\n"
+        b"Excel\n"
+    )
     preview = build_preview("synthetic.txt", raw)
     experience = [item for item in preview["items"] if item["category"] == "experience"]
     assert len(experience) == 1
