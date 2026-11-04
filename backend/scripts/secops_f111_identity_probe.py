@@ -18,7 +18,7 @@ def client(path: str, outcome: str) -> int:
         sock.connect(path)
         reply = sock.recv(100).decode()
         ok = reply == outcome
-    except (PermissionError, FileNotFoundError, ConnectionRefusedError, socket.timeout, OSError):
+    except OSError:
         ok = outcome == "DENIED"
     finally:
         sock.close()
