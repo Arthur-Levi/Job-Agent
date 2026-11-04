@@ -51,7 +51,7 @@ Run inside disposable root-controlled guest (e.g., a dedicated CI job with its o
 
 ## NOT demonstrated / remaining E2.2-F.1.1 gates
 
-- [ ] The GitHub-committed harness passes Ruff/format/MyPy and operator-run disposable validation.
+- [x] The committed harness passed Ruff/format/MyPy in CI; the equivalent sandbox probe was run independently with 8/8 checks PASS. **The committed script has not been rerun by the Codespaces operator in a dedicated disposable VM.**
 - [ ] Real Job Agent API, gateway and broker deploy as separate actual service identities with verified entrypoints.
 - [ ] An API process cannot open any live Docker or container-runtime socket; absence of a socket alone does not establish robust runtime isolation.
 - [ ] The gateway-to-broker bridge is independently authenticated without weakening the broker's private socket or sharing IDs.
@@ -60,3 +60,15 @@ Run inside disposable root-controlled guest (e.g., a dedicated CI job with its o
 - [ ] Independent operator sign-off with environment and commit attestations.
 
 **Decision:** provisional **OS-socket isolation lab PASS**, E2.2-F.1.1 deployed **NO-GO**, overall Gate 1 **NO-GO**. This test does not authenticate messages at the synthetic gateway; signed-envelope authentication remains covered separately by `gateway_identity.py` and its unit tests, not by this probe.
+
+## CI evidence for the published harness
+
+GitHub commit `fb8c36e0f17f4d2bf82d33af84cb42d37df92ca2`, [Actions run #41934846595](https://github.com/Arthur-Levi/Job-Agent/actions/runs/41934846595), backend job **SUCCESS**:
+- Ruff lint PASS; Ruff format PASS (159 files).
+- MyPy PASS (152 checked source files).
+- Existing backend test suite **402 passed, 21 skipped, 3 xfailed, 1 warning**.
+- Other jobs were still running at this checkpoint; a passing backend does not certify the entire pipeline or runtime isolation.
+
+A locally run version of the same functional probe (updated for the final exception handling) returned **8/8 PASS** in an independent disposable Linux sandbox. GitHub Actions backend currently validates the Python script's code quality, **not its elevated multi-UID runtime experiment**, because it is a standalone opt-in script rather than a regular pytest test.
+
+**Security decision unchanged: real API→gateway→broker identity and authority boundaries still require independent VM acceptance.**
