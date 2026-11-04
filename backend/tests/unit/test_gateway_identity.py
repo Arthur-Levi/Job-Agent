@@ -103,7 +103,7 @@ def test_separate_registered_os_identity_is_required() -> None:
 
 
 def test_peer_uid_mismatch_is_rejected(gate: tuple[GatewayIdentityGate, bytes]) -> None:
-    checker, key = gate
+    _checker, key = gate
     with socket.socketpair() as (client, _other):
         # Fake only the kernel credential response. No privilege or UID changes.
         class WrongPeer(GatewayIdentityGate):
@@ -111,9 +111,10 @@ def test_peer_uid_mismatch_is_rejected(gate: tuple[GatewayIdentityGate, bytes]) 
             def peer_identity(sock: socket.socket) -> tuple[int, int]:
                 return os.getuid() + 50, os.getgid()
 
+        service = AdmissionService({"test-api": key}, MemoryAdmissionStore())
         wrong = WrongPeer(
             (AuthorizedWorkload("test-api", os.getuid(), os.getgid()),),
-            checker._admission,  # noqa: SLF001
+            service,
             broker_uid=os.getuid() + 1,
         )
         with pytest.raises(AdmissionRejected, match="GATEWAY_UNAUTHORIZED"):
