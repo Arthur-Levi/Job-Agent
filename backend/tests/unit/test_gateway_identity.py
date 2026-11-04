@@ -80,16 +80,20 @@ def test_linux_peer_credential_and_signed_envelope(
 
 def test_unknown_workload_identity_is_denied(gate: tuple[GatewayIdentityGate, bytes]) -> None:
     checker, key = gate
-    with socket.socketpair() as (client, _other):
-        with pytest.raises(AdmissionRejected, match="GATEWAY_UNAUTHORIZED"):
-            authenticate(checker, key, client, service_id="fake-api")
+    with (
+        socket.socketpair() as (client, _other),
+        pytest.raises(AdmissionRejected, match="GATEWAY_UNAUTHORIZED"),
+    ):
+        authenticate(checker, key, client, service_id="fake-api")
 
 
 def test_invalid_signature_is_denied(gate: tuple[GatewayIdentityGate, bytes]) -> None:
     checker, key = gate
-    with socket.socketpair() as (client, _other):
-        with pytest.raises(AdmissionRejected, match="ADMISSION_UNAUTHORIZED"):
-            authenticate(checker, key, client, bad_signature=True)
+    with (
+        socket.socketpair() as (client, _other),
+        pytest.raises(AdmissionRejected, match="ADMISSION_UNAUTHORIZED"),
+    ):
+        authenticate(checker, key, client, bad_signature=True)
 
 
 def test_separate_registered_os_identity_is_required() -> None:
