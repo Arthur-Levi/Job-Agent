@@ -47,6 +47,17 @@ python -m mypy
 
 **Never run tests against `jobagent_test`, `react_test`, or real resumes.** These new tests are in-memory and do not connect to PostgreSQL.
 
+## CI evidence — E2.2-F.0 + synthetic preview contracts
+
+Commit `7f31de9758bf7385af085e36eb0ccfc85b3e48ad`, GitHub Actions run [#41927041385](https://github.com/Arthur-Levi/Job-Agent/actions/runs/41927041385), **backend job SUCCESS**:
+- Ruff check PASS; Ruff format PASS (156 files formatted).
+- MyPy PASS (150 source files).
+- Pytest **397 passed, 21 skipped, 3 xfailed, 1 warning**, ~20.03 seconds.
+- The run logs explicitly include execution of `tests/integration/test_synthetic_resume_journey_contract.py` and `tests/unit/test_secops_deployment_preflight.py`.
+- Other CI jobs were still running at the time this evidence was recorded; backend success is not equivalent to complete pipeline success.
+
+This is **policy and synthetic functional acceptance only**. No real parser CV sandbox, broker identity separation, secure bridging or full React/Fact Ledger E2E has been established.
+
 ## Evidence currently missing
 - The proposed new tests have been committed but have not been run locally by the operator until an explicit PASS is received; CI checks may run on push.
 - Real deployment architecture, validated runtime identity, authenticated gateway, red-team tests, output object store and production migration **do not exist as approved outcomes**.
