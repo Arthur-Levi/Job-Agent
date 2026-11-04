@@ -36,7 +36,7 @@ def server(role: str, path: str) -> int:
             listener.settimeout(5)
             try:
                 conn, _ = listener.accept()
-            except socket.timeout:
+            except TimeoutError:
                 break
             with conn:
                 if role == "gateway":
