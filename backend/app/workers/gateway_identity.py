@@ -36,10 +36,7 @@ class GatewayIdentityGate:
             or not authorized
             or len({entry.service_id for entry in authorized}) != len(authorized)
             or any(
-                not entry.service_id
-                or entry.uid < 1
-                or entry.gid < 1
-                or entry.uid == broker_uid
+                not entry.service_id or entry.uid < 1 or entry.gid < 1 or entry.uid == broker_uid
                 for entry in authorized
             )
         ):
