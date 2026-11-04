@@ -89,3 +89,22 @@ At commit `37843c2cf0af259c208482bc27438ea6491c6c32`, [GitHub Actions run 419286
 - Frontend/audit/sandbox-smoke completed SUCCESS; other browser/E2E jobs were still running at the last inspection.
 
 This is **unit-level authentication policy acceptance**, NOT proof of an authenticated cross-UID gateway deployment. E2.2-F.1 operational acceptance remains **PENDING/NO-GO**.
+
+## Operator Codespaces acceptance — 2026-11-04
+
+The operator provided two consecutive local verification runs on the `Job-Agent-SEC-OPS-01` worktree after a successful fast-forward from `abf5ca2` to `ec4cad8`. The last verification was at `ec4cad8`, branch `feature/sec-ops-01-broker-isolation`, tracking and synchronized with origin, with no changes shown by `git status --short --branch`.
+
+Environment: Linux, Python **3.14.2**, pytest 9.2.0, `.venv-secops`. This differs from the GitHub Actions Python 3.12 environment; both results are separately recorded.
+
+```text
+E2.2-F.1 test_gateway_identity.py + test_job_admission.py: 21 passed, 1 warning in 0.06s
+Ruff lint: All checks passed!
+Ruff format: 158 files already formatted
+MyPy: Success: no issues found in 152 source files
+PYTEST=0 LINT=0 FORMAT=0 MYPY=0
+HEAD: ec4cad8
+```
+
+The single warning was `StarletteDeprecationWarning` from `fastapi.testclient` / `httpx`. No skipped tests in this 21-test verification. The prior local synthetic preview suite also reported **6 passed, 1 warning**, and its quality checks passed (156 files, MyPy 150 source files) at the earlier `abf5ca2` checkpoint.
+
+**Decision:** E2.2-F.1 **code-level local acceptance PASS**, *not* operational isolation acceptance. No proof of distinct real UIDs, real gateway listener, scoped API-to-gateway socket, durable replay in live gateway transport, gateway-to-broker bridge or denied Docker access. Maintain `503 CV_SANDBOX_REQUIRED`, PR #24 Draft, SEC/OPS Gate 1 **NO-GO**.
