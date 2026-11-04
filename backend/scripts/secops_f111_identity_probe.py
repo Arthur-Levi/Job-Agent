@@ -72,10 +72,12 @@ def main() -> int:
         broker_dir = root / "broker"
         gateway_dir.mkdir()
         broker_dir.mkdir()
-        os.chown(gateway_dir, 61002, 61010)
+        # Set directory modes while still the owner. After chown, this
+        # deliberately restricted harness does not hold CAP_FOWNER.
         os.chmod(gateway_dir, 0o770)
-        os.chown(broker_dir, 61003, 61003)
+        os.chown(gateway_dir, 61002, 61010)
         os.chmod(broker_dir, 0o700)
+        os.chown(broker_dir, 61003, 61003)
         gw_sock = str(gateway_dir / "gateway.sock")
         br_sock = str(broker_dir / "broker.sock")
         workers = []
@@ -140,6 +142,11 @@ def main() -> int:
                 except subprocess.TimeoutExpired:
                     proc.kill()
                     proc.wait(timeout=2)
+            # The disposable root has CAP_CHOWN but deliberately lacks
+            # CAP_DAC_OVERRIDE: reclaim private directories for safe
+            # TemporaryDirectory cleanup, without escalating any process.
+            os.chown(gateway_dir, 0, 0)
+            os.chown(broker_dir, 0, 0)
 
 
 if __name__ == "__main__":
