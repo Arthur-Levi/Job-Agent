@@ -150,7 +150,7 @@ def test_parser_failure_always_attempts_cleanup(monkeypatch: pytest.MonkeyPatch)
             ["docker"], 0, b'["name=seccomp,profile=builtin","name=apparmor"]'
         ),
     )
-    monkeypatch.setattr(lab, "inspect_parser_runtime", lambda: {})
+    monkeypatch.setattr(lab, "inspect_parser_runtime", lambda: {"NON_ROOT_UID": True})
 
     def fail(*args: object, **kwargs: object) -> subprocess.CompletedProcess[bytes]:
         raise subprocess.TimeoutExpired(["docker"], 10)
