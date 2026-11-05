@@ -20,7 +20,11 @@ from pathlib import Path
 from uuid import uuid4
 
 from app.workers.broker_replay_sqlite import SqliteBrokerReplayStore
-from app.workers.broker_transport_auth import BrokerTransportGate, BrokerTransportRejected, GatewayWorkload
+from app.workers.broker_transport_auth import (
+    BrokerTransportGate,
+    BrokerTransportRejected,
+    GatewayWorkload,
+)
 from app.workers.broker_transport_wire import read_frame, receive_authenticated, send_frame
 from app.workers.gateway_identity import AuthorizedWorkload, GatewayIdentityGate
 from app.workers.job_admission import AdmissionService, MemoryAdmissionStore
@@ -123,7 +127,9 @@ def gateway(ingress: str, broker_path: str) -> int:
                             gateway_service_id=GATEWAY_SERVICE,
                             broker_secret=BROKER_KEY,
                         )
-                        send_frame(connection, b"ACCEPTED" if result.broker_acknowledged else b"DENIED")
+                        send_frame(
+                            connection, b"ACCEPTED" if result.broker_acknowledged else b"DENIED"
+                        )
                     except (OSError, ChainRejected, ValueError):
                         send_frame(connection, b"DENIED")
             return 0
@@ -164,7 +170,9 @@ def denied_path(path: str) -> int:
     return 1
 
 
-def launch(role: str, args: list[str], uid: int, gid: int, extra: list[int]) -> subprocess.Popen[str]:
+def launch(
+    role: str, args: list[str], uid: int, gid: int, extra: list[int]
+) -> subprocess.Popen[str]:
     return subprocess.Popen(
         [sys.executable, __file__, "--role", role, *args],
         user=uid,
