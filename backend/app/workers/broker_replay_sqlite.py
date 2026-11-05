@@ -6,6 +6,7 @@ retention, multi-instance concurrency, key rotation, and tenant authorization.
 
 import os
 import sqlite3
+from contextlib import closing
 import stat
 from pathlib import Path
 
@@ -30,7 +31,7 @@ class SqliteBrokerReplayStore:
             raise ValueError("replay DB requires a broker-owned 0700 directory")
         self._path = filename
         try:
-            with self._connect() as conn:
+            with closing(self._connect()) as conn:
                 conn.execute(
                     "CREATE TABLE IF NOT EXISTS seen_nonces("
                     "service_id TEXT NOT NULL, nonce TEXT NOT NULL, "
