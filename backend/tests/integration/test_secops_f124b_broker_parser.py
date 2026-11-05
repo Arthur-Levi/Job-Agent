@@ -151,9 +151,7 @@ def test_denied_before_attestation_or_executor(
     with _socket_pair() as (sender, receiver):
         send_frame(sender, _frame(raw, key, signature_key=wrong_key))
         with pytest.raises(SyntheticDispatchRejected, match="F124B_DENIED"):
-            dispatch_synthetic_authenticated(
-                receiver, gate=gate, attestation=proof, executor=run
-            )
+            dispatch_synthetic_authenticated(receiver, gate=gate, attestation=proof, executor=run)
     proof.assert_not_called()
     run.assert_not_called()
 
@@ -167,9 +165,7 @@ def test_no_parser_without_isolation(
     with _socket_pair() as (sender, receiver):
         send_frame(sender, _frame(_envelope(), key))
         with pytest.raises(SyntheticDispatchRejected, match="F124B_SANDBOX_REQUIRED"):
-            dispatch_synthetic_authenticated(
-                receiver, gate=gate, attestation=proof, executor=run
-            )
+            dispatch_synthetic_authenticated(receiver, gate=gate, attestation=proof, executor=run)
     proof.assert_called_once()
     run.assert_not_called()
 
@@ -246,14 +242,10 @@ def test_default_isolation_gate_refuses_without_explicit_opt_in(
     with _socket_pair() as (sender, receiver):
         send_frame(sender, _frame(_envelope(), key))
         with pytest.raises(SyntheticDispatchRejected, match="F124B_SANDBOX_REQUIRED"):
-            dispatch_synthetic_authenticated(
-                receiver, gate=gate, executor=Mock()
-            )
+            dispatch_synthetic_authenticated(receiver, gate=gate, executor=Mock())
 
 
-def test_invalid_executor_output_is_rejected(
-    identity: tuple[BrokerTransportGate, bytes]
-) -> None:
+def test_invalid_executor_output_is_rejected(identity: tuple[BrokerTransportGate, bytes]) -> None:
     gate, key = identity
     with _socket_pair() as (sender, receiver):
         send_frame(sender, _frame(_envelope(), key))
