@@ -65,3 +65,13 @@ Expected **eleven** true checks:
 6. An explicit final SEC/OPS Gate 1 beta signoff is needed before removing `CV_SANDBOX_REQUIRED`.
 
 Until then: **PR Draft; SEC/OPS Gate 1 NO-GO; no real-person CV uploads**.
+
+## CI evidence — contract tests PASS, operational probe still pending
+
+At code commit `d930c228b18b93f2b80045e4694b1d2a9bbc40c5`, [GitHub Actions run #41950801794](https://github.com/Arthur-Levi/Job-Agent/actions/runs/41950801794), backend job **SUCCESS**:
+- `ruff check .` PASS, `ruff format --check .` PASS (**173 formatted files**).
+- `mypy` PASS (**164 source files**).
+- `pytest` **455 passed, 21 skipped, 3 xfailed, 1 warning**. This includes 7 two-hop `socketpair` tests and 7 API bearer/consent/tenant adapter tests, **all synthetic**.
+- Audit, frontend, browser-smoke and sandbox-smoke SUCCESS; the real-browser-postgres-e2e job was still executing at the evidence capture.
+
+**Not accepted yet:** F.1.2.3 cross-UID live-socket lab (11 tests in disposable Docker). Only the operator's JSON + `F123_EXIT=0` can certify that operational scope. Neither CI nor this probe certifies a real production API route or tenant database membership.
