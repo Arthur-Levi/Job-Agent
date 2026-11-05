@@ -38,3 +38,14 @@ python -m mypy
 Latest code commit `ee0b63de8d3a0858c0fa56f8f2310bce2c18c75f`, [Actions #42124911343](https://github.com/Arthur-Levi/Job-Agent/actions/runs/42124911343): **backend SUCCESS** (491 passed, 21 skipped, 3 xfailed, 1 warning). New private socket process test module: **10 passed**. Ruff check PASS, Ruff format PASS (180 files), MyPy PASS (170 source files). Audit, sandbox-smoke, frontend and browser-smoke passed; real-browser-postgres-e2e still in progress at capture.
 
 **This is code CI only.** The only positive IPC case intentionally uses a stub dispatch and does not validate actual distinct broker UID, peer identity, signed payload, parser Docker or kernel LSM enforcement. Enforced AppArmor VM deployment proof, genuine broker-to-parser operational attestation and SEC/OPS Gate 1 are **NO-GO**. Never enable real CV intake.
+
+
+## Local regression reproduction and race correction — 2026-11-05
+
+Operator running code commit `295d894` in Codespaces reported F124D **10 passed**, F124B **11 passed**, Ruff and MyPy PASS, but F124C `test_real_separate_process_unix_ipc_mechanics_only` failed intermittently with `BrokenPipeError` on `send_frame()`. Root cause in test harness: the *stub* dispatcher returned immediately without consuming the client's frame, allowing the broker process to send ACK and close its Unix socket before the client finished writing. It was **not** evidence of a signature failure or a successfully confined runtime. This issue was a regression failure, not a PASS.
+
+Updated only the synthetic IPC test harness to read and validate the full **bounded** test frame before returning its stub ACK, and to drain the expected invalid synthetic frame before its simulated denial; no production socket, auth, parser, LSM or runtime flags changed. Code commits: `a5d0e12`, `a6038d3`.
+
+[GitHub Actions run #42128504227](https://github.com/Arthur-Levi/Job-Agent/actions/runs/42128504227): backend SUCCESS: **501 passed, 21 skipped, 3 xfailed, 1 warning**, including F124C **10 passing**, Ruff lint/format PASS (182 files) and MyPy PASS (172 sources). The operator must re-run the two local F124C/F124D suites to confirm the intermittent Codespaces failure is also resolved locally.
+
+**Security unchanged:** positive F124C test still uses stub, not the actual distinct-UID/authenticated confined parser. SEC/OPS Gate 1 remains NO-GO; `CV_SANDBOX_REQUIRED` unchanged.
