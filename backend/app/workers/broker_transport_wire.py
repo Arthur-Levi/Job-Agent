@@ -41,11 +41,20 @@ def read_frame(sock: socket.socket, *, max_bytes: int = MAX_SIGNED_FRAME) -> byt
     return _exact(sock, length)
 
 
+def _reject_duplicate_fields(pairs: list[tuple[str, object]]) -> dict[str, object]:
+    result: dict[str, object] = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError("duplicate field")
+        result[key] = value
+    return result
+
+
 def receive_authenticated(sock: socket.socket, gate: BrokerTransportGate) -> AuthenticatedForward:
     """Authenticate entire frame before returning metadata; never start a parser."""
     raw = read_frame(sock)
     try:
-        data = json.loads(raw)
+        data = json.loads(raw, object_pairs_hook=_reject_duplicate_fields)
         if (
             not isinstance(data, dict)
             or set(data)
