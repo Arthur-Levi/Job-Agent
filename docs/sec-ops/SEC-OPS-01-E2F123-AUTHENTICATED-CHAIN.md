@@ -75,3 +75,32 @@ At code commit `d930c228b18b93f2b80045e4694b1d2a9bbc40c5`, [GitHub Actions run #
 - Audit, frontend, browser-smoke and sandbox-smoke SUCCESS; the real-browser-postgres-e2e job was still executing at the evidence capture.
 
 **Not accepted yet:** F.1.2.3 cross-UID live-socket lab (11 tests in disposable Docker). Only the operator's JSON + `F123_EXIT=0` can certify that operational scope. Neither CI nor this probe certifies a real production API route or tenant database membership.
+
+## Operator acceptance evidence — **F.1.2.3 11/11 PASS** (2026-11-04 / 2026-11-05)
+
+Operator-provided terminal log from the Codespaces security worktree, branch `feature/sec-ops-01-broker-isolation` at `HEAD=5323640` synchronized with `origin` and clean `git status --short --branch`:
+
+```text
+14 passed, 1 warning in 0.14s
+All checks passed!
+173 files already formatted
+Success: no issues found in 164 source files
+```
+
+The operator then prepared the self-contained fixture in a temporary directory and executed the bounded disposable `python:3.12-slim` container with `--rm --pull never --network none --read-only --cap-drop ALL --cap-add CHOWN --cap-add SETUID --cap-add SETGID --security-opt no-new-privileges --pids-limit 64 --memory 256m --cpus 1`, `--tmpfs /tmp:rw,nosuid,nodev,size=16m`, **read-only fixture mount**, `PYTHONPATH=/opt/lab` and explicit disposable lab acknowledgement. The container was not granted the host Docker socket, app credentials, real CVs or application database. The operator removed the fixture after execution.
+
+Observed complete result:
+
+```json
+{"checks":{"API_DIRECT_BROKER_DENIED":true,"API_HMAC_TAMPERING_DENIED":true,"API_NONCE_REPLAY_DENIED":true,"AUTHORIZED_3_UID_HOPS":true,"BROKER_INGRESS_0710":true,"BROKER_PRIVATE_0700":true,"GATEWAY_DIRECTORY_0770":true,"REPLAY_DB_0600":true,"SEPARATE_UIDS":true,"SERVICES_EXIT_ZERO":true,"UNKNOWN_GATEWAY_DENIED":true},"status":"PASS"}
+```
+
+```text
+F123_EXIT=0
+```
+
+**Accepted: F.1.2.3 3-process / 3-UID synthetic operational lab, 11/11 PASS.** This proves a correctly signed synthetic request traversed the laboratory API→gateway→broker chain, HMAC tampering and API nonce replay were denied, direct API→broker and unauthorized→gateway access was denied by filesystem credentials, directory/private database modes were enforced, and the services exited without errors. This is **not** a live production FastAPI endpoint and does not prove real tenant membership, customer document handling, parser execution, production Docker authority isolation or distributed replay/quota behavior.
+
+At the source checkpoint `5323640`, [GitHub Actions #41951282929](https://github.com/Arthur-Levi/Job-Agent/actions/runs/41951282929) completed **all six jobs successfully**: backend, frontend, audit, sandbox-smoke, browser-smoke and real-browser-postgres-e2e. Backend summary: **455 passed, 21 skipped, 3 xfailed, 1 warning**; Ruff PASS (173 files); MyPy PASS (164 source files).
+
+**Release decision stays unchanged:** `CV_SANDBOX_REQUIRED` active, PR #24 Draft, SEC/OPS Gate 1 **NO-GO** for real customer CVs. Advance to parser sandbox operational acceptance and actual tenant/consent authority only under explicit subsequent gated changes.
