@@ -82,3 +82,20 @@ def test_unavailable_store_cannot_accept(tmp_path: Path) -> None:
         connection.execute("DROP TABLE seen_nonces")
     with pytest.raises(RuntimeError, match="UNAVAILABLE"):
         store.accept_nonce("gw", "a" * 32, 1000)
+
+def test_new_database_permissions_are_explicitly_private(tmp_path: Path) -> None:
+    directory = tmp_path / "broker-private"
+    store = private_store(directory)
+    db = directory / "nonces.sqlite3"
+    assert db.stat().st_mode & 0o777 == 0o600
+    assert store.accept_nonce("gw", "p" * 32, 1000)
+
+
+def test_existing_insecure_database_is_rejected(tmp_path: Path) -> None:
+    directory = tmp_path / "broker-private"
+    directory.mkdir(mode=0o700)
+    db = directory / "nonces.sqlite3"
+    db.touch(mode=0o600)
+    db.chmod(0o644)
+    with pytest.raises(ValueError, match="0600"):
+        SqliteBrokerReplayStore(str(db))
