@@ -63,6 +63,10 @@ def receive_authenticated(sock: socket.socket, gate: BrokerTransportGate) -> Aut
             or type(data["version"]) is not int
             or not isinstance(data["payload_hex"], str)
             or len(data["payload_hex"]) > 2 * MAX_ENVELOPE_BYTES
+            or not isinstance(data["service_id"], str)
+            or type(data["timestamp"]) is not int
+            or not isinstance(data["nonce"], str)
+            or not isinstance(data["signature"], str)
         ):
             raise ValueError("invalid")
         payload = bytes.fromhex(data["payload_hex"])
