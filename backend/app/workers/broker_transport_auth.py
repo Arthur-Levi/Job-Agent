@@ -16,7 +16,11 @@ from dataclasses import dataclass
 from typing import Protocol
 
 from app.workers.gateway_identity import GatewayIdentityGate
-from app.workers.job_protocol import MAX_ENVELOPE_BYTES, ProtocolValidationError, validate_job_envelope
+from app.workers.job_protocol import (
+    MAX_ENVELOPE_BYTES,
+    ProtocolValidationError,
+    validate_job_envelope,
+)
 
 BROKER_HMAC_DOMAIN = b"jobagent-gateway-broker-v1\n"
 MAX_SKEW_SECONDS = 60
