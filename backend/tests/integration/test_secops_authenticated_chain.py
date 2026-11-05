@@ -13,7 +13,11 @@ from uuid import uuid4
 
 import pytest
 
-from app.workers.broker_transport_auth import BrokerTransportGate, GatewayWorkload
+from app.workers.broker_transport_auth import (
+    BrokerTransportGate,
+    BrokerTransportRejected,
+    GatewayWorkload,
+)
 from app.workers.broker_transport_wire import receive_authenticated, send_frame
 from app.workers.gateway_identity import AuthorizedWorkload, GatewayIdentityGate
 from app.workers.job_admission import AdmissionService, MemoryAdmissionStore
@@ -93,7 +97,7 @@ def _run(
                     if broker_reply is not None
                     else ("ACCEPTED:" + item.digest).encode("ascii"),
                 )
-            except OSError:
+            except (OSError, BrokerTransportRejected):
                 return
 
     worker = threading.Thread(target=broker, daemon=True)
@@ -142,14 +146,13 @@ def test_invalid_api_workload_signature_never_reaches_broker() -> None:
 
 
 def test_wrong_api_peer_identity_never_reaches_broker() -> None:
-    api, broker = _gates()
+    _, broker = _gates()
     wrong = GatewayIdentityGate(
         (AuthorizedWorkload("api", os.getuid() + 100, os.getgid()),),
         AdmissionService({"api": API_KEY}, MemoryAdmissionStore()),
         broker_uid=os.getuid() + 1,
     )
     assert _run(_payload(), api_gate=wrong, broker_gate=broker) == ("REJECTED", "")
-    assert api is not None
 
 
 def test_forged_broker_ack_does_not_pass_gateway() -> None:
