@@ -14,6 +14,7 @@ import stat
 import subprocess
 import sys
 import tempfile
+import time
 from pathlib import Path
 from uuid import uuid4
 
@@ -143,7 +144,9 @@ def check_private(path: str) -> int:
     return 1
 
 
-def launch(role: str, args: list[str], uid: int, gid: int, groups: list[int]) -> subprocess.Popen[str]:
+def launch(
+    role: str, args: list[str], uid: int, gid: int, groups: list[int]
+) -> subprocess.Popen[str]:
     return subprocess.Popen(
         [sys.executable, __file__, "--role", role, *args],
         user=uid,
@@ -186,9 +189,6 @@ def run_case(
         )
         passed = result.returncode == 0 and "PRIVATE_DIRECTORY_DENIED" in result.stdout
     else:
-        forwarded = "authorized" if case == "replay" else case
-        if forwarded == "authorized" and case != "replay":
-            forwarded = case
         result = subprocess.run(
             [sys.executable, __file__, "--role", "client", ingress, case, raw_hex, nonce, stamp],
             user=GATEWAY_UID,
@@ -233,7 +233,7 @@ def main() -> int:
         db = str(private_dir / "nonces.sqlite3")
         raw_hex = payload().hex()
         nonce = secrets.token_hex(16)
-        stamp = str(int(__import__("time").time()))
+        stamp = str(int(time.time()))
         results: dict[str, bool] = {}
         try:
             for case in [
@@ -258,7 +258,12 @@ def main() -> int:
             )
             results["REPLAY_DB_0600"] = stat.S_IMODE(Path(db).stat().st_mode) == 0o600
             results["DISTINCT_UIDS"] = len({API_UID, GATEWAY_UID, BROKER_UID}) == 3
-            print(json.dumps({"status": "PASS" if all(results.values()) else "FAIL", "checks": results}, sort_keys=True))
+            print(
+                json.dumps(
+                    {"status": "PASS" if all(results.values()) else "FAIL", "checks": results},
+                    sort_keys=True,
+                )
+            )
             return 0 if all(results.values()) else 1
         finally:
             os.chown(ingress_dir, 0, 0)
