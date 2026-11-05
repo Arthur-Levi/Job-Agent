@@ -65,7 +65,7 @@ cd backend
 python3.12 -m venv .venv-f124
 . .venv-f124/bin/activate
 python -m pip install --upgrade pip
-python -m pip install -e .
+python -m pip install -e ".[dev]"
 python -m pytest tests/unit/test_secops_synthetic_parser_lab.py -v
 ```
 
