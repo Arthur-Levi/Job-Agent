@@ -15,6 +15,7 @@ from app.workers.broker_transport_auth import BrokerTransportGate, GatewayWorklo
 from app.workers.gateway_identity import GatewayIdentityGate
 from app.workers.secops_f124b_broker_parser import (
     SyntheticDispatchRejected,
+    SyntheticDispatchResult,
     dispatch_synthetic_authenticated,
 )
 from app.workers.secops_f124c_private_socket import (
@@ -118,7 +119,9 @@ def serve_one_verified_synthetic(
     """
     verify_broker_identity(listener, path=path, broker_uid=broker_uid, gateway=gateway)
 
-    def verified_dispatch(connection: socket.socket, *, gate: BrokerTransportGate) -> object:
+    def verified_dispatch(
+        connection: socket.socket, *, gate: BrokerTransportGate
+    ) -> SyntheticDispatchResult:
         try:
             verify_gateway_peer(connection, broker_uid=broker_uid, gateway=gateway)
         except RuntimeIdentityRejected:
