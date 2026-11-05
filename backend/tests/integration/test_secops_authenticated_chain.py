@@ -77,6 +77,7 @@ def _run(
     api_key: bytes = API_KEY,
     nonce: str | None = None,
     broker_reply: bytes | None = None,
+    expected_broker_peer: tuple[int, int] | None = None,
 ) -> tuple[str, str]:
     gate_api, gate_broker = _gates()
     gate_api = api_gate or gate_api
@@ -123,7 +124,7 @@ def _run(
                     api_gate=gate_api,
                     gateway_service_id="gateway",
                     broker_secret=BROKER_KEY,
-                    expected_broker_peer=(os.getuid(), os.getgid()),
+                    expected_broker_peer=expected_broker_peer or (os.getuid(), os.getgid()),
                 )
                 assert accepted.broker_acknowledged
                 result = accepted.request_digest
@@ -178,3 +179,12 @@ def test_replayed_api_nonce_never_reaches_broker() -> None:
     assert first_delivery == first
     assert second == "REJECTED"
     assert second_delivery == ""
+
+
+def test_spoofed_broker_os_identity_cannot_acknowledge() -> None:
+    digest, delivered = _run(
+        _payload(),
+        expected_broker_peer=(os.getuid() + 999, os.getgid()),
+    )
+    assert digest == "REJECTED"
+    assert delivered == ""
