@@ -18,6 +18,7 @@ from pypdf.generic import DecodedStreamObject, DictionaryObject, NameObject
 
 from app.services.resume_worker import (
     MAX_WORKER_OUTPUT,
+    _cleanup_container,
     _container_command,
     _run_bounded,
 )
@@ -159,6 +160,10 @@ def run_synthetic_parser_lab() -> dict[str, bool]:
             )
         except (OSError, subprocess.TimeoutExpired):
             raise ParserLabRejected("SECOPS_PARSER_UNAVAILABLE") from None
+        finally:
+            # Docker CLI process termination alone does not guarantee worker
+            # removal; force cleanup on timeout, crash, or malformed output.
+            _cleanup_container(name)
         if output.returncode or len(output.stdout) > MAX_WORKER_OUTPUT:
             raise ParserLabRejected("SECOPS_PARSER_UNAVAILABLE")
         try:
