@@ -13,6 +13,7 @@ import json
 import secrets
 import socket
 import time
+from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
 
@@ -103,7 +104,7 @@ def encode_api_message(
 
 def relay_one(
     api_connection: socket.socket,
-    broker_connection: socket.socket,
+    broker_connect: Callable[[], socket.socket],
     *,
     api_gate: GatewayIdentityGate,
     gateway_service_id: str,
@@ -137,9 +138,13 @@ def relay_one(
         nonce=secrets.token_hex(16),
         key=broker_secret,
     )
-    send_frame(broker_connection, broker_frame)
+    # Connect only AFTER API UID, service signature, nonce and envelope passed.
+    # Invalid API messages must not even reach the broker socket.
     try:
-        response = read_frame(broker_connection, max_bytes=1024)
+        with broker_connect() as broker_connection:
+            broker_connection.settimeout(3)
+            send_frame(broker_connection, broker_frame)
+            response = read_frame(broker_connection, max_bytes=1024)
     except (OSError, BrokerTransportRejected):
         raise ChainRejected() from None
     # Broker acknowledgement may only name the digest of exactly this request.
