@@ -68,3 +68,11 @@ Expected **ten** checks true: `AUTHORIZED`, `REPLAY` (same signed nonce after br
 5. Keep `CV_SANDBOX_REQUIRED` until all deployment isolation, abuse tests, operational runbooks and beta safety gates independently pass.
 
 **Do not mark runtime F.1.2.1 PASS based on GitHub CI alone.** Operator container JSON + exit code are required.
+
+## Automated validation (candidate, not operational acceptance)
+
+Commit `28a990a367679a83d9627f75ecb1b28e1cbd5a9d`, [GitHub Actions run #41944165833](https://github.com/Arthur-Levi/Job-Agent/actions/runs/41944165833):
+- backend **SUCCESS**: Ruff check PASS; format PASS (166 files); MyPy PASS (158 files);
+- pytest **423 passed, 21 skipped, 3 xfailed, 1 warning**, including 7 new durable SQLite replay tests;
+- audit, sandbox-smoke, browser-smoke and frontend **SUCCESS**; real-browser-postgres-e2e was still running when this note was written.
+- The opt-in privileged-in-disposable-container probe **does not run in CI**. Cross-UID, broker-owned ingress and restart replay must be shown by operator-run `10/10 PASS`, `F121_EXIT=0` before operational acceptance.
