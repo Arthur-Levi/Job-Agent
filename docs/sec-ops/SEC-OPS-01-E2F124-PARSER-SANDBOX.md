@@ -85,3 +85,29 @@ Code commit `7a475714190da4ffba838dd356833b20ff40cc71`, [GitHub Actions run #420
 - Pytest **470 passed, 21 skipped, 3 xfailed, 1 warning** (**15 new** parser lab tests).
 - Audit, frontend, browser-smoke, sandbox-smoke PASS; real-browser-postgres-e2e still running at evidence capture.
 - **Do not label runtime F.1.2.4 PASS** based on CI; the opt-in Docker parser probe does not run in GitHub Actions. The operator must independently provide all twelve true checks + `F124_EXIT=0` from the explicitly controlled Docker environment.
+
+
+## Operator diagnostic evidence — LSM UNCONFINED, F.1.2.4 NO-GO (2026-11-05)
+
+Operator reported `SECOPS_RUNTIME_UNVERIFIED` and `F124_EXIT=1` from the opt-in F.1.2.4 probe. The follow-up controlled Docker diagnostic reported:
+
+```text
+docker info SecurityOptions:
+["name=apparmor,profile=default","name=seccomp,profile=builtin","name=cgroupns"]
+Docker Engine: 29.8.0-1
+Parser image: sha256:c2da0d8d6395d51c66a7da6c4e67c80bd03c3b9a4757ee64f0e9bbff72d82355
+Image user: 65532:65532
+Inside disposable non-root network-none read-only container:
+Uid: 65532 65532 65532 65532
+CapEff: 0000000000000000
+NoNewPrivs: 1
+Seccomp: 2
+/proc/self/attr/current: unconfined
+/sys/class/net: lo
+```
+
+**Technical judgment:** Docker host advertises availability of AppArmor and seccomp, but the operator's actual container had **no active AppArmor confinement** (`unconfined`). This is a **P0 unresolved runtime isolation issue**; the daemon security-options list is not evidence of per-container policy enforcement. `Seccomp: 2` demonstrates syscall filter mode, not an enforced LSM policy. Do not bypass LSM checking, run privileged, or loosen parser identity. The six parser fixture executions were not demonstrated as successful because the attestation failed first.
+
+**Next non-destructive diagnostics:** query `docker inspect` of a live named disposable container for `.AppArmorProfile` and `.HostConfig.SecurityOpt`, compare its `/proc/self/attr/current`, check `/sys/kernel/security/lsm` and host `aa-status` if accessible. A controlled diagnostic can explicitly request `--security-opt apparmor=docker-default` (the Docker-documented default), but failure must remain NO-GO; do not edit Docker daemon settings on the shared Codespaces host. If confined profiles cannot be applied in Codespaces, move the operational parser acceptance to an isolated VM/host with AppArmor/SELinux enforced, while keeping code-only tests here.
+
+**Release:** SEC/OPS Gate 1 NO-GO; `503 CV_SANDBOX_REQUIRED` unchanged; PR #24 Draft. No real CV processing authorized.
