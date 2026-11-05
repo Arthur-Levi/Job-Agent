@@ -76,3 +76,19 @@ Commit `28a990a367679a83d9627f75ecb1b28e1cbd5a9d`, [GitHub Actions run #41944165
 - pytest **423 passed, 21 skipped, 3 xfailed, 1 warning**, including 7 new durable SQLite replay tests;
 - audit, sandbox-smoke, browser-smoke and frontend **SUCCESS**; real-browser-postgres-e2e was still running when this note was written.
 - The opt-in privileged-in-disposable-container probe **does not run in CI**. Cross-UID, broker-owned ingress and restart replay must be shown by operator-run `10/10 PASS`, `F121_EXIT=0` before operational acceptance.
+
+## Operator local SQLite acceptance (2026-11-04/05)
+
+Operator-provided Codespaces output, Python **3.14.2**, worktree `/workspaces/Job-Agent-SEC-OPS-01/backend`, security branch at `0be3c80`:
+
+```text
+9 passed, 1 warning in 0.07s
+SQLITE_TEST_EXIT=0
+All checks passed!                   # Ruff Lint
+166 files already formatted         # Ruff Format
+Success: no issues found in 158 source files  # MyPy
+```
+
+One third-party Starlette/httpx deprecation warning; no SQLite failure. GitHub [run #41945396602](https://github.com/Arthur-Levi/Job-Agent/actions/runs/41945396602) also completed all six jobs SUCCESS with **425 passed, 21 skipped, 3 xfailed, 1 warning** in backend (Python 3.12). The earlier Python 3.14 SQLite permission failure was corrected by explicitly creating the DB with mode `0600`, and rejecting insecure existing files.
+
+**Accepted:** SQLite unit suite + lint/format/typecheck both local and CI. **NOT YET accepted:** opt-in cross-UID broker-owned ingress lab; require real operator JSON with ten true checks and `F121_EXIT=0`. Gate 1 remains NO-GO; no real CV.
