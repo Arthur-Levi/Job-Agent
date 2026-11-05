@@ -17,6 +17,7 @@ from unittest.mock import Mock
 
 import pytest
 
+from app.workers.broker_transport_wire import send_frame
 from app.workers.secops_f124b_broker_parser import SyntheticDispatchResult
 from app.workers.secops_f124c_private_socket import (
     PrivateSocketRejected,
@@ -25,7 +26,6 @@ from app.workers.secops_f124c_private_socket import (
     read_opaque_broker_result,
     serve_one_synthetic,
 )
-from app.workers.broker_transport_wire import send_frame
 
 
 def _private_path(tmp_path: Path) -> Path:
