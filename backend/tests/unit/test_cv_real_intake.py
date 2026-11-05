@@ -7,8 +7,12 @@ from uuid import UUID, uuid4
 
 import pytest
 
-from app.workers.cv_real_intake import CvIntakeRejected, authorize_cv_submission
-from app.workers.job_protocol import validate_job_envelope
+from app.workers.cv_real_intake import (
+    AuthorizedCvSubmission,
+    CvIntakeRejected,
+    authorize_cv_submission,
+)
+from app.workers.job_protocol import ValidatedJob, validate_job_envelope
 
 
 class AllowMembership:
@@ -21,7 +25,7 @@ class DenyMembership:
         return False
 
 
-def synthetic_job(filename: str, data: bytes) -> tuple[object, UUID]:
+def synthetic_job(filename: str, data: bytes) -> tuple[ValidatedJob, UUID]:
     user_id = uuid4()
     raw = json.dumps(
         {
@@ -40,16 +44,13 @@ def synthetic_job(filename: str, data: bytes) -> tuple[object, UUID]:
 
 
 def authorize(
-    job: object,
+    job: ValidatedJob,
     user_id: UUID,
     *,
     consent: bool = True,
     tenant: str = "tenant-a",
     membership: bool = True,
-) -> object:
-    from app.workers.job_protocol import ValidatedJob
-
-    assert isinstance(job, ValidatedJob)
+) -> AuthorizedCvSubmission:
     return authorize_cv_submission(
         job,
         authenticated_user_id=user_id,
@@ -76,7 +77,7 @@ def test_approved_subject_and_document_header(
     assert result.document == data
     assert repr(result) == "AuthorizedCvSubmission(<REDACTED>)"
     with pytest.raises(FrozenInstanceError):
-        result.filename = "different.txt"
+        setattr(result, "filename", "different.txt")
 
 
 @pytest.mark.parametrize(
@@ -98,17 +99,16 @@ def test_bad_file_magic_rejected(filename: str, data: bytes) -> None:
 @pytest.mark.parametrize("denial", ["missing_consent", "wrong_user", "wrong_tenant", "not_member"])
 def test_subject_and_consent_denied(denial: str) -> None:
     job, user = synthetic_job("fake.txt", b"synthetic only")
-    params: dict[str, object] = {}
-    if denial == "missing_consent":
-        params["consent"] = False
-    elif denial == "wrong_user":
+    if denial == "wrong_user":
         user = uuid4()
-    elif denial == "wrong_tenant":
-        params["tenant"] = "tenant-b"
-    else:
-        params["membership"] = False
     with pytest.raises(CvIntakeRejected, match="CV_INTAKE_DENIED"):
-        authorize(job, user, **params)
+        authorize(
+            job,
+            user,
+            consent=denial != "missing_consent",
+            tenant="tenant-b" if denial == "wrong_tenant" else "tenant-a",
+            membership=denial != "not_member",
+        )
 
 
 def test_no_document_information_in_error() -> None:
