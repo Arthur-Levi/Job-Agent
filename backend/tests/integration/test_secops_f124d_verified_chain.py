@@ -40,18 +40,14 @@ def _listener(tmp_path: Path) -> tuple[str, socket.socket]:
     parent.mkdir(mode=0o710)
     parent.chmod(0o710)
     path = str(parent / "broker.sock")
-    listener = open_private_broker_listener(
-        path, broker_uid=os.geteuid(), gateway_gid=os.getegid()
-    )
+    listener = open_private_broker_listener(path, broker_uid=os.geteuid(), gateway_gid=os.getegid())
     return path, listener
 
 
 def test_identity_attestation_accepts_actual_private_socket_structure(tmp_path: Path) -> None:
     path, listener = _listener(tmp_path)
     try:
-        verify_broker_identity(
-            listener, path=path, broker_uid=os.geteuid(), gateway=_gateway()
-        )
+        verify_broker_identity(listener, path=path, broker_uid=os.geteuid(), gateway=_gateway())
     finally:
         listener.close()
         Path(path).unlink()
@@ -107,9 +103,7 @@ def test_socket_mode_tampering_is_denied(tmp_path: Path) -> None:
     try:
         os.chmod(path, 0o666)
         with pytest.raises(RuntimeIdentityRejected):
-            verify_broker_identity(
-                listener, path=path, broker_uid=os.geteuid(), gateway=_gateway()
-            )
+            verify_broker_identity(listener, path=path, broker_uid=os.geteuid(), gateway=_gateway())
     finally:
         listener.close()
         Path(path).unlink()
@@ -120,9 +114,7 @@ def test_directory_mode_tampering_is_denied(tmp_path: Path) -> None:
     try:
         Path(path).parent.chmod(0o777)
         with pytest.raises(RuntimeIdentityRejected):
-            verify_broker_identity(
-                listener, path=path, broker_uid=os.geteuid(), gateway=_gateway()
-            )
+            verify_broker_identity(listener, path=path, broker_uid=os.geteuid(), gateway=_gateway())
     finally:
         listener.close()
         Path(path).unlink()
@@ -137,9 +129,7 @@ def test_actual_linux_peer_credential_matches_only_real_uid() -> None:
             gateway=_gateway(uid=os.geteuid()),
         )
         with pytest.raises(RuntimeIdentityRejected):
-            verify_gateway_peer(
-                broker, broker_uid=os.geteuid(), gateway=_gateway()
-            )
+            verify_gateway_peer(broker, broker_uid=os.geteuid(), gateway=_gateway())
     finally:
         client.close()
         broker.close()
@@ -194,8 +184,6 @@ def test_missing_socket_is_denied_without_dispatch(tmp_path: Path) -> None:
     try:
         Path(path).unlink()
         with pytest.raises(RuntimeIdentityRejected):
-            verify_broker_identity(
-                listener, path=path, broker_uid=os.geteuid(), gateway=_gateway()
-            )
+            verify_broker_identity(listener, path=path, broker_uid=os.geteuid(), gateway=_gateway())
     finally:
         listener.close()
