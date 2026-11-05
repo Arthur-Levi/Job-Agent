@@ -46,3 +46,12 @@ git status --short --branch
 5. Independent Beta Acceptance SEC/OPS Gate 1 review and signoff.
 
 **No-Go preserved:** do not permit real candidate documents, remove `503 CV_SANDBOX_REQUIRED`, merge the Draft PR or claim production readiness.
+
+
+## Automated evidence — 2026-11-05
+
+Code commit `a8ffed8c0753767c3bd7205187b94c340790fdbe`, [GitHub Actions run #42120555171](https://github.com/Arthur-Levi/Job-Agent/actions/runs/42120555171):
+
+- Backend job **SUCCESS**: Ruff lint PASS; Ruff format **178 files**; MyPy **168 files**; Pytest **481 passed, 21 skipped, 3 xfailed, 1 warning**. New F.1.2.4-B integration suite: **11 passing**.
+- Audit, sandbox-smoke, frontend and browser-smoke jobs succeeded; real-browser-postgres-e2e pending when this note was recorded. The backend and synthetic parser tests do **not** constitute operational LSM sandbox approval.
+- No new production API route or real CV data processing. Codespaces isolation is still `unconfined`, so operational F.1.2.4 remains **NO-GO**.
