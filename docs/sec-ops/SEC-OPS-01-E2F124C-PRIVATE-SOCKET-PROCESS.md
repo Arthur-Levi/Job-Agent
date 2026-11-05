@@ -31,3 +31,10 @@ python -m mypy
 ```
 
 **Gate remains NO-GO** until separate OS identities are actually proven in a controlled Linux VM and all remaining SEC/OPS controls are accepted. `CV_SANDBOX_REQUIRED` must remain in place; PR #24 remains Draft. F.1.2.3 checkpoint immutable.
+
+
+## CI evidence — 2026-11-05
+
+Latest code commit `ee0b63de8d3a0858c0fa56f8f2310bce2c18c75f`, [Actions #42124911343](https://github.com/Arthur-Levi/Job-Agent/actions/runs/42124911343): **backend SUCCESS** (491 passed, 21 skipped, 3 xfailed, 1 warning). New private socket process test module: **10 passed**. Ruff check PASS, Ruff format PASS (180 files), MyPy PASS (170 source files). Audit, sandbox-smoke, frontend and browser-smoke passed; real-browser-postgres-e2e still in progress at capture.
+
+**This is code CI only.** The only positive IPC case intentionally uses a stub dispatch and does not validate actual distinct broker UID, peer identity, signed payload, parser Docker or kernel LSM enforcement. Enforced AppArmor VM deployment proof, genuine broker-to-parser operational attestation and SEC/OPS Gate 1 are **NO-GO**. Never enable real CV intake.
