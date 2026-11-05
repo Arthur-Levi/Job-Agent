@@ -17,7 +17,7 @@ from unittest.mock import Mock
 
 import pytest
 
-from app.workers.broker_transport_wire import send_frame
+from app.workers.broker_transport_wire import read_frame, send_frame
 from app.workers.secops_f124b_broker_parser import SyntheticDispatchResult
 from app.workers.secops_f124c_private_socket import (
     PrivateSocketRejected,
@@ -35,7 +35,10 @@ def _private_path(tmp_path: Path) -> Path:
     return root / "broker.sock"
 
 
-def _fake_dispatch(*args: Any, **kwargs: Any) -> SyntheticDispatchResult:
+def _fake_dispatch(connection: socket.socket, *, gate: Any) -> SyntheticDispatchResult:
+    """Consume the complete synthetic frame before ACK (avoid early-close race)."""
+    if read_frame(connection, max_bytes=128) != b"synthetic test: stub dispatch, not authenticated":
+        raise ValueError("unexpected synthetic fixture")
     return SyntheticDispatchResult("a" * 64, "txt", ("experience",), 1)
 
 
