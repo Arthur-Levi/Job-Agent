@@ -71,9 +71,7 @@ def _synthetic_pdf() -> bytes:
     commands = [b"BT /F1 12 Tf 40 700 Td"]
     for index, line in enumerate(FIXTURE_TEXT.splitlines()):
         escaped = line.replace("\\", "\\\\").replace("(", "\\(").replace(")", "\\)")
-        commands.append(
-            (f"0 {-18 if index else 0} Td ({escaped}) Tj").encode("ascii")
-        )
+        commands.append((f"0 {-18 if index else 0} Td ({escaped}) Tj").encode("ascii"))
     commands.append(b"ET")
     stream = DecodedStreamObject()
     stream.set_data(b" ".join(commands))
