@@ -177,7 +177,8 @@ def dispatch_synthetic_authenticated(
     sections = preview.get("sections_detected")
     items = preview.get("items")
     if (
-        fmt not in {"pdf", "docx", "txt"}
+        job.filename is None
+        or fmt not in {"pdf", "docx", "txt"}
         or fmt != job.filename.rsplit(".", 1)[-1]
         or not isinstance(sections, list)
         or not all(isinstance(s, str) and len(s) <= 40 for s in sections)
