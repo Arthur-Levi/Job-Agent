@@ -92,3 +92,17 @@ Success: no issues found in 158 source files  # MyPy
 One third-party Starlette/httpx deprecation warning; no SQLite failure. GitHub [run #41945396602](https://github.com/Arthur-Levi/Job-Agent/actions/runs/41945396602) also completed all six jobs SUCCESS with **425 passed, 21 skipped, 3 xfailed, 1 warning** in backend (Python 3.12). The earlier Python 3.14 SQLite permission failure was corrected by explicitly creating the DB with mode `0600`, and rejecting insecure existing files.
 
 **Accepted:** SQLite unit suite + lint/format/typecheck both local and CI. **NOT YET accepted:** opt-in cross-UID broker-owned ingress lab; require real operator JSON with ten true checks and `F121_EXIT=0`. Gate 1 remains NO-GO; no real CV.
+
+## Operator cross-UID operational evidence — PASS (2026-11-04/05)
+
+Operator-provided Codespaces terminal output (worktree `/workspaces/Job-Agent-SEC-OPS-01`), branch `feature/sec-ops-01-broker-isolation`, `HEAD=9f9872c` after clean fast-forward from `0be3c80`). Operator staged the controlled lab fixture and ran the exact bounded `python:3.12-slim` disposable Docker invocation documented above, with `--rm --pull never --network none --read-only --cap-drop ALL --cap-add CHOWN --cap-add SETUID --cap-add SETGID --security-opt no-new-privileges --pids-limit 64 --memory 256m --cpus 1`, a private tmpfs at `/tmp`, and only the explicit read-only test fixture mounted. No host Docker socket, live API, application database, customer files or production credentials were mounted in the supplied command.
+
+Observed output:
+
+```json
+{"checks":{"API_BLOCKED":true,"AUTHORIZED":true,"BROKER_DIRECTORY_0700":true,"DISTINCT_UIDS":true,"FORGED_SERVICE":true,"INGRESS_DIRECTORY_0710":true,"REPLAY":true,"REPLAY_DB_0600":true,"TAMPERED":true,"UNKNOWN_BLOCKED":true},"status":"PASS"}
+```
+
+Followed by `F121_EXIT=0` and disposal of the fixture.
+
+**Operational lab checkpoint decision: E2.2-F.1.2.1 PASS (10/10).** This proves kernel-enforced synthetic service identity separation, broker-owned ingress, signed gateway message handling, wrong-service/tamper denial, and nonce replay rejection across *lab broker process restarts* using a temporary SQLite ledger. Does **not** prove real API↔gateway↔resume-broker deployment, real Docker authority denial or parser sandbox protections, distributed nonce replay/quotas, tenant authorization, production key management or resilience. Keep PR #24 **Draft**, SEC/OPS Gate 1 **NO-GO**, and `503 CV_SANDBOX_REQUIRED` active.
