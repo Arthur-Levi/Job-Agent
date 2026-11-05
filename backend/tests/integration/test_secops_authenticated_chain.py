@@ -123,6 +123,7 @@ def _run(
                     api_gate=gate_api,
                     gateway_service_id="gateway",
                     broker_secret=BROKER_KEY,
+                    expected_broker_peer=(os.getuid(), os.getgid()),
                 )
                 assert accepted.broker_acknowledged
                 result = accepted.request_digest
