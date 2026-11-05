@@ -72,7 +72,7 @@ def test_docker_info_without_security_options_fails_closed(
 ) -> None:
     monkeypatch.setenv("SECOPS_F124_ACK", lab.LAB_ACK)
     monkeypatch.setattr(
-        lab.subprocess,
+        subprocess,
         "run",
         lambda *args, **kwargs: subprocess.CompletedProcess(["docker"], 0, b"[]"),
     )
@@ -85,7 +85,7 @@ def test_synthetic_lab_does_not_need_real_docker_for_contract_validation(
 ) -> None:
     monkeypatch.setenv("SECOPS_F124_ACK", lab.LAB_ACK)
     monkeypatch.setattr(
-        lab.subprocess,
+        subprocess,
         "run",
         lambda *args, **kwargs: subprocess.CompletedProcess(
             ["docker"], 0, b'["name=seccomp,profile=builtin","name=apparmor"]'
@@ -138,7 +138,7 @@ def test_synthetic_lab_does_not_need_real_docker_for_contract_validation(
 def test_parser_failure_always_attempts_cleanup(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("SECOPS_F124_ACK", lab.LAB_ACK)
     monkeypatch.setattr(
-        lab.subprocess,
+        subprocess,
         "run",
         lambda *args, **kwargs: subprocess.CompletedProcess(
             ["docker"], 0, b'["name=seccomp,profile=builtin","name=apparmor"]'
