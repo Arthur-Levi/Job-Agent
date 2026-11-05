@@ -122,3 +122,32 @@ def test_rejects_not_submit() -> None:
 
     with pytest.raises(CvIntakeRejected):
         authorize(replace(job, operation="status"), user)
+
+class UnavailableMembership:
+    def may_submit(self, authenticated_user_id: UUID, tenant_id: str) -> bool:
+        raise RuntimeError("internal-sensitive-membership-error")
+
+
+def test_membership_authority_outage_fails_closed_without_leak() -> None:
+    job, user = synthetic_job("fake.txt", b"synthetic only")
+    with pytest.raises(CvIntakeRejected, match="CV_INTAKE_DENIED") as exc:
+        authorize_cv_submission(
+            job,
+            authenticated_user_id=user,
+            requested_tenant_id="tenant-a",
+            authorizer=UnavailableMembership(),
+            explicit_processing_consent=True,
+        )
+    assert "internal-sensitive" not in str(exc.value)
+
+
+def test_truthy_nonboolean_consent_is_rejected() -> None:
+    job, user = synthetic_job("fake.txt", b"synthetic only")
+    with pytest.raises(CvIntakeRejected, match="CV_INTAKE_DENIED"):
+        authorize_cv_submission(
+            job,
+            authenticated_user_id=user,
+            requested_tenant_id="tenant-a",
+            authorizer=AllowMembership(),
+            explicit_processing_consent="yes",  # type: ignore[arg-type]
+        )
