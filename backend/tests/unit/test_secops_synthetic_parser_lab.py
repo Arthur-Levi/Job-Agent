@@ -58,9 +58,7 @@ def test_security_config_missing_controls_fails_closed(options: object) -> None:
 
 
 def test_seccomp_and_lsm_present_only_satisfies_preflight() -> None:
-    lab.assert_runtime_security_options(
-        ["name=seccomp,profile=builtin", "name=apparmor"]
-    )
+    lab.assert_runtime_security_options(["name=seccomp,profile=builtin", "name=apparmor"])
 
 
 def test_requires_explicit_operator_opt_in(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -76,9 +74,7 @@ def test_docker_info_without_security_options_fails_closed(
     monkeypatch.setattr(
         lab.subprocess,
         "run",
-        lambda *args, **kwargs: subprocess.CompletedProcess(
-            ["docker"], 0, b"[]"
-        ),
+        lambda *args, **kwargs: subprocess.CompletedProcess(["docker"], 0, b"[]"),
     )
     with pytest.raises(lab.ParserLabRejected, match="UNVERIFIED"):
         lab.run_synthetic_parser_lab()
@@ -127,9 +123,7 @@ def test_synthetic_lab_does_not_need_real_docker_for_contract_validation(
             output = {"ok": True, "preview": preview}
         except Exception:
             output = {"ok": False, "error": "CV_PARSE"}
-        return subprocess.CompletedProcess(
-            command, 0, json.dumps(output).encode("utf-8")
-        )
+        return subprocess.CompletedProcess(command, 0, json.dumps(output).encode("utf-8"))
 
     cleanup = Mock()
     monkeypatch.setattr(lab, "_run_bounded", synthetic_runner)
