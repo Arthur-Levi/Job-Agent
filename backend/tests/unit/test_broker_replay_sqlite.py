@@ -83,6 +83,7 @@ def test_unavailable_store_cannot_accept(tmp_path: Path) -> None:
     with pytest.raises(RuntimeError, match="UNAVAILABLE"):
         store.accept_nonce("gw", "a" * 32, 1000)
 
+
 def test_new_database_permissions_are_explicitly_private(tmp_path: Path) -> None:
     directory = tmp_path / "broker-private"
     store = private_store(directory)
