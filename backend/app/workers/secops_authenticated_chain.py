@@ -152,7 +152,7 @@ def relay_one(
             broker_connection.settimeout(3)
             send_frame(broker_connection, broker_frame)
             response = read_frame(broker_connection, max_bytes=1024)
-    except (OSError, BrokerTransportRejected):
+    except (OSError, BrokerTransportRejected, AdmissionRejected):
         raise ChainRejected() from None
     # Broker acknowledgement may only name the digest of exactly this request.
     digest = hashlib.sha256(raw).hexdigest()
