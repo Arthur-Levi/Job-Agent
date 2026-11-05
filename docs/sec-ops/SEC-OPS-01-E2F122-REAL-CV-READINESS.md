@@ -57,3 +57,10 @@ python -m ruff check .
 python -m ruff format --check .
 python -m mypy
 ```
+
+## CI validation of the P0 intake layer
+
+[GitHub Actions run #41948022622](https://github.com/Arthur-Levi/Job-Agent/actions/runs/41948022622), code commit `edd5537`, backend **SUCCESS**:
+- Ruff lint PASS, Ruff format PASS (168 files), MyPy PASS (160 source files).
+- Pytest **441 passed, 21 skipped, 3 xfailed, 1 warning**, including **16 new** `test_cv_real_intake.py` cases.
+- This is **synthetic input admission only**, not parser invocation, live CV support, or an end-to-end authorization test. All F.1.2.2 proof remains scoped to the pure policy and its mocks.
