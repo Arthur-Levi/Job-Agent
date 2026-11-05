@@ -39,3 +39,10 @@ python -m mypy
 6. Do not claim authorization for production until tenant membership/consent, durable distributed quotas/idempotency/cancel/recovery, retention/LGPD, key rotation, deployment separation, abuse cases, audit and independent Gate 1 signoff pass.
 
 **Release:** PR #24 Draft, SEC/OPS Gate 1 NO-GO, public `503 CV_SANDBOX_REQUIRED` unchanged. Preserve F.1.2.3 checkpoint. No actual candidate documents in this mission.
+
+
+## Automated CI evidence — 2026-11-05
+
+Code commit `fd247437d81906154def8bbaa94e8917e10cbb21`, [GitHub Actions run #42127405159](https://github.com/Arthur-Levi/Job-Agent/actions/runs/42127405159): backend job **SUCCESS** — `501 passed, 21 skipped, 3 xfailed, 1 warning`; **10 new** negative-by-default F.1.2.4-D integration tests. Ruff lint PASS; Ruff format PASS (182 files); MyPy PASS (172 source files). Sandbox-smoke, audit and frontend passed; browser-smoke and real-browser-postgres-e2e were still running at recording.
+
+CI demonstrates correctly measured Linux local peer credentials and refusal of unregistered gateway/unsafe filesystem socket; it does not demonstrate an authorized **different-UID** gateway positive execution or AppArmor-constrained Docker parser in an independent VM. **Operational status stays NO-GO,** not F.1.2.4-D PASS.
