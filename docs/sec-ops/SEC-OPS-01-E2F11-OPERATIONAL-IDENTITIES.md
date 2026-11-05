@@ -83,3 +83,15 @@ Commit `4ba769109257a6386d727b16e6a7c184f62f22c9` corrects the probe, **without 
 - only a genuine `PermissionError` satisfies an expected denied connection; unrelated connection errors now fail the evidence check.
 
 This is a **runtime correction awaiting a new operator-run eight-check JSON PASS**. Failure from the earlier run is *not* proof of isolation acceptance. No production API/worker, parser, DB or customer data were touched. The CI of commit `4ba7691` validates code quality and regression tests, **not** this opt-in root-in-disposable-container probe.
+
+## Operator disposable-container acceptance — PASS (2026-11-04/05)
+
+Operator-provided terminal evidence from `/workspaces/Job-Agent-SEC-OPS-01`, branch `feature/sec-ops-01-broker-isolation`, `HEAD=391e4f9` and tracking origin. A `git pull --ff-only` updated from `c65d5f2` to `391e4f9`, incorporating the minimal-capability repair `4ba7691`. A temporary copy of the probe was mounted read-only into a disposable `python:3.12-slim` container; the container was executed with `--rm --pull never --network none --read-only --cap-drop ALL --cap-add CHOWN --cap-add SETUID --cap-add SETGID --security-opt no-new-privileges --pids-limit 64 --memory 256m --cpus 1` plus a bounded `/tmp` tmpfs. No host docker socket, customer document, service DB, or application secrets were mounted in the submitted command.
+
+**Exact observed result** (all eight checks true):
+```json
+{"checks":{"API_TO_BROKER_DENIED":true,"API_TO_GATEWAY":true,"BROKER_DIRECTORY_MODE":true,"BROKER_SOCKET_MODE":true,"DISTINCT_SERVICE_UIDS":true,"GATEWAY_SOCKET_MODE":true,"GATEWAY_TO_BROKER_DENIED":true,"UNAUTHORIZED_TO_GATEWAY_DENIED":true},"status":"PASS"}
+```
+Terminal then displayed `F111_EXIT=0`, indicating successful execution and cleanup. This evidence establishes cross-UID Unix access separation for these **synthetic local sockets**, under the bounded disposable container settings used by the operator.
+
+**Checkpoint acceptance: F.1.1 synthetic Linux socket-permission runtime probe PASS.** No claim that the real Job Agent API, gateway or broker is deployed or securely bridged. `SO_PEERCRED` plus HMAC admission remain separately unit-tested; durable replay store, live tenant authorization, live Docker socket denial, actual gateway-to-broker authentication, restart recovery and independent production isolation acceptance remain pending. Keep SEC/OPS Gate 1 **NO-GO**, PR #24 Draft, and `503 CV_SANDBOX_REQUIRED`.
