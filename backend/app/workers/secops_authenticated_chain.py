@@ -8,6 +8,7 @@ validate authenticated user/tenant and consent before preparing the first hop.
 No Docker access, parser invocation, or public route is introduced here.
 """
 
+import hashlib
 import json
 import secrets
 import socket
@@ -142,8 +143,6 @@ def relay_one(
     except (OSError, BrokerTransportRejected):
         raise ChainRejected() from None
     # Broker acknowledgement may only name the digest of exactly this request.
-    import hashlib
-
     digest = hashlib.sha256(raw).hexdigest()
     if response != ("ACCEPTED:" + digest).encode("ascii"):
         raise ChainRejected()
