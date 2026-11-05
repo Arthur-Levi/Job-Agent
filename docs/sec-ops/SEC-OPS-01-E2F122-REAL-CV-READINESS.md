@@ -64,3 +64,17 @@ python -m mypy
 - Ruff lint PASS, Ruff format PASS (168 files), MyPy PASS (160 source files).
 - Pytest **441 passed, 21 skipped, 3 xfailed, 1 warning**, including **16 new** `test_cv_real_intake.py` cases.
 - This is **synthetic input admission only**, not parser invocation, live CV support, or an end-to-end authorization test. All F.1.2.2 proof remains scoped to the pure policy and its mocks.
+
+
+## Operator Codespaces local acceptance — 16/16 PASS
+
+Operator-provided terminal output from `/workspaces/Job-Agent-SEC-OPS-01/backend`, security branch `feature/sec-ops-01-broker-isolation`, `HEAD=9895098` aligned with origin:
+
+```text
+16 passed, 1 warning in 0.05s
+All checks passed!                     # Ruff lint
+168 files already formatted           # Ruff format
+Success: no issues found in 160 source files  # MyPy
+```
+
+**Decision: F.1.2.2 pure-policy unit suite + local quality gate PASS.** Prior [GitHub Actions run #41948022622](https://github.com/Arthur-Levi/Job-Agent/actions/runs/41948022622) also had all six jobs green, backend 441 tests passed. This does not represent a real-user CV, integration of verified API session or tenant store, real authenticated API→gateway→broker, hardened parser, or LGPD approval. Keep SEC/OPS Gate 1 NO-GO and `CV_SANDBOX_REQUIRED` in effect.
