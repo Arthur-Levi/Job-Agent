@@ -5,6 +5,7 @@ import json
 import os
 import secrets
 import socket
+import struct
 import sys
 import threading
 import time
@@ -113,5 +114,5 @@ def test_tampered_signed_wire_payload_is_rejected() -> None:
 def test_oversized_wire_frame_is_rejected_before_body_read() -> None:
     receiver, sender = socket.socketpair()
     with receiver, sender, pytest.raises(BrokerTransportRejected, match="BROKER_FRAME_INVALID"):
-        sender.sendall(b"\\xff\\xff\\xff\\xff")
+        sender.sendall(struct.pack("!I", 0xFFFFFFFF))
         read_frame(receiver)
