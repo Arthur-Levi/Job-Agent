@@ -6,6 +6,7 @@ registered gateway UID. Its parser dispatch remains fail-closed unless actual
 12/12 LSM runtime attestation succeeds. No network listener or real CVs.
 """
 
+import contextlib
 import os
 import socket
 import stat
@@ -74,7 +75,6 @@ def open_private_broker_listener(path: str, *, broker_uid: int, gateway_gid: int
         raise PrivateSocketRejected()
     listener = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
     try:
-        os.chmod(parent, 0o710)  # no relaxation: same mode already verified
         # Group ownership of socket is inherited from directory's setgid bit
         # only in some setups; explicitly chown the socket after binding.
         old_umask = os.umask(0o117)
@@ -144,16 +144,12 @@ def serve_one_synthetic(
             send_frame(connection, b"F124C_ACCEPTED")
             return True
         except (OSError, TimeoutError, BrokerTransportRejected, SyntheticDispatchRejected):
-            try:
+            with contextlib.suppress(OSError, BrokerTransportRejected):
                 send_frame(connection, _DENIED)
-            except (OSError, BrokerTransportRejected):
-                pass
             return False
         except PrivateSocketRejected:
-            try:
+            with contextlib.suppress(OSError, BrokerTransportRejected):
                 send_frame(connection, _DENIED)
-            except (OSError, BrokerTransportRejected):
-                pass
             return False
 
 
