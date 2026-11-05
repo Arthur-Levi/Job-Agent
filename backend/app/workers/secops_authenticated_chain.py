@@ -109,6 +109,7 @@ def relay_one(
     api_gate: GatewayIdentityGate,
     gateway_service_id: str,
     broker_secret: bytes,
+    expected_broker_peer: tuple[int, int],
 ) -> ChainAcknowledgement:
     """Fail closed unless both peer and both HMAC admissions succeed.
 
@@ -117,8 +118,11 @@ def relay_one(
     """
     if len(broker_secret) < 32:
         raise ValueError("broker credential is too short")
-    frame = read_frame(api_connection, max_bytes=_MAX_TRANSPORT_BYTES)
-    raw, service, timestamp, nonce, signature = _decode_frame(frame)
+    try:
+        frame = read_frame(api_connection, max_bytes=_MAX_TRANSPORT_BYTES)
+        raw, service, timestamp, nonce, signature = _decode_frame(frame)
+    except (OSError, BrokerTransportRejected):
+        raise ChainRejected() from None
     try:
         api_gate.admit(
             api_connection,
@@ -142,6 +146,9 @@ def relay_one(
     # Invalid API messages must not even reach the broker socket.
     try:
         with broker_connect() as broker_connection:
+            # Do not accept a digest echo from a spoofed broker socket owner.
+            if GatewayIdentityGate.peer_identity(broker_connection) != expected_broker_peer:
+                raise ChainRejected()
             broker_connection.settimeout(3)
             send_frame(broker_connection, broker_frame)
             response = read_frame(broker_connection, max_bytes=1024)
