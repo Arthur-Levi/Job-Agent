@@ -6,8 +6,8 @@ retention, multi-instance concurrency, key rotation, and tenant authorization.
 
 import os
 import sqlite3
-from contextlib import closing
 import stat
+from contextlib import closing
 from pathlib import Path
 
 
