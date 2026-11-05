@@ -66,7 +66,10 @@ def test_signed_api_frame_is_derived_from_authenticated_backend_identity(
     assert repr(prepared) == "PreparedAuthenticatedSubmission(<REDACTED>)"
 
 
-@pytest.mark.parametrize("case", ["revoked", "wrong_user", "wrong_tenant", "no_consent", "no_member"])
+@pytest.mark.parametrize(
+    "case",
+    ["revoked", "wrong_user", "wrong_tenant", "no_consent", "no_member"],
+)
 def test_no_signature_issued_for_unauthorized_cv(
     monkeypatch: pytest.MonkeyPatch, case: str
 ) -> None:
