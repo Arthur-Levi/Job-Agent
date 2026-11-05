@@ -52,13 +52,12 @@ def _content_type(filename: str, content: bytes) -> str:
         return "pdf"
     if filename.lower().endswith(".docx") and content.startswith(b"PK\x03\x04"):
         return "docx"
-    if filename.lower().endswith(".txt"):
-        if b"\x00" not in content:
-            try:
-                content.decode("utf-8-sig", errors="strict")
-                return "txt"
-            except UnicodeError:
-                pass
+    if filename.lower().endswith(".txt") and b"\x00" not in content:
+        try:
+            content.decode("utf-8-sig", errors="strict")
+            return "txt"
+        except UnicodeError:
+            pass
     raise CvIntakeRejected("CV_FORMAT")
 
 
