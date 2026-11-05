@@ -29,6 +29,30 @@ class SqliteBrokerReplayStore:
             or parent.stat().st_uid != os.geteuid()
         ):
             raise ValueError("replay DB requires a broker-owned 0700 directory")
+        # Pre-create the file with a restrictive mode instead of relying on
+        # the process umask or the SQLite library's default creation mode.
+        # Fail closed for pre-existing world/group-accessible files.
+        try:
+            flags = os.O_CREAT | os.O_EXCL | os.O_WRONLY
+            if hasattr(os, "O_NOFOLLOW"):
+                flags |= os.O_NOFOLLOW
+            try:
+                descriptor = os.open(filename, flags, 0o600)
+            except FileExistsError:
+                if target.is_symlink():
+                    raise ValueError("replay DB requires a regular private file") from None
+            else:
+                os.close(descriptor)
+            file_info = target.stat()
+            if (
+                not stat.S_ISREG(file_info.st_mode)
+                or file_info.st_uid != os.geteuid()
+                or stat.S_IMODE(file_info.st_mode) != 0o600
+            ):
+                raise ValueError("replay DB requires a broker-owned 0600 regular file")
+        except OSError as exc:
+            raise RuntimeError("BROKER_REPLAY_STORE_UNAVAILABLE") from exc
+
         self._path = filename
         try:
             with closing(self._connect()) as conn:
@@ -37,14 +61,10 @@ class SqliteBrokerReplayStore:
                     "service_id TEXT NOT NULL, nonce TEXT NOT NULL, "
                     "expires_at INTEGER NOT NULL, PRIMARY KEY(service_id, nonce))"
                 )
-            if stat.S_IMODE(target.stat().st_mode) & 0o077:
-                raise ValueError("replay DB permissions must be private")
         except sqlite3.Error as exc:
             raise RuntimeError("BROKER_REPLAY_STORE_UNAVAILABLE") from exc
 
     def _connect(self) -> sqlite3.Connection:
-        # SQLite creates the file respecting the current process umask.
-        # The broker process must use umask 077 before initializing the store.
         conn = sqlite3.connect(self._path, timeout=2, isolation_level=None)
         conn.execute("PRAGMA busy_timeout=2000")
         return conn
