@@ -104,6 +104,70 @@ def synthetic_cases() -> tuple[tuple[str, bytes, str, bool], ...]:
     )
 
 
+# Read only kernel-provided process facts inside a disposable parser container.
+# No document content, environment secrets, host mounts or network calls.
+_SANDBOX_STATUS = """
+import json, os
+status = {}
+for line in open('/proc/self/status', encoding='ascii'):
+    if line.startswith(('Uid:', 'CapEff:', 'NoNewPrivs:', 'Seccomp:')):
+        key, value = line.split(':', 1)
+        status[key] = value.strip()
+try:
+    status['LSM'] = open('/proc/self/attr/current', encoding='utf-8').read().strip()
+except OSError:
+    status['LSM'] = 'UNVERIFIED'
+try:
+    status['Interfaces'] = sorted(os.listdir('/sys/class/net'))
+except OSError:
+    status['Interfaces'] = ['UNVERIFIED']
+print(json.dumps(status, sort_keys=True))
+"""
+
+
+def verify_kernel_sandbox_status(data: object) -> dict[str, bool]:
+    """Fail closed if kernel status is missing, conflicting or unconfined."""
+    if not isinstance(data, dict):
+        raise ParserLabRejected("SECOPS_RUNTIME_UNVERIFIED")
+    uid_field = data.get("Uid")
+    uid_values = uid_field.split() if isinstance(uid_field, str) else []
+    lsm = data.get("LSM")
+    interfaces = data.get("Interfaces")
+    checks = {
+        "NON_ROOT_UID": len(uid_values) == 4 and uid_values[0] == "65532",
+        "CAPABILITIES_DROPPED": data.get("CapEff") == "0000000000000000",
+        "NO_NEW_PRIVILEGES": data.get("NoNewPrivs") == "1",
+        "SECCOMP_FILTER": data.get("Seccomp") == "2",
+        "LSM_CONFINED": isinstance(lsm, str)
+        and bool(lsm)
+        and lsm != "UNVERIFIED"
+        and "unconfined" not in lsm.lower(),
+        "NETWORK_LOOPBACK_ONLY": interfaces == ["lo"],
+    }
+    if not all(checks.values()):
+        raise ParserLabRejected("SECOPS_RUNTIME_UNVERIFIED")
+    return checks
+
+
+def inspect_parser_runtime() -> dict[str, bool]:
+    """Inspect actual process state with the same restricted flags as the parser."""
+    name = "jobagent-f124-attestation-" + os.urandom(8).hex()
+    command = _container_command(name)[:-2] + ["-c", _SANDBOX_STATUS]
+    try:
+        output = _run_bounded(command, b"", {"PATH": "/usr/bin:/bin", "HOME": "/nonexistent"})
+    except (OSError, subprocess.TimeoutExpired):
+        raise ParserLabRejected("SECOPS_RUNTIME_UNVERIFIED") from None
+    finally:
+        _cleanup_container(name)
+    if output.returncode != 0 or len(output.stdout) > 8192:
+        raise ParserLabRejected("SECOPS_RUNTIME_UNVERIFIED")
+    try:
+        data: Any = json.loads(output.stdout)
+    except (ValueError, UnicodeError):
+        raise ParserLabRejected("SECOPS_RUNTIME_UNVERIFIED") from None
+    return verify_kernel_sandbox_status(data)
+
+
 def parser_request(filename: str, data: bytes) -> bytes:
     return json.dumps(
         {"filename": filename, "content": base64.b64encode(data).decode("ascii")},
@@ -133,7 +197,7 @@ def run_synthetic_parser_lab() -> dict[str, bool]:
     except (ValueError, UnicodeError):
         raise ParserLabRejected("SECOPS_RUNTIME_UNVERIFIED") from None
 
-    results: dict[str, bool] = {}
+    results = inspect_parser_runtime()
     for filename, content, expected_format, should_pass in synthetic_cases():
         request = parser_request(filename, content)
         if len(request) > 3_000_000:
