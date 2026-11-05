@@ -262,18 +262,7 @@ def main() -> int:
             )
             workers.append(gp)
             ready(gp)
-            raw = fake_envelope()
-            nonce = secrets.token_hex(16)
-            stamp = int(time.time())
-            results["AUTHORIZED_3_UID_HOPS"] = run_client(
-                gateway_path, "authorized", raw, nonce, stamp
-            )
-            results["API_HMAC_TAMPERING_DENIED"] = run_client(
-                gateway_path, "tampered", raw, secrets.token_hex(16), stamp
-            )
-            results["API_NONCE_REPLAY_DENIED"] = run_client(
-                gateway_path, "replay", raw, nonce, stamp
-            )
+            # Prove filesystem denials while BOTH listeners are still alive.
             for name, uid, gid, path in (
                 ("API_DIRECT_BROKER_DENIED", API_UID, API_GID, broker_path),
                 ("UNKNOWN_GATEWAY_DENIED", UNAUTHORIZED_UID, UNAUTHORIZED_GID, gateway_path),
@@ -291,6 +280,18 @@ def main() -> int:
                 results[name] = (
                     attempt.returncode == 0 and attempt.stdout.strip() == "PERMISSION_DENIED"
                 )
+            raw = fake_envelope()
+            nonce = secrets.token_hex(16)
+            stamp = int(time.time())
+            results["AUTHORIZED_3_UID_HOPS"] = run_client(
+                gateway_path, "authorized", raw, nonce, stamp
+            )
+            results["API_HMAC_TAMPERING_DENIED"] = run_client(
+                gateway_path, "tampered", raw, secrets.token_hex(16), stamp
+            )
+            results["API_NONCE_REPLAY_DENIED"] = run_client(
+                gateway_path, "replay", raw, nonce, stamp
+            )
 
             for process in workers:
                 process.wait(timeout=8)
