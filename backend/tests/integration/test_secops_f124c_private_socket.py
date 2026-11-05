@@ -116,9 +116,7 @@ def test_existing_path_refused_not_unlinked(tmp_path: Path) -> None:
     path = _private_path(tmp_path)
     path.write_bytes(b"sentinel")
     with pytest.raises(PrivateSocketRejected):
-        open_private_broker_listener(
-            str(path), broker_uid=os.geteuid(), gateway_gid=os.getegid()
-        )
+        open_private_broker_listener(str(path), broker_uid=os.geteuid(), gateway_gid=os.getegid())
     assert path.read_bytes() == b"sentinel"
 
 
@@ -139,9 +137,7 @@ def test_connection_fails_without_listener(tmp_path: Path) -> None:
 
 def test_listener_timeout(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     path = _private_path(tmp_path)
-    monkeypatch.setattr(
-        "app.workers.secops_f124c_private_socket.MAX_CLIENT_SECONDS", 0.03
-    )
+    monkeypatch.setattr("app.workers.secops_f124c_private_socket.MAX_CLIENT_SECONDS", 0.03)
     listener = open_private_broker_listener(
         str(path), broker_uid=os.geteuid(), gateway_gid=os.getegid()
     )
