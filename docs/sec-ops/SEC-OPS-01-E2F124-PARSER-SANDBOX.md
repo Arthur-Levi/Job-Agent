@@ -111,3 +111,21 @@ Seccomp: 2
 **Next non-destructive diagnostics:** query `docker inspect` of a live named disposable container for `.AppArmorProfile` and `.HostConfig.SecurityOpt`, compare its `/proc/self/attr/current`, check `/sys/kernel/security/lsm` and host `aa-status` if accessible. A controlled diagnostic can explicitly request `--security-opt apparmor=docker-default` (the Docker-documented default), but failure must remain NO-GO; do not edit Docker daemon settings on the shared Codespaces host. If confined profiles cannot be applied in Codespaces, move the operational parser acceptance to an isolated VM/host with AppArmor/SELinux enforced, while keeping code-only tests here.
 
 **Release:** SEC/OPS Gate 1 NO-GO; `503 CV_SANDBOX_REQUIRED` unchanged; PR #24 Draft. No real CV processing authorized.
+
+
+## Second operator diagnosis — explicit docker-default still unconfined (2026-11-05)
+
+The operator repeated the isolated Docker probe explicitly setting `--security-opt apparmor=docker-default`, without changing any other safety property. The resulting process showed:
+
+```text
+LSM: unconfined
+Uid: 65532 65532 65532 65532
+CapEff: 0000000000000000
+NoNewPrivs: 1
+Seccomp: 2
+APPARMOR_DIAGNOSTIC_EXIT=0
+```
+
+**F.1.2.4 remains NO-GO.** A Docker process exiting 0 means its diagnostic command ran; it is NOT proof that AppArmor was enforced. Even explicitly asking for `apparmor=docker-default` did not yield a confined LSM context in this environment. Kernel-level cause is still unknown. Do **not** disable the LSM requirement, use privileged containers or change security policy on a shared Codespaces host.
+
+**Safe next read-only diagnostic:** inspect the live disposable container's `docker inspect --format '{{json .AppArmorProfile}} {{json .HostConfig.SecurityOpt}}'`, compare `/proc/self/attr/current`, and query `/sys/kernel/security/lsm` and `aa-status` only if accessible, without host changes. If host cannot enforce AppArmor/SELinux, run the parser operational lab on a separate controlled Linux VM with LSM enforcement, preserving all container restrictions. Keep `CV_SANDBOX_REQUIRED` and PR Draft.
