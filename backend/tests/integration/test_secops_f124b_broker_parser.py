@@ -7,6 +7,7 @@ import os
 import socket
 import time
 from collections.abc import Iterator
+from contextlib import contextmanager
 from typing import Any
 from unittest.mock import Mock
 from uuid import uuid4
@@ -98,9 +99,14 @@ def _frame(
     )
 
 
+@contextmanager
 def _socket_pair() -> Iterator[tuple[socket.socket, socket.socket]]:
-    with socket.socketpair(socket.AF_UNIX, socket.SOCK_STREAM) as pair:
-        yield pair
+    sender, receiver = socket.socketpair(socket.AF_UNIX, socket.SOCK_STREAM)
+    try:
+        yield sender, receiver
+    finally:
+        sender.close()
+        receiver.close()
 
 
 def _synthetic_executor(job: Any) -> dict[str, Any]:
@@ -110,7 +116,7 @@ def _synthetic_executor(job: Any) -> dict[str, Any]:
 def test_authenticated_synthetic_only_dispatch(identity: tuple[BrokerTransportGate, bytes]) -> None:
     gate, key = identity
     raw = _envelope()
-    with socket.socketpair() as (sender, receiver):
+    with _socket_pair() as (sender, receiver):
         send_frame(sender, _frame(raw, key))
         result = dispatch_synthetic_authenticated(
             receiver, gate=gate, attestation=lambda: True, executor=_synthetic_executor
@@ -142,7 +148,7 @@ def test_denied_before_attestation_or_executor(
         raw = _envelope(user=str(uuid4()))
     proof = Mock(return_value=True)
     run = Mock(side_effect=_synthetic_executor)
-    with socket.socketpair() as (sender, receiver):
+    with _socket_pair() as (sender, receiver):
         send_frame(sender, _frame(raw, key, signature_key=wrong_key))
         with pytest.raises(SyntheticDispatchRejected, match="F124B_DENIED"):
             dispatch_synthetic_authenticated(
@@ -158,7 +164,7 @@ def test_no_parser_without_isolation(
     gate, key = identity
     proof = Mock(return_value=False)
     run = Mock()
-    with socket.socketpair() as (sender, receiver):
+    with _socket_pair() as (sender, receiver):
         send_frame(sender, _frame(_envelope(), key))
         with pytest.raises(SyntheticDispatchRejected, match="F124B_SANDBOX_REQUIRED"):
             dispatch_synthetic_authenticated(
@@ -175,7 +181,7 @@ def test_replay_is_denied_before_executor(
     signed = _frame(_envelope(), key, nonce="a" * 32)
     for count in range(2):
         run = Mock(side_effect=_synthetic_executor)
-        with socket.socketpair() as (sender, receiver):
+        with _socket_pair() as (sender, receiver):
             send_frame(sender, signed)
             if count == 0:
                 dispatch_synthetic_authenticated(
@@ -200,7 +206,7 @@ def test_bounded_concurrency_fail_closed(
     semaphore.acquire.return_value = False
     monkeypatch.setattr(module, "_PARSER_SLOTS", semaphore)
     run = Mock()
-    with socket.socketpair() as (sender, receiver):
+    with _socket_pair() as (sender, receiver):
         send_frame(sender, _frame(_envelope(), key))
         with pytest.raises(SyntheticDispatchRejected, match="F124B_BUSY"):
             dispatch_synthetic_authenticated(
@@ -219,7 +225,7 @@ def test_crash_does_not_leak_contents_or_semaphore(
     semaphore = Mock()
     semaphore.acquire.return_value = True
     monkeypatch.setattr(module, "_PARSER_SLOTS", semaphore)
-    with socket.socketpair() as (sender, receiver):
+    with _socket_pair() as (sender, receiver):
         send_frame(sender, _frame(_envelope(), key))
         with pytest.raises(SyntheticDispatchRejected, match="F124B_EXECUTOR_UNAVAILABLE") as exc:
             dispatch_synthetic_authenticated(
@@ -237,7 +243,7 @@ def test_default_isolation_gate_refuses_without_explicit_opt_in(
 ) -> None:
     monkeypatch.delenv("SECOPS_F124_ACK", raising=False)
     gate, key = identity
-    with socket.socketpair() as (sender, receiver):
+    with _socket_pair() as (sender, receiver):
         send_frame(sender, _frame(_envelope(), key))
         with pytest.raises(SyntheticDispatchRejected, match="F124B_SANDBOX_REQUIRED"):
             dispatch_synthetic_authenticated(
@@ -249,7 +255,7 @@ def test_invalid_executor_output_is_rejected(
     identity: tuple[BrokerTransportGate, bytes]
 ) -> None:
     gate, key = identity
-    with socket.socketpair() as (sender, receiver):
+    with _socket_pair() as (sender, receiver):
         send_frame(sender, _frame(_envelope(), key))
         with pytest.raises(SyntheticDispatchRejected, match="F124B_EXECUTOR_UNAVAILABLE"):
             dispatch_synthetic_authenticated(
