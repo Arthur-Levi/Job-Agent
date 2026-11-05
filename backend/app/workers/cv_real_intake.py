@@ -77,11 +77,18 @@ def authorize_cv_submission(
     """
     if (
         job.operation != "submit"
-        or not explicit_processing_consent
+        or explicit_processing_consent is not True
         or job.user_id != authenticated_user_id
         or job.tenant_id != requested_tenant_id
-        or not authorizer.may_submit(authenticated_user_id, requested_tenant_id)
     ):
+        raise CvIntakeRejected()
+    try:
+        allowed = authorizer.may_submit(authenticated_user_id, requested_tenant_id)
+    except Exception:
+        # An unavailable or broken tenant authority must not leak details or
+        # silently grant access. Never authorize using user-supplied claims.
+        raise CvIntakeRejected() from None
+    if allowed is not True:
         raise CvIntakeRejected()
     content = job.document
     if (
