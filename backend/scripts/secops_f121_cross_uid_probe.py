@@ -173,9 +173,7 @@ def run_case(
         stderr = broker.stderr.read() if broker.stderr is not None else ""
         raise RuntimeError(f"broker did not initialize: {ready} {stderr[:160]}")
     if case in {"api-blocked", "unknown-blocked"}:
-        uid, gid = (
-            (API_UID, API_GID) if case == "api-blocked" else (UNKNOWN_UID, UNKNOWN_GID)
-        )
+        uid, gid = (API_UID, API_GID) if case == "api-blocked" else (UNKNOWN_UID, UNKNOWN_GID)
         args = ["--role", "check-private", ingress]
         result = subprocess.run(
             [sys.executable, __file__, *args],
@@ -250,12 +248,8 @@ def main() -> int:
             # Permissions measured only after reclaiming directories; no DAC override.
             os.chown(ingress_dir, 0, 0)
             os.chown(private_dir, 0, 0)
-            results["INGRESS_DIRECTORY_0710"] = (
-                stat.S_IMODE(ingress_dir.stat().st_mode) == 0o710
-            )
-            results["BROKER_DIRECTORY_0700"] = (
-                stat.S_IMODE(private_dir.stat().st_mode) == 0o700
-            )
+            results["INGRESS_DIRECTORY_0710"] = stat.S_IMODE(ingress_dir.stat().st_mode) == 0o710
+            results["BROKER_DIRECTORY_0700"] = stat.S_IMODE(private_dir.stat().st_mode) == 0o700
             results["REPLAY_DB_0600"] = stat.S_IMODE(Path(db).stat().st_mode) == 0o600
             results["DISTINCT_UIDS"] = len({API_UID, GATEWAY_UID, BROKER_UID}) == 3
             print(
