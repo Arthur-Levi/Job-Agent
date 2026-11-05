@@ -48,8 +48,8 @@ An independently approved lab operator may prepare accounts using these commands
 
 ```bash
 sudo groupadd --system ja_gateway_ipc
-sudo useradd --system --no-create-home --shell /usr/sbin/nologin ja_gateway
-sudo useradd --system --no-create-home --shell /usr/sbin/nologin ja_broker
+sudo useradd --system --user-group --no-create-home --shell /usr/sbin/nologin ja_gateway
+sudo useradd --system --user-group --no-create-home --shell /usr/sbin/nologin ja_broker
 sudo usermod -aG ja_gateway_ipc ja_gateway
 id ja_gateway
 id ja_broker
