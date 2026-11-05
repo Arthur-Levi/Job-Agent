@@ -129,3 +129,21 @@ APPARMOR_DIAGNOSTIC_EXIT=0
 **F.1.2.4 remains NO-GO.** A Docker process exiting 0 means its diagnostic command ran; it is NOT proof that AppArmor was enforced. Even explicitly asking for `apparmor=docker-default` did not yield a confined LSM context in this environment. Kernel-level cause is still unknown. Do **not** disable the LSM requirement, use privileged containers or change security policy on a shared Codespaces host.
 
 **Safe next read-only diagnostic:** inspect the live disposable container's `docker inspect --format '{{json .AppArmorProfile}} {{json .HostConfig.SecurityOpt}}'`, compare `/proc/self/attr/current`, and query `/sys/kernel/security/lsm` and `aa-status` only if accessible, without host changes. If host cannot enforce AppArmor/SELinux, run the parser operational lab on a separate controlled Linux VM with LSM enforcement, preserving all container restrictions. Keep `CV_SANDBOX_REQUIRED` and PR Draft.
+
+
+## Third operator diagnosis — AppArmor enabled but no demonstrable confinement (2026-11-05)
+
+Operator's read-only Codespaces commands returned:
+
+```text
+/sys/module/apparmor/parameters/enabled: Y
+/sys/kernel/security/apparmor/profiles | grep docker-default: PERFIL_NAO_VISIVEL
+/proc/self/attr/current: unconfined
+docker context show: default
+```
+
+**Interpretation:** `Y` establishes that AppArmor is enabled at the kernel-module level. `PERFIL_NAO_VISIVEL` is **ambiguous** because the command silenced read errors; it does *not* establish that the profile is absent. The Codespaces shell process reports `unconfined`, and earlier the disposable parser also reported `unconfined`, including with explicit `--security-opt apparmor=docker-default`. Docker's `default` context is a client selection, not a proof of runtime confinement.
+
+**Engineering decision:** preserve Codespaces for code, synthetic tests and CI; **do not approve F.1.2.4 operational execution there** without affirmative effective LSM evidence. Use a separately administered Linux VM/host with AppArmor/SELinux enforceable for the parser laboratory, first confirming `/proc/self/attr/current` is a confined profile and the Docker daemon actually enforces it, then executing six synthetic files and verifying all 12 F.1.2.4 checks. No host privilege escalation, AppArmor disablement or policy bypass. Keep beta CV ingestion and `CV_SANDBOX_REQUIRED` fail-closed.
+
+**Status:** F.1.2.3 checkpoint remains PASS; F.1.2.4 unit/CI PASS only; F.1.2.4 operational NO-GO; SEC/OPS Gate 1 NO-GO.
