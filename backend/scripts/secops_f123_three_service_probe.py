@@ -191,9 +191,7 @@ def ready(proc: subprocess.Popen[str]) -> None:
         raise RuntimeError("synthetic service failed to start")
 
 
-def run_client(
-    gateway_path: str, mode: str, raw: bytes, nonce: str, stamp: int
-) -> bool:
+def run_client(gateway_path: str, mode: str, raw: bytes, nonce: str, stamp: int) -> bool:
     child = subprocess.run(
         [
             sys.executable,
