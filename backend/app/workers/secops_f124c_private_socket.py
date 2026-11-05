@@ -13,6 +13,7 @@ import stat
 from collections.abc import Callable
 from pathlib import Path
 
+from app.services.resume_worker import MAX_WORKER_SECONDS
 from app.workers.broker_transport_auth import BrokerTransportGate, BrokerTransportRejected
 from app.workers.broker_transport_wire import read_frame, send_frame
 from app.workers.secops_f124b_broker_parser import (
@@ -23,6 +24,7 @@ from app.workers.secops_f124b_broker_parser import (
 
 MAX_SOCKET_PATH = 100
 MAX_CLIENT_SECONDS = 3.0
+MAX_RESULT_SECONDS = MAX_WORKER_SECONDS + MAX_CLIENT_SECONDS + 2
 # This is a compact, opaque response; the parser's output is never written.
 _DENIED = b"F124C_DENIED"
 
@@ -161,6 +163,9 @@ def connect_private_broker(path: str, *, timeout: float = MAX_CLIENT_SECONDS) ->
     try:
         client.settimeout(timeout)
         client.connect(path)
+        # Parser has an independently bounded 10-second wall clock; do not
+        # truncate valid replies with the shorter handshake/connect timeout.
+        client.settimeout(MAX_RESULT_SECONDS)
         return client
     except OSError:
         client.close()
