@@ -75,3 +75,13 @@ Expected JSON fields: `NON_ROOT_UID`, `CAPABILITIES_DROPPED`, `NO_NEW_PRIVILEGES
 - Verify root filesystem read-only, cgroup CPU/RAM/PID controls and actual LSM/seccomp profile **using separate runtime evidence**, not only launch arguments.
 - Audited consent, tenant membership, retention/deletion and LGPD review, secret rotation, logging redaction and human confirmation before storing extracted career facts.
 - Independent SEC/OPS Gate 1 signoff before enabling real-person CV processing.
+
+
+## CI evidence — parser lab policy and synthetic fixtures
+
+Code commit `7a475714190da4ffba838dd356833b20ff40cc71`, [GitHub Actions run #42056025067](https://github.com/Arthur-Levi/Job-Agent/actions/runs/42056025067), backend **SUCCESS**:
+- Ruff check PASS; Ruff format PASS (**176 files**).
+- MyPy PASS (**166 source files**).
+- Pytest **470 passed, 21 skipped, 3 xfailed, 1 warning** (**15 new** parser lab tests).
+- Audit, frontend, browser-smoke, sandbox-smoke PASS; real-browser-postgres-e2e still running at evidence capture.
+- **Do not label runtime F.1.2.4 PASS** based on CI; the opt-in Docker parser probe does not run in GitHub Actions. The operator must independently provide all twelve true checks + `F124_EXIT=0` from the explicitly controlled Docker environment.
