@@ -96,7 +96,20 @@ def test_synthetic_lab_does_not_need_real_docker_for_contract_validation(
         ),
     )
 
+    monkeypatch.setattr(
+        lab,
+        "inspect_parser_runtime",
+        lambda: {
+            "NON_ROOT_UID": True,
+            "CAPABILITIES_DROPPED": True,
+            "NO_NEW_PRIVILEGES": True,
+            "SECCOMP_FILTER": True,
+            "LSM_CONFINED": True,
+            "NETWORK_LOOPBACK_ONLY": True,
+        },
+    )
     names: list[str] = []
+
     def synthetic_runner(
         command: list[str], request: bytes, env: dict[str, str]
     ) -> subprocess.CompletedProcess[bytes]:
@@ -122,7 +135,7 @@ def test_synthetic_lab_does_not_need_real_docker_for_contract_validation(
     monkeypatch.setattr(lab, "_run_bounded", synthetic_runner)
     monkeypatch.setattr(lab, "_cleanup_container", cleanup)
     result = lab.run_synthetic_parser_lab()
-    assert len(result) == 6
+    assert len(result) == 12
     assert all(result.values())
     assert len(names) == 6
     assert cleanup.call_count == 6
@@ -137,6 +150,8 @@ def test_parser_failure_always_attempts_cleanup(monkeypatch: pytest.MonkeyPatch)
             ["docker"], 0, b'["name=seccomp,profile=builtin","name=apparmor"]'
         ),
     )
+    monkeypatch.setattr(lab, "inspect_parser_runtime", lambda: {})
+
     def fail(*args: object, **kwargs: object) -> subprocess.CompletedProcess[bytes]:
         raise subprocess.TimeoutExpired(["docker"], 10)
 
@@ -146,3 +161,25 @@ def test_parser_failure_always_attempts_cleanup(monkeypatch: pytest.MonkeyPatch)
     with pytest.raises(lab.ParserLabRejected, match="UNAVAILABLE"):
         lab.run_synthetic_parser_lab()
     cleanup.assert_called_once()
+
+
+def test_kernel_attestation_requires_real_isolated_process() -> None:
+    good = {
+        "Uid": "65532 65532 65532 65532",
+        "CapEff": "0000000000000000",
+        "NoNewPrivs": "1",
+        "Seccomp": "2",
+        "LSM": "docker-default (enforce)",
+        "Interfaces": ["lo"],
+    }
+    assert all(lab.verify_kernel_sandbox_status(good).values())
+    for key, unsafe in (
+        ("Uid", "0 0 0 0"),
+        ("CapEff", "0000000000002000"),
+        ("NoNewPrivs", "0"),
+        ("Seccomp", "0"),
+        ("LSM", "unconfined"),
+        ("Interfaces", ["lo", "eth0"]),
+    ):
+        with pytest.raises(lab.ParserLabRejected, match="UNVERIFIED"):
+            lab.verify_kernel_sandbox_status({**good, key: unsafe})
