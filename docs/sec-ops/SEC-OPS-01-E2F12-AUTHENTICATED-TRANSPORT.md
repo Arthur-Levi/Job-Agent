@@ -41,3 +41,13 @@ python -m mypy
 ```
 
 **F.1.2 PASS is limited to code contract and synthetic transport tests**; operational F.1.2 requires broker-owned cross-UID authenticated endpoint, distributed replay protection, adversarial runner evidence and human signoff.
+
+## CI evidence — synthetic transport contract
+
+At commit `2274b8179c6ed3dcf70350bddaf5bff76102312c`, [GitHub Actions run #41941958986](https://github.com/Arthur-Levi/Job-Agent/actions/runs/41941958986), **backend job SUCCESS**:
+- `ruff check .` PASS; `ruff format --check .` PASS (163 files);
+- `mypy` PASS (156 source files);
+- `pytest` **416 passed, 21 skipped, 3 xfailed, 1 warning**, including the new `test_synthetic_gateway_broker_wire.py` (3 tests) and `test_broker_transport_auth.py` (11 tests).
+- Audit, frontend, sandbox-smoke, browser-smoke also completed SUCCESS; real-browser-postgres-e2e was still in progress at evidence capture.
+
+**Acceptance:** signed **in-process/socketpair prototype** and fail-closed regression matrix PASS. A live authenticated gateway-to-broker service pair across real UIDs, real packet/session-level authorization, durable nonce store and operational restart/abuse validation **remain NO-GO**.
