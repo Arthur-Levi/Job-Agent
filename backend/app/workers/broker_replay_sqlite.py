@@ -56,8 +56,7 @@ class SqliteBrokerReplayStore:
                 conn.execute("BEGIN IMMEDIATE")
                 conn.execute("DELETE FROM seen_nonces WHERE expires_at < ?", (now,))
                 cursor = conn.execute(
-                    "INSERT OR IGNORE INTO seen_nonces(service_id,nonce,expires_at) "
-                    "VALUES (?,?,?)",
+                    "INSERT OR IGNORE INTO seen_nonces(service_id,nonce,expires_at) VALUES (?,?,?)",
                     (service_id, nonce, now + 120),
                 )
                 conn.execute("COMMIT")
