@@ -166,7 +166,9 @@ def test_dispatch_rejection_returns_only_opaque_code(tmp_path: Path) -> None:
     )
     from app.workers.secops_f124b_broker_parser import SyntheticDispatchRejected
 
-    def rejected(*args: Any, **kwargs: Any) -> SyntheticDispatchResult:
+    def rejected(connection: socket.socket, *, gate: Any) -> SyntheticDispatchResult:
+        if read_frame(connection, max_bytes=128) != b"synthetic invalid request":
+            raise ValueError("unexpected synthetic fixture")
         raise SyntheticDispatchRejected("PRIVATE_MESSAGE_WOULD_LEAK")
 
     outcomes: list[bool] = []
