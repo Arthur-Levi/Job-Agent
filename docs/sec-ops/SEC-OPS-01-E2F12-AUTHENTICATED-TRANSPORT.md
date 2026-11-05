@@ -51,3 +51,17 @@ At commit `2274b8179c6ed3dcf70350bddaf5bff76102312c`, [GitHub Actions run #41941
 - Audit, frontend, sandbox-smoke, browser-smoke also completed SUCCESS; real-browser-postgres-e2e was still in progress at evidence capture.
 
 **Acceptance:** signed **in-process/socketpair prototype** and fail-closed regression matrix PASS. A live authenticated gateway-to-broker service pair across real UIDs, real packet/session-level authorization, durable nonce store and operational restart/abuse validation **remain NO-GO**.
+
+## Operator Codespaces local acceptance — 2026-11-04/05
+
+Operator-provided terminal evidence from `/workspaces/Job-Agent-SEC-OPS-01/backend`, branch `feature/sec-ops-01-broker-isolation`, `HEAD=a6f16a6`, tracking and synchronized with `origin/feature/sec-ops-01-broker-isolation`; status output lists no local changes.
+
+```text
+14 passed, 1 warning in 0.18s
+All checks passed!
+163 files already formatted
+Success: no issues found in 156 source files
+HEAD: a6f16a6
+```
+
+**Local acceptance: PASS**, strictly for the 14 synthetic unit/integration tests and quality checks of the F.1.2 transport contract. This does not prove cross-UID deployment of a broker-owned listener, durable replay, tenant authorization, or safe parser access. `503 CV_SANDBOX_REQUIRED` remains active, PR #24 Draft, SEC/OPS Gate 1 **NO-GO**.
