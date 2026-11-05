@@ -93,7 +93,7 @@ def test_mutated_payload_is_denied(gateway: BrokerTransportGate) -> None:
     now = int(time.time())
     nonce = secrets.token_hex(16)
     sig = sign_forward(KEY, raw, timestamp=now, nonce=nonce)
-    mutated = raw.replace(b"SYNTHETIC ONLY", b"ALTERED DATA") if b"SYNTHETIC ONLY" in raw else raw + b" "
+    mutated = raw + b" "
     with (
         sockets() as peer,
         pytest.raises(BrokerTransportRejected, match="BROKER_UNAUTHORIZED"),
@@ -115,19 +115,11 @@ def test_replayed_nonce_is_denied(gateway: BrokerTransportGate) -> None:
     "condition",
     ["unknown_service", "wrong_uid", "expired", "future", "malformed_sig", "bad_body"],
 )
-def test_denied_gateway_or_signature(
-    gateway: BrokerTransportGate, condition: str
-) -> None:
+def test_denied_gateway_or_signature(gateway: BrokerTransportGate, condition: str) -> None:
     raw = job_payload()
     with sockets() as peer:
         if condition == "wrong_uid":
-            class RejectPeer(BrokerTransportGate):
-                def admit(  # type: ignore[override]
-                    self, connection: socket.socket, payload: bytes, **kwargs: object
-                ) -> object:
-                    return super().admit(connection, payload, **kwargs)  # type: ignore[arg-type]
-
-            # Distinct fake service registry UID; kernel socket identity remains unchanged.
+            # Distinct registry UID; actual kernel peer identity remains unchanged.
             gate = BrokerTransportGate(
                 GatewayWorkload("gateway-synthetic", os.getuid() + 99, os.getgid(), KEY),
                 MemoryAdmissionStore(),
