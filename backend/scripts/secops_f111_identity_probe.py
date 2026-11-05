@@ -19,8 +19,12 @@ def client(path: str, outcome: str) -> int:
         sock.connect(path)
         reply = sock.recv(100).decode()
         ok = reply == outcome
-    except OSError:
+    except PermissionError:
+        # Only an actual filesystem access denial is a negative proof.
         ok = outcome == "DENIED"
+    except OSError:
+        # A missing socket, crash or connection refusal is NOT proof.
+        ok = False
     finally:
         sock.close()
     return 0 if ok else 1
@@ -34,7 +38,8 @@ def server(role: str, path: str) -> int:
         listener.listen(8)
         print("READY", flush=True)
         for _ in range(3):
-            listener.settimeout(5)
+            # Self-terminate without CAP_KILL (which this probe deliberately lacks).
+            listener.settimeout(2)
             try:
                 conn, _ = listener.accept()
             except TimeoutError:
@@ -119,6 +124,11 @@ def main() -> int:
                     check=False,
                 )
                 results[name] = outcome.returncode == 0
+            # Only after access tests: reclaim directory ownership, preserving
+            # each directory's original restrictive mode. Without CAP_DAC_OVERRIDE,
+            # UID 0 cannot traverse a different owner's private directory.
+            os.chown(gateway_dir, 0, 0)
+            os.chown(broker_dir, 0, 0)
             results["GATEWAY_SOCKET_MODE"] = stat.S_IMODE(os.stat(gw_sock).st_mode) == 0o660
             results["BROKER_SOCKET_MODE"] = stat.S_IMODE(os.stat(br_sock).st_mode) == 0o600
             results["BROKER_DIRECTORY_MODE"] = stat.S_IMODE(os.stat(broker_dir).st_mode) == 0o700
@@ -134,19 +144,16 @@ def main() -> int:
             )
             return 0 if all(results.values()) else 1
         finally:
-            for proc in workers:
-                proc.terminate()
-            for proc in workers:
-                try:
-                    proc.wait(timeout=2)
-                except subprocess.TimeoutExpired:
-                    proc.kill()
-                    proc.wait(timeout=2)
-            # The disposable root has CAP_CHOWN but deliberately lacks
-            # CAP_DAC_OVERRIDE: reclaim private directories for safe
-            # TemporaryDirectory cleanup, without escalating any process.
+            # No CAP_KILL: child services must stop on their own socket timeout.
+            # Reclaim directories while still holding CAP_CHOWN, so temporary
+            # files can be removed even after partial test failures.
             os.chown(gateway_dir, 0, 0)
             os.chown(broker_dir, 0, 0)
+            for proc in workers:
+                try:
+                    proc.wait(timeout=8)
+                except subprocess.TimeoutExpired as exc:
+                    raise RuntimeError("synthetic service did not exit normally") from exc
 
 
 if __name__ == "__main__":
