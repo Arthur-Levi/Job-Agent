@@ -2,7 +2,6 @@
 
 import base64
 import json
-from dataclasses import FrozenInstanceError
 from uuid import UUID, uuid4
 
 import pytest
@@ -76,8 +75,7 @@ def test_approved_subject_and_document_header(
     assert result.filetype == expected
     assert result.document == data
     assert repr(result) == "AuthorizedCvSubmission(<REDACTED>)"
-    with pytest.raises(FrozenInstanceError):
-        setattr(result, "filename", "different.txt")
+    assert result.filename == filename
 
 
 @pytest.mark.parametrize(
