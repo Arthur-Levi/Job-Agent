@@ -121,6 +121,7 @@ def test_rejects_not_submit() -> None:
     with pytest.raises(CvIntakeRejected):
         authorize(replace(job, operation="status"), user)
 
+
 class UnavailableMembership:
     def may_submit(self, authenticated_user_id: UUID, tenant_id: str) -> bool:
         raise RuntimeError("internal-sensitive-membership-error")
