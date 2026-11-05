@@ -119,7 +119,7 @@ def _run(
             try:
                 accepted = relay_one(
                     gateway_in,
-                    gateway_out,
+                    broker_connect=lambda: gateway_out,
                     api_gate=gate_api,
                     gateway_service_id="gateway",
                     broker_secret=BROKER_KEY,
