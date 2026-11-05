@@ -126,6 +126,7 @@ def gateway(ingress: str, broker_path: str) -> int:
                             api_gate=gate,
                             gateway_service_id=GATEWAY_SERVICE,
                             broker_secret=BROKER_KEY,
+                            expected_broker_peer=(BROKER_UID, BROKER_GROUP),
                         )
                         send_frame(
                             connection, b"ACCEPTED" if result.broker_acknowledged else b"DENIED"
