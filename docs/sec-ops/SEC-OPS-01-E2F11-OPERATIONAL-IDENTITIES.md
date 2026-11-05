@@ -72,3 +72,14 @@ GitHub commit `fb8c36e0f17f4d2bf82d33af84cb42d37df92ca2`, [Actions run #41934846
 A locally run version of the same functional probe (updated for the final exception handling) returned **8/8 PASS** in an independent disposable Linux sandbox. GitHub Actions backend currently validates the Python script's code quality, **not its elevated multi-UID runtime experiment**, because it is a standalone opt-in script rather than a regular pytest test.
 
 **Security decision unchanged: real API→gateway→broker identity and authority boundaries still require independent VM acceptance.**
+
+## Operator negative finding and minimal-capability repair — 2026-11-04
+
+An operator ran the probe in the disposable `python:3.12-slim` container with `--cap-drop ALL` and only `CHOWN,SETUID,SETGID`. The first iteration reached the socket checks but failed to `stat` another UID's protected directory (`EACCES`); its cleanup then failed to `SIGTERM` a child owned by a different UID (`EPERM`) without `CAP_KILL`, and thus failed to remove private temporary files.
+
+Commit `4ba769109257a6386d727b16e6a7c184f62f22c9` corrects the probe, **without adding Linux capabilities**:
+- bounded server accept timeout and natural child shutdown; parent `wait()` instead of `SIGTERM/SIGKILL`;
+- after the actual access-denial tests, reclaim directory ownership with the already-present `CAP_CHOWN`, then read socket metadata, preserving modes;
+- only a genuine `PermissionError` satisfies an expected denied connection; unrelated connection errors now fail the evidence check.
+
+This is a **runtime correction awaiting a new operator-run eight-check JSON PASS**. Failure from the earlier run is *not* proof of isolation acceptance. No production API/worker, parser, DB or customer data were touched. The CI of commit `4ba7691` validates code quality and regression tests, **not** this opt-in root-in-disposable-container probe.
