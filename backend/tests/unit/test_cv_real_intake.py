@@ -67,9 +67,7 @@ def authorize(
         ("synthetic.txt", b"synthetic resume header", "txt"),
     ],
 )
-def test_approved_subject_and_document_header(
-    filename: str, data: bytes, expected: str
-) -> None:
+def test_approved_subject_and_document_header(filename: str, data: bytes, expected: str) -> None:
     job, user = synthetic_job(filename, data)
     result = authorize(job, user)
     assert result.filetype == expected
