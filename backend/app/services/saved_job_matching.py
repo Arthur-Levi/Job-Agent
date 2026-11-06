@@ -72,9 +72,9 @@ def explain_saved_job(db: Session, user_id: UUID, job_id: UUID) -> dict[str, Any
         try:
             items.append(
                 VacancyRequirement(
-                    category=category,  # type: ignore[arg-type]
+                    category=category,
                     name=name,
-                    importance=importance,  # type: ignore[arg-type]
+                    importance=importance,
                 )
             )
         except ValueError:
