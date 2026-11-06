@@ -33,3 +33,10 @@ git status --short --branch
 ```
 
 **Operational status:** SEC/OPS Gate 1 remains NO-GO; the F124D.1 VM acceptance is deferred, not waived. No real CVs permitted.
+
+
+## CI result — 2026-11-05
+
+Implementation commit `93ddebf059654ccb99552b8a9d3bf6520f6d3a62` validated by [GitHub Actions run #42137147093](https://github.com/Arthur-Levi/Job-Agent/actions/runs/42137147093): backend **SUCCESS** — **512 passed, 21 skipped, 3 xfailed, 1 warning**, including 11 new saved-job matching unit cases. Ruff lint PASS, Ruff format PASS (184 files), MyPy strict PASS (174 source files). Audit, frontend, sandbox-smoke and browser-smoke SUCCESS. Real-browser-postgres-e2e was in progress when the record was made.
+
+**Result does not certify real-tenant / real-candidate beta, or a React edit-and-review UX.** F124D.1 operational isolation remains deferred NO-GO; CV upload remains blocked.
