@@ -3,11 +3,12 @@ from typing import Annotated
 
 from fastapi import APIRouter, Query, Response
 
-from app.api.deps import CurrentUserDep, JobServiceDep
+from app.api.deps import CurrentUserDep, JobServiceDep, SessionDep
 from app.core.errors import error_responses
 from app.domain.enums import JobStatus
 from app.schemas.common import DEFAULT_LIMIT, MAX_LIMIT, MAX_OFFSET, Page
 from app.schemas.job import JobCreate, JobRead, JobUpdate
+from app.services.saved_job_matching import explain_saved_job
 
 router = APIRouter(prefix="/jobs", tags=["jobs"])
 
@@ -50,3 +51,11 @@ def update_job(
 def delete_job(job_id: uuid.UUID, user: CurrentUserDep, service: JobServiceDep) -> Response:
     service.delete(user, job_id)
     return Response(status_code=204)
+
+
+@router.post("/{job_id}/explain", responses=error_responses(401, 404, 422))
+def explain_job_match(
+    job_id: uuid.UUID, user: CurrentUserDep, session: SessionDep
+) -> dict[str, object]:
+    """Read-only, owner-scoped and exact Fact Ledger comparison; no ATS scores."""
+    return explain_saved_job(session, user.id, job_id)
