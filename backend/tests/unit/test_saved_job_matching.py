@@ -64,9 +64,9 @@ def test_owner_scoped_job_query_and_existing_matching_reused(
     assert job_id in sql.compile().params.values()
     request = matcher.call_args.args[2]
     assert request.vacancy_title == "Synthetic Analyst"
-    assert [item.name for item in request.requirements] == ["Computing", "python"]
-    assert request.requirements[0].importance == "preferred"
-    assert request.requirements[1].importance == "required"
+    assert [item.name for item in request.requirements] == ["python", "Computing"]
+    assert request.requirements[0].importance == "required"
+    assert request.requirements[1].importance == "preferred"
     assert result["saved_job_id"] == str(job_id)
     assert result["vacancy_source"] == "owned_saved_job_requirements_unverified"
     assert result["summary"] == {"documented_match": 0}
